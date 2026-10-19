@@ -41,6 +41,8 @@ application identity. Do not upgrade or reuse the existing control-plane schema1
 Check identity/version/expected schema before writable PRAGMAs or schema changes;
 initialize only a genuinely empty database. Foreign, corrupt, uncertain, unsupported
 or malformed records fail closed without drop, repair, reset, pruning or mutation.
+Reject foreign triggers/views/indexes and shape-valid but impossible stored states;
+an application ID and parseable JSON alone do not establish a supported journal.
 The existing ControlPlane gets only a nonzero foreign-application-ID rejection
 before its writable PRAGMAs, so the two databases reject reverse path mix-ups too.
 
@@ -52,6 +54,11 @@ Idempotency replay is an original result, not fresh current authorization; calle
 must read/revalidate current state. Never turn stale replay into executable work.
 
 Uncertainty persists per item across process/reopen and blocks the whole plan.
+It also fences replacement plans for the same exact owner/source/version/revision
+and trusted physical aliases. A new plan or different opaque alias cannot erase
+an unresolved outcome. Required surviving-copy/keeper evidence excludes the entire
+selected target set and physical aliases, preventing circular A-preserves-B and
+B-preserves-A reasoning. Opaque distinct IDs alone do not prove independence.
 Reconciliation consults the trusted adapter and can only establish verified
 no-change; caller-provided outcomes and blind destructive retries are absent.
 Clock rollback, failed transactions, concurrent instances and interrupted writes

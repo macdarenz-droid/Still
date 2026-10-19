@@ -445,7 +445,12 @@ Before confirmation require the current owner/exact ref/source revision, real
 pin/fidelity/access, known protection/Favorites/keepers/dependencies and required
 copy/restore evidence; unknown/changed/expired facts block. Revalidation must not
 silently approve unseen evidence, and uncertainty cannot reset through refresh,
-reopen, cancellation, repeated commands or a new confirmation. No saved record or
+reopen, cancellation, repeated commands or a new confirmation. A required surviving
+copy must exclude every selected target and its physical aliases.
+Fence unresolved source uncertainty across replacement plans and trusted aliases;
+bounded history must reject additions rather than drop unresolved/old evidence.
+Reopen rejects foreign schema objects and semantically impossible records before
+writable setup. No saved record or
 proof identifier alone grants access, execution or recovery. No media bytes/hashes,
 filenames, URLs or private media are needed in this development metadata journal.
 
