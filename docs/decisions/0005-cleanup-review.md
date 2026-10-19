@@ -55,8 +55,8 @@ bytes at a reused handle do not inherit it; equal bytes elsewhere can match only
 after fresh hashing. Missing/withdrawn content does not garbage-collect choices.
 
 Use a separate strict versioned bounded app-private record with a monotonically
-revisioned snapshot. Mutations compare the expected current revision. Publish and
-serialize the entire durable read/compare/write across ALL store instances in the
+revisioned snapshot. Mutations compare the expected current revision. Serialize
+the entire durable read/compare/write across ALL store instances in the
 process, including work surviving UI recreation; reject revision exhaustion.
 Check live authority/cancellation before write admission. An already-admitted
 small synchronous annotation transaction may finish after lock, but must never
