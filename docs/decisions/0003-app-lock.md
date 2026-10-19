@@ -30,6 +30,12 @@ must not silently disable the lock or claim successful setup. Android's ordinary
 SharedPreferences may silently load defaults after XML corruption, and a failed
 commit can still change its in-memory value; it is unsuitable as the security
 flag here. Existing app-wide backup exclusions apply to this local setting.
+A pending-write marker fences an uncertain transaction: sync its bytes and parent
+directory before changing the setting, sync the replacement record and directory,
+read back the strict record, then remove the marker only after success. A remaining
+marker forces locked-on recovery on the next load. Deletion of the marker is the
+last operation; a crash that restores that marker conservatively relocks the app.
+The marker contains no authentication result, credential or unlocked session.
 
 Place the entire gallery behind the gate, including media queries, viewers and
 Settings. Protect Activity and inherited viewer windows from screenshots/recents

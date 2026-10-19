@@ -188,3 +188,90 @@ its schema. No cloud copies, provider accounts or production deployment exist.
   cleanup safety, vault/app lock and store entitlement: **not implemented or tested**.
 - Production identity, PostgreSQL, worker deployment, provider configuration,
   release signing and store/public-site publication: **out of this milestone**.
+
+## CP3 — Whole-app lock development continuation
+
+The owner clarified that development should continue without waiting for release
+device verification. R14 / F04 now has an optional whole-app access gate using
+platform biometric/device credentials, fresh authenticated enable/disable,
+foreground-loss relock and screen-off/new-entry invalidation. Only a local lock
+setting and uncertain-write marker are durable; unlocked sessions and challenge
+identities are never restored. The gallery is absent while locked/authenticating.
+Activity and inherited dialog screen protection is requested, with additional
+recents protection on API33+. This is not encryption or a vault and does not hide
+ordinary phone photos from other apps. See ADR0003 and the Android README.
+
+### Source, ownership and builder evidence
+
+- S05 policy source: `3ab60f947c04a1c259cca2b41276ed7107ad7d06` plus test-only
+  follow-up `d6f2e0ca8e444970da5ce81e682dfe6946ca06fd`; integrated as `7ccc047`
+  and `fa201f0`. Fourteen policy tests cover fresh/purpose-bound operations,
+  cross-session identity collisions, stale/duplicate/canceled results, both
+  credential callback/resume orders, background/screen-off/entry and false/throw
+  persistence failures. Root integration ran all22 then-current JVM tests green
+  at `fa201f0`; log `/tmp/still-cp3-policy.log` is session-local evidence.
+- S06 native source: `e69c95ff8ee54592619ed3c0aa5608a5c8ff0d29`, integrated as
+  `ea9b4f8`. Platform-only integration adds no dependencies or network access.
+  Single-task launcher and fresh per-Activity sessions prevent stale authorizations;
+  random per-attempt credential registrations do not restore old callbacks.
+- Backend owns the policy/tests. Frontend owns native integration, storage, UI,
+  strings and Android docs; its bounded helper `/root/frontend/android_tooling`
+  polished only `ui/AppLock.kt`. SEO performed a read-only truthful-copy audit.
+  Reviewer and red team had no implementation ownership.
+- Builder stable-source assemble, all29 JVM tests (14 policy + 7 setting fault
+  tests + 8 existing media tests) and strict lint passed at `e69c95f` in39s;
+  lint says "No issues found." Logs: `/tmp/still-lock-final-build.log` and native
+  reports. Initial build/29tests passed, but lint stalled while source changed;
+  that client was canceled. Fresh stable-source full lint passed. No detector,
+  assertion or guard was disabled, narrowed or suppressed.
+- Storage tests include off bytes written before an exception plus failed rollback,
+  readback failure, marker-removal failure, corruption and reopen recovery.
+  File sync/readback/marker protocol is source/JVM evidence, not power-loss or OEM
+  durability proof. Exact integrated artifact and final checks are recorded below.
+- An additional backend read-only audit found a directory-ordering durability gap
+  before final CP3 review: file-byte sync alone does not durably publish the marker
+  or replacement rename. Fix-only source `72169ba` adds directory sync after the
+  marker and replacement, before readback/removal, using public Android descriptor
+  validation and fsync. All4 new simulated-crash regressions failed with the old
+  ordering (`/tmp/still-lock-durability-before.log` and saved XML); they exercise
+  published-marker, replacement, failed-disable and successful-enable durability
+  independently of Android. Existing29 tests/guards are retained. Final integrated
+  checks include these4 cases (33 Android tests total). These simulations do not
+  establish actual filesystem/power-loss results. Marker deletion stays last; a
+  crash can conservatively restore that marker and require authentication again.
+
+### Device observations and remaining gates
+
+Five owner-supplied phone screenshots on19October2026 show gallery navigation,
+populated Albums, an album grid, empty Favorites and Settings with approximately
+17,000 visible items. Those are limited visual observations. Model, Android API,
+installed source/APK identity and performance are unverified. No private screenshot
+or media is committed or reused in public discovery assets.
+
+No device is attached to this execution environment (`adb devices -l` empty), and
+no accelerated emulator is available. The screenshots do not test this new lock.
+All biometric/device-credential, lifecycle, rotation/restart, screen-off, snapshot,
+TalkBack/large-text and storage-failure rows in `apps/android/DEVICE_CHECKS.md`
+remain **blocked/unverified**. The earlier CP2 gallery runtime checklist remains
+open apart from the limited observations above. Local catalogue identity/migration,
+cleanup, backup, creative tools and production release work remain later tasks.
+
+### Exact candidate gate
+
+After this record is committed, run root `npm run check`, Android assemble, all
+JVM tests and strict lint on that exact head, audit the local APK/manifest and
+record its SHA-256. Obtain independent reviewer AND red-team verdicts; material
+changes require new checks and both rechecks. Store final source/artifact identity,
+command outcomes, verdicts and hosted CI results in ignored
+`.artifacts/cp3-validation.json` and the existing
+[draft PR1](https://github.com/macdarenz-droid/Still/pull/1). The persistent PR record
+avoids a self-referential final hash in its own tree. A source/build pass is a
+development handoff; it cannot authorize a production release or replace device
+security checks. The earlier hosted binary download denial remains unchanged;
+the offered APK is built/audited locally, and hosted binaries are not assumed
+identical or inspected.
+
+Rollback: revert the CP3 development commits or uninstall the development app.
+Phone originals are unchanged; uninstall clears Still-local favorites/settings.
+No production signing, account/provider connection, main merge or publication
+forms part of CP3.

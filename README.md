@@ -63,6 +63,12 @@ standard development key only. Production signing and publication require an
 explicit owner decision. Unit/lint/build checks do not replace the manual device
 matrix in the acceptance record.
 
+The development app includes optional whole-app lock in Settings, using Android
+authentication and relocking when you leave Still. It protects access through
+Still; other galleries can still open ordinary phone photos. This is not an
+encrypted vault. Native authentication and screen-protection checks remain in the
+[device matrix](apps/android/DEVICE_CHECKS.md); see [the design](docs/decisions/0003-app-lock.md).
+
 ## Discovery preview
 
 ```sh
@@ -74,7 +80,7 @@ or visitor data collection. Domain and brand checks precede publication.
 
 ## Planned next work
 
-App lock and local-catalogue resilience, duplicate/screenshot review, guarded
+Local-catalogue resilience, duplicate/screenshot review, guarded
 cleanup, selective and automatic backup with verified restoration, search and
 memories, reference-guided try-on, PDF/DOCX/text conversion and AI-directed video
 editing remain in scope. Provider costs, data handling, proposed extensions and

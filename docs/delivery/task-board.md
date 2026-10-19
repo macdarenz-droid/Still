@@ -92,11 +92,14 @@ pass. All components are integrated; combined CP1 passed both roles on exact
 1f35568d9cb42204b573b26d47636ccbfec16aed with all required code/build checks green.
 CP2 verifies the final handoff head; its exact SHA/results/verdicts are retained in
 the draft PR description and local validation record. Nothing is published.
+CP3 adds optional whole-app lock; its exact final head, checks, APK identity and
+both independent verdicts are recorded in the same draft PR and ignored
+`.artifacts/cp3-validation.json`. Native lock device acceptance is separate.
 
 ## Remaining product sequence
 
 Retain all F01–F45 and required R01–R18 in architecture.md as the canonical scope.
-After this milestone: app lock/local catalogue resilience; cleanup with protected
+After CP3 implementation: local catalogue resilience; cleanup with protected
 keepers/deletion journal; selected backup, verification and restore; screenshot
 intelligence and meaningful memories; try-on with bounded review; PDF/DOCX/text;
 AI-directed video plans/rendering; approved extensions and release hardening.
@@ -124,6 +127,9 @@ Supervisor owns this board, acceptance records, PR, build/dependency configurati
 and shared integration. Builders use new named branches in their existing separate
 worktrees from CP2; latest origin/main is incorporated before final review.
 Merge order S05 then S06, then CP3 review. No builder self-approves.
+Frontend explicitly delegated only `ui/AppLock.kt` accessibility/copy polish to
+`/root/frontend/android_tooling`; native wiring and all other S06 files stayed
+with frontend. SEO remained read-only for this checkpoint.
 
 Scope: a whole-app access gate only. No custom PIN, vault, encryption, account,
 cloud transfer, new media metadata collection, deletion or production signing.
