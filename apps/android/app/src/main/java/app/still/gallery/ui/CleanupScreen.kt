@@ -1,5 +1,6 @@
 package app.still.gallery.ui
 
+import android.text.format.Formatter
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -85,7 +88,7 @@ fun CleanupScreen(
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            stringResource(R.string.cleanup_group_title, index + 1, group.members.size),
+                            pluralStringResource(R.plurals.cleanup_group_title, group.members.size, index + 1, group.members.size),
                             Modifier.semantics { heading() },
                             style = MaterialTheme.typography.titleMedium,
                         )
@@ -128,7 +131,7 @@ fun CleanupScreen(
             },
             text = {
                 Column(Modifier.verticalScroll(scroll), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(R.string.cleanup_group_title, groups.indexOf(group) + 1, group.members.size))
+                    Text(pluralStringResource(R.plurals.cleanup_group_title, group.members.size, groups.indexOf(group) + 1, group.members.size))
                     Text(stringResource(if (request.protect) R.string.cleanup_confirm_protect_body else R.string.cleanup_confirm_unprotect_body))
                 }
             },
@@ -212,13 +215,15 @@ private fun CleanupStatus(
         if (state.sourceLimitExceeded) CleanupNotice(stringResource(R.string.cleanup_source_limit), error = true)
         if (state.hasAccess && state.phase != CleanupPhase.INVALIDATED && state.coverage.scopeKnown) {
             val coverage = state.coverage
-            Text(stringResource(R.string.cleanup_coverage_scope, coverage.considered, coverage.candidates), style = MaterialTheme.typography.bodyMedium)
-            Text(stringResource(R.string.cleanup_coverage_checked, coverage.checked, coverage.compared), style = MaterialTheme.typography.bodyMedium)
-            Text(
-                stringResource(R.string.cleanup_coverage_skipped, coverage.empty, coverage.unavailable, coverage.changed, coverage.omitted, coverage.aliases),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(pluralStringResource(R.plurals.cleanup_considered, coverage.considered, coverage.considered), style = MaterialTheme.typography.bodyMedium)
+            Text(pluralStringResource(R.plurals.cleanup_candidates, coverage.candidates, coverage.candidates), style = MaterialTheme.typography.bodyMedium)
+            Text(pluralStringResource(R.plurals.cleanup_checked, coverage.checked, coverage.checked), style = MaterialTheme.typography.bodyMedium)
+            Text(pluralStringResource(R.plurals.cleanup_compared, coverage.compared, coverage.compared), style = MaterialTheme.typography.bodyMedium)
+            Text(pluralStringResource(R.plurals.cleanup_empty, coverage.empty, coverage.empty), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(pluralStringResource(R.plurals.cleanup_unavailable, coverage.unavailable, coverage.unavailable), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(pluralStringResource(R.plurals.cleanup_changed, coverage.changed, coverage.changed), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(pluralStringResource(R.plurals.cleanup_omitted, coverage.omitted, coverage.omitted), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(pluralStringResource(R.plurals.cleanup_aliases, coverage.aliases, coverage.aliases), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else if (running && !state.coverage.scopeKnown) {
             Text(stringResource(R.string.cleanup_coverage_unknown), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -247,18 +252,19 @@ private fun CleanupReviewStatus(state: CleanupUiState, group: CleanupGroupUi) {
         group.reviewReason == CleanupReviewReason.PROTECTION_UNKNOWN -> Text(stringResource(R.string.cleanup_protection_unknown), style = MaterialTheme.typography.bodyMedium)
         group.reviewReason == CleanupReviewReason.FAVORITE_UNKNOWN -> Text(stringResource(R.string.cleanup_favorite_unknown), style = MaterialTheme.typography.bodyMedium)
         group.reviewReason == CleanupReviewReason.NEEDS_KEEPER -> Text(stringResource(R.string.cleanup_review_needs_keeper), style = MaterialTheme.typography.bodyMedium)
-        else -> Text(stringResource(R.string.cleanup_review_extras, group.extras), style = MaterialTheme.typography.bodyMedium)
+        else -> Text(pluralStringResource(R.plurals.cleanup_review_extras, group.extras, group.extras), style = MaterialTheme.typography.bodyMedium)
     }
 }
 
 @Composable
 private fun CleanupMember(member: CleanupMemberUi, showProtection: Boolean, onKeeperChange: (Boolean) -> Unit, onOpen: () -> Unit) {
     val name = member.name.ifBlank { stringResource(R.string.cleanup_unnamed) }
+    val readableSize = Formatter.formatFileSize(LocalContext.current, member.byteCount)
     OutlinedCard(Modifier.fillMaxWidth().padding(start = 12.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(name, style = MaterialTheme.typography.titleSmall)
             Text(
-                stringResource(R.string.cleanup_member_details, stringResource(if (member.isVideo) R.string.video else R.string.photo), member.byteCount),
+                stringResource(R.string.cleanup_member_details, stringResource(if (member.isVideo) R.string.video else R.string.photo), readableSize),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

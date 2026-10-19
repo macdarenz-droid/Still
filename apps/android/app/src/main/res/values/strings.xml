@@ -139,13 +139,9 @@
     <string name="cleanup_failed">The scan could not finish. No matching-copy results were kept.</string>
     <string name="cleanup_source_limit">This scan supports up to 50,000 accessible items. The scan stopped without matching-copy results.</string>
     <string name="cleanup_coverage_unknown">Finding the currently accessible photos and videos…</string>
-    <string name="cleanup_coverage_scope">%1$d accessible items considered; %2$d candidates share a media type and reported size.</string>
-    <string name="cleanup_coverage_checked">Checked %1$d candidates; compared %2$d complete, nonempty readable streams.</string>
-    <string name="cleanup_coverage_skipped">Not compared: %1$d empty, %2$d unavailable or over the read limit, %3$d changed, %4$d omitted by the type/size prefilter. %5$d repeated source references were excluded.</string>
     <string name="cleanup_no_compared">No items could be compared. See the coverage counts and start a new scan after access or media changes.</string>
     <string name="cleanup_no_matches">No matching copies found among the items compared. Items omitted by the prefilter, changed or unreadable items were not compared.</string>
-    <string name="cleanup_group_title">Matching group %1$d · %2$d copies</string>
-    <string name="cleanup_member_details">%1$s · %2$d readable bytes</string>
+    <string name="cleanup_member_details">%1$s · Readable data: %2$s</string>
     <string name="cleanup_unnamed">Unnamed media</string>
     <string name="cleanup_open_member">Open %1$s</string>
     <string name="cleanup_keep_member">Keep for this scan: %1$s</string>
@@ -167,5 +163,49 @@
     <string name="cleanup_confirm_protect">Protect matching content</string>
     <string name="cleanup_confirm_unprotect">Unprotect matching content</string>
     <string name="cleanup_review_needs_keeper">Choose at least one keeper before marking other copies for review. You can keep multiple copies. Keeper choices last only for this scan.</string>
-    <string name="cleanup_review_extras">%1$d copies marked as extra for review. This is reversible and does not authorize removal.</string>
+
+    <plurals name="cleanup_considered">
+        <item quantity="one">%1$d accessible item considered.</item>
+        <item quantity="other">%1$d accessible items considered.</item>
+    </plurals>
+    <plurals name="cleanup_candidates">
+        <item quantity="one">%1$d candidate has a matching media type and reported size.</item>
+        <item quantity="other">%1$d candidates share a media type and reported size.</item>
+    </plurals>
+    <plurals name="cleanup_checked">
+        <item quantity="one">Checked %1$d candidate.</item>
+        <item quantity="other">Checked %1$d candidates.</item>
+    </plurals>
+    <plurals name="cleanup_compared">
+        <item quantity="one">Compared %1$d complete, nonempty readable stream.</item>
+        <item quantity="other">Compared %1$d complete, nonempty readable streams.</item>
+    </plurals>
+    <plurals name="cleanup_empty">
+        <item quantity="one">%1$d empty stream was not compared.</item>
+        <item quantity="other">%1$d empty streams were not compared.</item>
+    </plurals>
+    <plurals name="cleanup_unavailable">
+        <item quantity="one">%1$d stream was unavailable or over the read limit.</item>
+        <item quantity="other">%1$d streams were unavailable or over the read limit.</item>
+    </plurals>
+    <plurals name="cleanup_changed">
+        <item quantity="one">%1$d changed source was not compared.</item>
+        <item quantity="other">%1$d changed sources were not compared.</item>
+    </plurals>
+    <plurals name="cleanup_omitted">
+        <item quantity="one">%1$d item was omitted by the type/size prefilter.</item>
+        <item quantity="other">%1$d items were omitted by the type/size prefilter.</item>
+    </plurals>
+    <plurals name="cleanup_aliases">
+        <item quantity="one">%1$d repeated source reference was excluded.</item>
+        <item quantity="other">%1$d repeated source references were excluded.</item>
+    </plurals>
+    <plurals name="cleanup_group_title">
+        <item quantity="one">Matching group %1$d · %2$d copy</item>
+        <item quantity="other">Matching group %1$d · %2$d copies</item>
+    </plurals>
+    <plurals name="cleanup_review_extras">
+        <item quantity="one">%1$d copy marked as extra for review. This is reversible and does not authorize removal.</item>
+        <item quantity="other">%1$d copies marked as extra for review. This is reversible and does not authorize removal.</item>
+    </plurals>
 </resources>
