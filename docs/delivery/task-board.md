@@ -33,7 +33,7 @@ remain. A draft PR/debug artifact is a development handoff, not publication.
 ## Approved bootstrap choices
 
 - Android native is confirmed. Kotlin/Compose, min SDK 26, compile/target SDK 37.
-- Current Android dependency allowance (ADR0002): AGP 9.4.1, Gradle 9.6.0,
+- Current Android dependency allowance (ADR0002): AGP 9.4.1, Gradle 9.8.1,
   built-in Kotlin with Kotlin/Compose 2.4.21, Compose BOM 2026.09.00,
   AndroidX core 1.19.1, activity 1.13.0, lifecycle 2.11.0 and JUnit 4.13.2.
   SDK platform 37/build-tools 36.0.0, JDK 21 and minSdk 26. The initial pins were

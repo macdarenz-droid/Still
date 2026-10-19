@@ -79,7 +79,10 @@ AndroidX core/activity/lifecycle and Compose BOM. Source issues were fixed.
 The supervisor researched official current metadata instead of suppressing the
 warnings: core 1.19.1 requires compile SDK 37/AGP >= 9.1.0; activity 1.13.0 requires
 compile SDK 36/AGP >= 8.9.1. AGP 9.4 supports SDK 37 and requires Gradle 9.6.0. Updated
-versions and rationale are recorded in ADR0002. Final assemble/unit/lint are pending;
+versions and rationale are recorded in ADR0002. The upgraded stack compiled and
+passed all 7 tests; its newer lint found 5 configuration-aware resource reads and a
+Gradle current-version notice. Those source calls are being fixed and the wrapper
+is updated to approved 9.8.1 with official checksum. Final assemble/unit/lint are pending;
 old lint failure is not treated as a pass. All lint guards and unit assertions remain.
 
 ### Android environment failures and recovery

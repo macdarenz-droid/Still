@@ -10,7 +10,7 @@ advisories, update the foundation stack and preserve all lint gates and assertio
 | Component | Approved version |
 | --- | --- |
 | Android Gradle plugin | 9.4.1 |
-| Gradle wrapper | 9.6.0, official SHA-256 pinned |
+| Gradle wrapper | 9.8.1, official SHA-256 pinned |
 | Kotlin / Compose compiler plugin | 2.4.21, using AGP built-in Kotlin |
 | Compose BOM | 2026.09.00 |
 | AndroidX core-ktx | 1.19.1 |
@@ -36,6 +36,12 @@ Official evidence read during selection:
 
 Use the supported built-in Kotlin DSL. Do not retain deprecated opt-outs or
 turn off dependency, API, backup or source lint checks to get a green result.
+The first upgraded run compiled and passed all 7 JVM tests. Its newer lint engine
+then required configuration-aware Compose resource reads and Gradle 9.8.1. The
+supervisor verified the official Gradle current-version endpoint reports 9.8.1 and
+approved that compatible wrapper update; 9.6.0 above is the AGP minimum/default,
+not the final wrapper pin. No advisory check was suppressed.
+
 Actual compatibility is established by final assemble, JVM tests and strict lint,
 then independent reviewer and red-team checks on the exact candidate.
 
