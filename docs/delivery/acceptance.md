@@ -599,6 +599,33 @@ Both independent design roles passed; actual browser checks corrected keyboard
 focus, enlarged-text reflow and live reduced-motion cancellation. This evidence
 supports the design prototype only. No stock assets enter the native app.
 
+### Component evidence and review boundaries
+
+S17 builder `1652b12a7cd26f19fe1a542c03d4053e356b51db` is integrated as
+`f6e06331cc5fcfb370d0660091d2711e42a0a2f1`. Exactly two new owned files add
+current-view navigation and14 policy cases. Frozen builder assemble/all143 JVM
+cases/strict lint and repository checks passed. Both independent source/test
+preflights found no concrete policy blocker; neither approved the integrated UI
+or the builder-only APK as a handoff. XML/lint evidence remains under
+`/workspace/Still-backend/apps/android/app/build/test-results/testDebugUnitTest/`
+and `app/build/reports/lint-results-debug.txt` in that worktree; completed command
+output is retained in the session tool transcripts.
+
+The14 cases cover exact/foreign/replaced snapshots, unchanged-looking refreshes,
+URI reuse, mutable input ownership, duplicate tokens, bounded steps and paging,
+timezone/midnight/DST/Unknown dates, unchanged NAME ordering and17,000-row
+reachability. The model stores copied token/date indexes only; it is not native
+access authority. The large input case proves functional bounds, not memory,
+frame-time or device throughput. All129 earlier cases/assertions remain preserved.
+
+S18 owns native UI/wiring. Its approved helper `/root/frontend/android_tooling`
+owns only new `ui/DriftChrome.kt`; parent owns real action closures, strings,
+theme, tests and commits. Reviewer and red team remain read-only. Preflight risks
+include structural equality reusing an old projection, delayed gestures retargeting
+new focus, animations retaining withdrawn media, live animation-scale changes and
+old viewer callbacks acting on a new viewer instance. Require actual source/view/
+snapshot/instance checks in production seams and meaningful regressions for fixes.
+
 ADR0006 and cards S17–S20 define the native implementation. Record owned source,
 meaningful current-view/date/identity tests and all actual review findings here.
 After final source/docs are committed, run full root/native checks and audit the
