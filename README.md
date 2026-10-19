@@ -1,9 +1,9 @@
 # Still
 
 An Android gallery for finding, organising and enjoying your photos and videos.
-The full direction is preserved in [architecture.md](architecture.md). This first
-milestone builds the local gallery and a separate development control plane;
-cloud creation, cleanup and verified backup are later milestones.
+The full direction is preserved in [architecture.md](architecture.md). Development
+includes the local gallery, matching-copy review and a separate control plane;
+guarded deletion, cloud creation and verified backup are later milestones.
 
 Android native was selected by the owner. One supervisor coordinates frontend,
 backend and SEO builders, with an independent reviewer and separate red team at
@@ -79,6 +79,14 @@ are matched only when fresh provider evidence is unambiguous. See
 evidence for acceptance status. Native playback, upgrade and performance checks
 remain in the device matrix.
 
+Cleanup can scan for matching readable copies, show its comparison coverage and
+let you choose keepers or explicitly protect matching content on this phone.
+Scans start manually, use fresh Android-authorized media and invalidate when
+their source/access evidence changes. Protection applies to matching readable
+content, rather than a filename or URI. This stage has no delete/trash command
+or storage-savings claim. See [the review design](docs/decisions/0005-cleanup-review.md)
+and [native checks](apps/android/DEVICE_CHECKS.md) for scope and remaining limits.
+
 ## Discovery preview
 
 ```sh
@@ -90,7 +98,7 @@ or visitor data collection. Domain and brand checks precede publication.
 
 ## Planned next work
 
-Further catalogue hardening, duplicate/screenshot review, guarded cleanup,
+Further catalogue hardening, screenshot/similarity review, guarded deletion,
 selective and automatic backup with verified restoration, search and
 memories, reference-guided try-on, PDF/DOCX/text conversion and AI-directed video
 editing remain in scope. Provider costs, data handling, proposed extensions and

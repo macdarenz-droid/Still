@@ -512,6 +512,42 @@ canonical pinned version or server authority is included; see ADR0005.
 
 ### Exact candidate and remaining gates
 
+Final S14 builder source `e327d8da782fa5d84cf92c613d518be6a5db0152` is
+integrated through `49fc9e5`; root's Android tree byte-matches that source.
+It includes final S13 `47852e5b98360219362ab55501172ab922a3d0c4`
+(root `108828d`): a private per-snapshot reference-identity membership set
+avoids repeated whole-group scans while retaining foreign-group rejection.
+Its new 2,000-group identity test is functional coverage, not a performance benchmark.
+
+The count correction at `54247522b9559a2d8cac9de8fba8a4947f3958c3`
+passed assemble/all122 JVM/strict lint. The callback fixes at
+`607f5b356dd4aee7f833c8ba94d59a3190e678af` add actual worker-completion
+acknowledgement (including never-started cancellation), exact active single-use
+dialog request identity and opaque current-review identity. They hide the
+unrelated filtered header count. Six new coordinator/confirmation regressions
+exercise queued dispatch, blocked read and close, disposal and same-shaped new
+reviews; all128 then-current tests/build/lint passed. Both independent roles
+rechecked these findings and found no remaining component blocker.
+
+Final builder assemble/all129 JVM/strict lint passed in1m1s, and repository checks
+passed TypeScript,27 backend tests,11 discovery checks and18 real host-SQL probes.
+The129 cases comprise72 unchanged prior cases,28 S13 cases and29 S14 cases.
+All8 baseline test files remain byte-identical to `0ff3db7`. Evidence:
+`/tmp/still-cleanup-localized-full.log`, `/tmp/still-cleanup-callback-full.log`,
+`/tmp/still-cleanup-final-full.log`, `/tmp/still-cleanup-final-root-check.log`
+and `/tmp/still-cleanup-final-evidence.json`.
+
+Three isolated narrow counterfactuals each selected all29 S14 cases. Restoring
+body-only Stop handling fails2 cases; removing active request identity fails3;
+removing review-scope identity fails1 (same-shaped replacement review). Other
+selected cases pass. Fixed corresponding classes each pass3/0; full fixed source
+passes129/0. Logs, patches and before/after XML are retained under
+`/tmp/still-cleanup-{stop,confirmation,review-scope}-before.log`, matching
+`-mutant.patch`, `-before.xml`, `-before-results/` and `-after.xml` paths.
+The genuine earlier fixture and pluralization failures remain above; no tests,
+detectors or guards were waived or weakened. These are source/JVM results, not
+native event-order or filesystem guarantees.
+
 After all final owned source, integration and evidence changes are committed,
 run root `npm run check`, Android assemble/all JVM/strict lint on that exact head.
 Audit the actual local APK, signature, permissions/backup exclusions and packaged

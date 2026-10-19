@@ -96,11 +96,15 @@ CP3 optional whole-app lock passed both independent development gates at
 `e285a22d477a04f39fd7ea0d02758f44cc4486df`, with local checks and all four hosted
 checks green. Its exact APK/evidence is retained in acceptance.md and ignored
 `.artifacts/cp3-validation.json`. Native lock device acceptance is separate.
-CP4 catalogue/controls are integrated for exact-head validation: builder source
-`cc42e288cea57a9b7e9b56ccb2221de18b4af3fa` passed assemble, all72 JVM tests and
-strict lint after the recorded review fixes. Final integrated source/APK, separate
-verdicts and hosted checks belong in `.artifacts/cp4-validation.json` and draft
-PR1. No CP4 acceptance is inferred from component checks alone.
+CP4 catalogue/controls passed both independent development gates at
+`1b4932b28d2afe9835cccd4f1d35783a713b5b6a`, with all72 JVM tests, build/lint,
+repository and all four hosted checks green. Its exact local APK/verdicts are
+retained in acceptance.md and `.artifacts/cp4-validation.json`; native checks remain open.
+CP5 matching-copy review/protection is integrated from final builder source
+`e327d8da782fa5d84cf92c613d518be6a5db0152`, which passed all129 JVM tests,
+assemble, strict lint and repository checks. Final integrated source/local APK,
+separate verdicts and hosted results belong in `.artifacts/cp5-validation.json`
+and draft PR1. Component evidence alone does not accept CP5.
 
 ## Remaining product sequence
 
