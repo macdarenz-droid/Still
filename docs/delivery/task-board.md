@@ -106,7 +106,7 @@ AI-directed video plans/rendering; approved extensions and release hardening.
 Provider/budget/account/vault/share decisions remain owner decisions before those
 services are enabled. Proposed features remain proposals; no silent approval.
 
-## Next checkpoint — CP3 app lock (R14 / F04)
+## CP3 app lock (R14 / F04)
 
 Development continues from CP2 `42432e6`; physical-device release checks are a
 separate gate. The owner supplied five phone screenshots on 19 October 2026.
@@ -153,3 +153,53 @@ Commands: `npm run check`; `npm run build:android -- --max-workers=4`;
 `npm run test:android -- --max-workers=4`, with the established JDK21/SDK37
 environment. Record results, exact source head and local APK SHA-256, separate
 reviewer/red-team verdicts, and all blocked device checks before handing off CP3.
+
+## Next checkpoint — CP4 local index and gallery controls (R01 / F01 / F02)
+
+The owner authorized continuing other features after lock, retaining independent
+reviewer and red-team gates. CP3 development acceptance passed at `e285a22`;
+its physical-device lock/security checks remain open and do not block new work.
+
+| Card | Owner / allowed files | Deliverable and acceptance | Dependencies / merge order |
+| --- | --- | --- | --- |
+| S09 Local catalogue | backend; new `apps/android/app/src/main/java/app/still/gallery/catalogue/`, matching new `catalogue/` JVM tests, `apps/android/app/src/main/assets/catalogue/`, `scripts/test-android-catalogue.py` | Versioned platform SQLite local index; durable opaque observation/source IDs, source namespace/incarnation and metadata revisions; transactional reconciliation/upsert with unchanged-row handling, restart retention, reset/reused-handle separation and stale-scan fencing. No missing-source deletion inference. Meaningful pure-policy tests plus real host-SQLite schema/rollback/reopen probes. Publish interface to frontend promptly | Base CP3; backend owns schema and index contract; no new runtime/test dependency. Root wires host probe into required checks |
+| S10 Native gallery | frontend; `media/DeviceMedia.kt`, `media/MediaPolicy.kt`, scoped new media tests (preserve existing assertions), `ui/StillApp.kt`, `ui/MediaViewer.kt`, new `ui/LibraryControls*.kt` and matching focused tests, `res/values/strings.xml`, Android README/device matrix | Integrate local index only inside unlocked gallery on IO; fresh authorized MediaStore snapshot remains visibility authority. Add All/Photos/Videos filter, newest/oldest/name sort, stable ties and accessible selection state. Explicit visible video Play/Pause controls with existing seek/platform controls and lifecycle pausing. No autoplay; retain favorites, sharing, permission and lock behavior | Backend interface first; controls can build independently. Explicitly delegated shared UI/media regions, supervisor integrates. Merge S09 then S10 |
+| S11 Copy audit | seo; read only | Review new index/status/filter/sort/playback wording for truthful scope and accessibility; no fake offline/cloud/deletion or immutable-version guarantees, no private-media reuse or publication | S09/S10 working UI and labels |
+| S12 CP4 gates | reviewer and red_team; review only | Independent exact-source/artifact review plus adversarial stale-index, revocation, reset, source reuse, failure/restart, SQL boundary and player lifecycle checks; fixes require both rechecks | Final integrated checks and local APK; no production release |
+
+Builders create new named branches in their existing separate worktrees from the
+CP4 card commit. Supervisor owns CI, package scripts/manifests, task/evidence/ADR
+records, final integration and PR. New dependencies require supervisor approval;
+none are approved/needed here. Existing tests and lint guards remain mandatory.
+
+Data scope is the already-authorized on-phone gallery catalogue from architecture
+sections 7–8: metadata already read for browsing, local opaque IDs and observation
+revisions. No media bytes, thumbnails, OCR, biometrics, cloud mirror, account data
+or analytics are persisted or transmitted. Backup remains disabled. Do not label a
+metadata fingerprint as a hash, immutable AssetVersion, byte equality or canonical
+server-job input. Use namespaced provider/volume identity and source generations
+when available; any older-platform continuity fallback is explicitly best effort.
+No deletion/backup authorization may rely on these unpinned observations.
+
+Fresh authorized provider reads govern every visible result. Cached records must
+never expose withdrawn media or become fallback browsing after permission/query
+failure. Missing rows in a partial/failed scan are not deletion evidence. Retain
+catalogue records without claiming a file exists or is deleted. Stale/canceled
+scan results cannot publish after a newer invalidation or lock disposal. Index
+failure must be honest and recoverable; browsing authorized live media may remain
+available, but no false successful indexing status or destructive capability.
+
+Favorites remain in their existing app-private preference store for this bounded
+checkpoint; no lossy or URI-only migration is introduced. Protection/deletion,
+canonical pinned content versions and verified backup are subsequent work. Keep
+the supplied architecture unchanged. No data-drop upgrade/downgrade or destructive
+automatic repair; schema mismatch/corruption is surfaced. Rollback the CP4 changes
+or uninstall the development app (clears local data, preserves phone originals).
+
+Finish: committed owned paths, exact SHA, mappings from acceptance to tests,
+`npm run check` including the new host SQLite probe, Android assemble/all JVM/strict
+lint, actual local APK hash and both independent verdicts. Host SQLite probes
+validate real SQL behavior but do not prove Android/OEM SQLite, MediaStore, codecs,
+accessibility or performance. Expand the manual device matrix and mark all unrun
+rows unverified. Hosted CI and draft PR updates follow local gates; no main merge,
+release signing, publication, provider spending or deletion is authorized here.
