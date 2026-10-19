@@ -349,3 +349,10 @@ Native gesture/font/animator-scale/TalkBack/frame/memory/security/playback check
 remain open until actually run on identified hardware. Rollback the UI checkpoint
 with app-data copy retained; no database migration, original deletion, provider
 spending, production signing, publication or main merge is included.
+
+CP6 component status: S17 and S18 are integrated from their frozen owned sources;
+S19 copy clearance holds at final builder `c0a11be`. S20 exact integrated
+source/APK checks, both independent final verdicts and hosted confirmations remain
+required before development handoff. The final immutable candidate, APK hash and
+verdicts will be recorded in ignored `.artifacts/cp6-validation.json` and draft PR1;
+the next checkpoint promotes that completed outcome into the acceptance history.

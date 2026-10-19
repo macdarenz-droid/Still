@@ -666,6 +666,63 @@ inside a still-open options request. These findings concern newly introduced UI
 intents, not a demonstrated permission bypass. Keep fixes bounded to those seams
 and verify meaningful old-fail/fixed-pass cases before a new full freeze.
 
+### Frozen native UI component
+
+S18 final builder `c0a11be23a6de00b2776caae9adc722a4ec2e407` is integrated
+through `768479b`; root's Android tree byte-matches that builder. S18's four
+owned commits follow the already-integrated S17 policy without duplicating it.
+All12 assigned UI/docs files stay within the task card. Product copy audit S19
+passed at this exact builder head; no slogans, fictional captions or new claims
+were introduced by the callback corrections. Both independent targeted source
+rechecks found the reported corrections complete, with final artifact gates pending.
+
+The corrected UI uses opaque identities for focus, each viewer, each date picker
+and each Options/Menu opening. Valid rail paging renews intent even when its source
+or offset later returns to the same value. Both batch handlers check the captured
+view; Grid/Ribbon opening aligns focus and position memory. Cleanup keeps its
+existing full-gallery source gate. Invalid duplicate-token projections show an
+error/Retry before Grid; effect-initialized nonempty projections wait for readiness.
+The independent red team found those two fallback/readiness edges during review.
+Position memory retains only a UI token, reconciles strong fresh continuity and
+never restores action authority, rows, bitmaps or an authenticated lifetime.
+
+The genuine full run at `9d05174` assembled and passed152 JVM cases, but strict
+lint rejected `RememberReturnType` in the focus initialization. No suppression or
+lint baseline was added: final source initializes through a snapshot-checked
+`LaunchedEffect` and gates presentation on exact projection readiness. Its full
+assemble/all155 JVM/strict lint passed in1m39s; repository checks also passed.
+Logs: `/tmp/still-cp6-9d05174-full.log`,
+`/tmp/still-cp6-c0a11be-full.log`, `/tmp/still-cp6-c0a11be-npm-check.log`.
+The superseded `dfa3757` run is retained without a full-pass claim.
+
+All129 prior JVM cases in16 files/assertions remain unchanged. S17 adds14 and
+S18 adds12, for155 cases in18 suites, zero failures/errors/skips. The UI cases
+exercise actual production intent helpers: viewer reopening, equal-looking
+projection replacement, newer choices/live authority, five-card index bounds,
+focus ABA, picker cancellation/reopening/disposal, strong position recovery from
+a nonfirst Grid open, batch scope, page ABA and overlay request identity.
+Source inspection additionally checks the actual bounded composition and wiring;
+pure index/helper tests do not prove Android rendering or event delivery.
+
+Eight isolated counterfactuals show that the new assertions detect the reported
+old behavior. The four original9d UI mutants select9 cases each: source-only
+viewer identity fails1, token-only focus fails1, missing active date request fails2,
+and clearing position during loading fails1. Four final-source mutants select12
+cases each; removing batch projection, page identity renewal, Grid focus alignment
+or overlay request identity each fails its corresponding case. Final fixed source
+passes all155. Patches, summaries and logs are retained in
+`/tmp/still-cp6-evidence/`, `/tmp/still-cp6-mutant-summary.json`,
+`/tmp/still-cp6-supplemental-mutant-summary.json` and matching
+`/tmp/still-cp6-mutant-*.log`. Only the last supplemental mutant's XML was retained;
+the earlier XML was overwritten before copying. Fixed18-suite XML/lint reports
+are preserved in the evidence folder. No evidence was fabricated or checks rerun
+solely to recreate those overwritten reports.
+
+VideoPlayer/PlaybackVideoView bodies, security/lifecycle/storage policies,
+dependencies, permissions and canonical architecture bytes remain unchanged.
+Root must now validate its exact final head and actual local APK independently
+of the builder APK; the component result is not checkpoint acceptance.
+
 ADR0006 and cards S17–S20 define the native implementation. Record owned source,
 meaningful current-view/date/identity tests and all actual review findings here.
 After final source/docs are committed, run full root/native checks and audit the
