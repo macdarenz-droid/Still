@@ -886,3 +886,39 @@ Native repeated touch/button sequences, interruptions, motion/accessibility and
 hardware behavior remain blocked until observed; source/runtime proof does not
 replace those observations. Restore a compatible retained build with local app
 data preserved to roll back. No production signing, main merge or publication.
+
+## CP8 final development outcome (recorded by the next checkpoint)
+
+Final source `f3644e3709d21d0dd7dedbb515da5b9744618eb8` passed separate
+reviewer/red-team exact local-source/APK and independent hosted gates.
+[PR run39218795969](https://github.com/macdarenz-droid/Still/actions/runs/39218795969)
+and [push run39218791098](https://github.com/macdarenz-droid/Still/actions/runs/39218791098)
+completed successfully, all four checks green. Root159 JVM cases (155 preserved
+plus4), assemble/strict lint,27 backend cases,11 discovery,18 SQL probes and
+TypeScript passed. Actual local APK:12,599,181 bytes, SHA-256
+`e9b776f50172f9886a9316116b22650c0e655b9250e9caa3d42d6cecb31cdd34`.
+Compiled gate/adapter, signature, manifest/backup/ZIP/8SQL audits passed. Delivery
+`.artifacts/deliveries/still-cp8-f3644e3.apk`; full evidence
+`.artifacts/cp8-validation.json`. APK and updated draft PR record verified before
+continuing. Actual owner-device symptom confirmation and native checks remain open;
+no hosted binary was downloaded or presumed equal. The owner received the APK
+while architecture work continues; device verification is not a blanket pause.
+
+## CP9 — Cleanup planning and recovery foundation
+
+The owner asked to continue the architecture. Section19.1 places exact source/
+version contracts and recovery journaling before native removal and backup.
+ADR0007 and S25–S28 define an internal local-development metadata foundation:
+strict opaque references, trusted default-deny evidence, current reviewed intent,
+revision/expiry/idempotency and a dedicated durable journal. Execution capability
+remains false and there is no public/native/provider integration or mutation call.
+Current Android observations/readable hashes remain insufficient original pinning.
+
+Preserve all27 backend and159 Android cases; add meaningful contract/real SQLite
+fault/reopen/concurrency/evidence/uncertainty coverage. Both independent roles must
+check actual source boundaries and test effectiveness, then exact frozen root/
+local APK and hosted gates. Record genuine failures/fixes here, with immutable
+candidate/hash/verdicts in `.artifacts/cp9-validation.json` and draft PR1. No
+source/component result is final checkpoint acceptance. Native mutation and
+power-loss behavior remain unverified; production PostgreSQL is not implemented
+by a separate development SQLite journal. Keep all canonical architecture bytes.

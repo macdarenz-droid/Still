@@ -419,3 +419,42 @@ media mutation, new stored/transmitted data or automatic playback. Restore a
 compatible retained build with app data preserved if needed. Finish requires exact
 root build/all tests/lint/npm, actual APK audit, both independent local and hosted
 passes, draft PR1 and `.artifacts/cp8-validation.json`. No production/main merge.
+
+## CP9 version-aware cleanup planning and journal (Stage1/2 / R02)
+
+The owner asked to continue the architecture. CP8 is complete; the next dependency
+is exact source/version review and recovery records under ADR0007, before native
+trash/restore or selected backup. Implement the usable internal foundation without
+pretending current Android observations pin immutable source versions.
+
+| Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S25 Cleanup contracts/journal | backend; new `packages/contracts/src/cleanup.ts`, `services/workflows/src/cleanup-plans.ts`, `db/cleanup/001_journal.sql`, `tests/contracts/cleanup-planning.test.ts`, `tests/faults/cleanup-journal.test.ts`; existing `services/workflows/src/store.ts` only foreign application-ID guard before writable PRAGMAs | Strict bounded opaque references, trusted default-deny current-evidence seam, reviewed fingerprint/revisions/expiry, constant executionAvailable:false, owner-scoped transactional/idempotent plans/items, durable uncertainty and trusted verified-no-change reconciliation. Dedicated SQLite identity/schema/reopen checks; no destructive calls or success states. Meaningful real SQLite fault/concurrency/reopen/foreign-DB and parser/policy cases | New named branch from this card. Publish interface promptly. No helper delegation, new dependency, existing test edits or API/Android integration |
+| S26 Client contract audit | frontend; read only | Review whether future Cleanup UI can show exact scope, blockers, stale review, uncertainty and recovery without treating confirmation as removal authority. No UI or native mutation edits | Published S25 interface; no overlap with builder ownership |
+| S27 Copy/claims audit | seo; read only | Direct reviewed wording/codes, no storage-savings/trash/restore/pinning/production claims unsupported by actual capability. Existing planned features retained | Frozen source/docs; no publication |
+| S28 CP9 gates | reviewer and red_team; read only | Separate design/source/test-effectiveness and exact integrated source/local-APK verdicts, all baseline assertions preserved, adversarial identity/evidence/TOCTOU/replay/recovery checks, each hosted confirmation | Root checks/audit, fix/recheck; no production publication |
+
+Root owns ADR/task board/acceptance/root and API README, integration/CI/PR and all
+dependency decisions. The new module imports contracts directly; no index re-export,
+HTTP route, bootstrap, worker/executor, Android source/storage, old schema or paid
+provider change is authorized. Existing store change is ONLY the foreign nonzero
+application-ID check, closing the reverse database-path hazard introduced by a new
+identified journal. Preserve all27 backend and159 Android cases/assertions.
+
+Before confirmation require the current owner/exact ref/source revision, real
+pin/fidelity/access, known protection/Favorites/keepers/dependencies and required
+copy/restore evidence; unknown/changed/expired facts block. Revalidation must not
+silently approve unseen evidence, and uncertainty cannot reset through refresh,
+reopen, cancellation, repeated commands or a new confirmation. No saved record or
+proof identifier alone grants access, execution or recovery. No media bytes/hashes,
+filenames, URLs or private media are needed in this development metadata journal.
+
+Required checks: strict TypeScript, all old+new backend suites,11 discovery and18
+host-SQL probes; Android assemble/all159/strict lint; exact SQL schema/foreign-path
+nonmutation/reopen tests; actual APK/signature/permissions/backup/assets audit;
+independent reviewer AND red-team exact local and hosted passes; draft PR1 and
+`.artifacts/cp9-validation.json`. APK Android behavior should byte-match CP8 aside
+from packaging; do not infer phone/native journal integration. Real native trash/
+restore, power loss, capture/motion/accessibility and provider operations remain
+unverified/unimplemented as recorded. Roll back with journal/WAL retained; do not
+drop/reset records. No main merge, production signing, spending or publication.
