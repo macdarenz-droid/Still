@@ -590,7 +590,7 @@ downloaded or presumed identical. Native/device/production limits remain open.
 
 ## CP6 — Selected Drift native photo experience
 
-The owner selected the first DRIFT design on19 October2026. Two generated renders
+The owner selected the first DRIFT design on 19 October 2026. Two generated renders
 and self-contained interactive browser samples are retained in the private
 [design Page](https://chatgpt.com/space/page_c731a83d8b3c8191bec755c2c9575d18).
 Selected final HTML hash:

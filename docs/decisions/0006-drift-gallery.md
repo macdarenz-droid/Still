@@ -1,6 +1,6 @@
 # ADR0006 — Drift native gallery experience
 
-Status: selected by the owner on19 October2026; native implementation checkpoint CP6.
+Status: selected by the owner on 19 October 2026; native implementation checkpoint CP6.
 
 The owner chose the first, dark cinematic DRIFT concept after two rendered and
 interactive design samples. Product name remains Still. The selected prototype

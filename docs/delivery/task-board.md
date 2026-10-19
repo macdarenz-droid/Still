@@ -312,19 +312,23 @@ APK. Production signing, main merge, spending and publication remain excluded.
 
 ## CP6 selected Drift native picture experience (R01 / F01 / F02)
 
-The owner chose A/first DRIFT on19 October2026 after reviewing two design renders
+The owner chose A/first DRIFT on 19 October 2026 after reviewing two design renders
 and interactive samples. Implement the selected picture experience under ADR0006,
 then resume the remaining product sequence in later checkpoints.
 
 | Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
 | --- | --- | --- | --- |
 | S17 Drift navigation | backend; new `media/DriftPolicy.kt` and matching new `media/DriftPolicyTest.kt` only | Pure current-view token/index/local-date projection with instance/snapshot invalidation, bounded seven-target day rail, honest Unknown dates and unchanged NAME ordering. No IO/persistence/access authority. Meaningful timezone/DST/stale/duplicate/reuse/boundary/17k-row cases; publish interface promptly | Named branch from this card; no existing media/security/catalogue/cleanup edits. Integrate before S18 |
-| S18 Drift Android | frontend; new `ui/Drift*.kt` and focused matching new UI tests; delegated UI/wiring in `StillApp.kt`, theme tokens/icons in `StillTheme.kt`, photo-viewer function/layout in `MediaViewer.kt`, scoped layout in `LibraryControls.kt`, `strings.xml`, `res/drawable/ic_still.xml`, Android README/device matrix; only MainActivity imports/enableEdgeToEdge styling call | Ink/coral layered bounded photo ribbon, explicit navigation, real date rail/jump, view-scoped focus and Grid escape, responsive chrome/search/menu, coherent typography/dock and photo opening motion. Keep all existing live-source/permission/lifetime/favorites/share/playback/selection/Cleanup gates and error states. Existing VideoPlayer/PlaybackVideoView/security/lifecycle bodies unchanged. No new IO/dependency/permission/schema; real native checks marked unrun when unavailable | S17 interface first; UI can develop in parallel. Supervisor owns integration. No delegation approved yet; ask root before helper ownership |
+| S18 Drift Android | frontend; new `ui/Drift*.kt` and focused matching new UI tests; delegated UI/wiring in `StillApp.kt`, theme tokens/icons in `StillTheme.kt`, photo-viewer function/layout in `MediaViewer.kt`, scoped layout in `LibraryControls.kt`, `strings.xml`, `res/drawable/ic_still.xml`, Android README/device matrix; only MainActivity imports/enableEdgeToEdge styling call | Ink/coral layered bounded photo ribbon, explicit navigation, real date rail/jump, view-scoped focus and Grid escape, responsive chrome/search/menu, coherent typography/dock and photo opening motion. Keep all existing live-source/permission/lifetime/favorites/share/playback/selection/Cleanup gates and error states. Existing VideoPlayer/PlaybackVideoView/security/lifecycle bodies unchanged. No new IO/dependency/permission/schema; real native checks marked unrun when unavailable | S17 interface first; UI can develop in parallel. Supervisor owns integration. Helper scope is recorded below |
 | S19 Copy/design audit | seo; read only | Real current-library text, scoped counts, honest observed dates/Unknown dates, current filter/sort state, labelled Settings and non-gesture controls. No shipped stock/demo labels, invented places/memories/AI/capture/privacy/performance claims | Design then frozen source; no edits/media reuse/publication |
 | S20 CP6 gates | reviewer and red_team; read only | Separate design/source preflight and exact integrated source/local-APK verdicts; stale animation/navigation/source/lock/refresh checks, test effectiveness and final hosted confirmations | Root full checks and artifact audit, fixes/rechecks; no release/main merge |
 
 Root owns task board/ADR/acceptance/root README/CI/PR/dependency decisions. Backend
 and frontend use their separate worktrees on new named branches from this card.
+Frontend may delegate only the new `ui/DriftChrome.kt` to
+`/root/frontend/android_tooling` after publishing stateless props. The helper owns
+that file only; parent owns strings, theme, all native action closures, wiring,
+tests and commits. No helper edits existing shared files or IO/security logic.
 Shared file regions above are explicitly delegated; MainActivity authorization is
 only system-bar styling, not authentication/secure-window/lifecycle behavior.
 Neither independent role implements changes. Preserve all129 existing JVM cases,
