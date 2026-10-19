@@ -109,6 +109,8 @@ import app.still.gallery.media.sourceUiToken
 import app.still.gallery.media.favoriteKeysForSource
 import app.still.gallery.media.visibleFavoriteSourceIds
 import app.still.gallery.media.unresolvedFavoriteKeys
+import app.still.gallery.media.galleryVisibleMedia
+import app.still.gallery.media.galleryActionItems
 import app.still.gallery.security.AppLockUiState
 import app.still.gallery.security.LockAction
 import java.time.Instant
@@ -164,10 +166,12 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         if (fresh != access || fresh.level == AccessLevel.PARTIAL) {
             // Never keep an already-open item visible while reduced permissions are reconciled.
             openedId = null
-            media = emptyList()
-            legacyFavoriteMatches = emptyMap()
             selected = emptyList()
         }
+        // Every provider invalidation hides the old snapshot before async read/proof.
+        // Only UI tokens may survive to be reconciled against the fresh result.
+        media = emptyList()
+        legacyFavoriteMatches = emptyMap()
         access = fresh
         loading = fresh.level != AccessLevel.NONE
         loadFailed = false
@@ -184,11 +188,12 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     }
 
     fun share(items: List<MediaItem>) {
-        if (items.isEmpty()) return
+        val eligible = galleryActionItems(items, media, loading, loadFailed)
+        if (eligible.isEmpty()) return
         try {
-            val uris = ArrayList(items.map { it.id.toUri() })
+            val uris = ArrayList(eligible.map { it.id.toUri() })
             val intent = Intent(if (uris.size == 1) Intent.ACTION_SEND else Intent.ACTION_SEND_MULTIPLE).apply {
-                type = shareMimeType(items)
+                type = shareMimeType(eligible)
                 if (uris.size == 1) putExtra(Intent.EXTRA_STREAM, uris.first())
                 else putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
                 clipData = ClipData.newUri(context.contentResolver, shareLabel, uris.first()).also { clip ->
@@ -273,17 +278,18 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         else albumId = null
     }
 
-    val favoriteIds = remember(media, favorites, legacyFavoriteMatches) { visibleFavoriteSourceIds(favorites, legacyFavoriteMatches, media) }
-    val unresolvedFavorites = remember(media, favorites, legacyFavoriteMatches) { unresolvedFavoriteKeys(favorites, legacyFavoriteMatches, media) }
-    val filtered = remember(media, query, albumId, destination, favoriteIds, mediaFilter, mediaSort) {
-        libraryOrder(media.filter { item ->
+    val visibleMedia = remember(media, loading, loadFailed) { galleryVisibleMedia(media, loading, loadFailed) }
+    val favoriteIds = remember(visibleMedia, favorites, legacyFavoriteMatches) { visibleFavoriteSourceIds(favorites, legacyFavoriteMatches, visibleMedia) }
+    val unresolvedFavorites = remember(visibleMedia, favorites, legacyFavoriteMatches) { unresolvedFavoriteKeys(favorites, legacyFavoriteMatches, visibleMedia) }
+    val filtered = remember(visibleMedia, query, albumId, destination, favoriteIds, mediaFilter, mediaSort) {
+        libraryOrder(visibleMedia.filter { item ->
             (albumId == null || item.albumId == albumId) &&
                 (destination != Destination.FAVORITES || item.id in favoriteIds) &&
                 (query.isBlank() || item.name.contains(query.trim(), ignoreCase = true))
         }, mediaFilter, mediaSort)
     }
     val selectedInView = remember(selected, filtered) { selectedMediaInView(selected.toSet(), filtered) }
-    val albumTitle = media.firstOrNull { it.albumId == albumId }?.albumName.orEmpty()
+    val albumTitle = visibleMedia.firstOrNull { it.albumId == albumId }?.albumName.orEmpty()
     val title = when {
         selecting -> pluralStringResource(R.plurals.selected_count, selectedInView.size, selectedInView.size)
         albumId != null -> albumTitle.ifBlank { stringResource(R.string.unknown_album) }
@@ -310,8 +316,8 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                         }
                     }
                     if (selecting) TextButton(onClick = { selecting = false; selected = emptyList() }) { Text(stringResource(R.string.cancel)) }
-                    else if (destination != Destination.SETTINGS && destination != Destination.ALBUMS && media.isNotEmpty()) {
-                        TextButton(onClick = { selecting = true }) { Text(stringResource(R.string.select)) }
+                    else if (destination != Destination.SETTINGS && destination != Destination.ALBUMS && visibleMedia.isNotEmpty()) {
+                        TextButton(onClick = { if (!loading && !loadFailed) selecting = true }) { Text(stringResource(R.string.select)) }
                     }
                 }
                 if (destination != Destination.SETTINGS && access.level != AccessLevel.NONE) {
@@ -338,7 +344,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                 Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                     TextButton(onClick = { if (!loading && !loadFailed) share(selectedMediaInView(selected.toSet(), filtered)) }, enabled = !loading && !loadFailed && selectedInView.isNotEmpty()) { MarkIcon(Mark.SHARE, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.share)) }
                     TextButton(onClick = {
-                        val chosen = if (!loading && !loadFailed) selectedMediaInView(selected.toSet(), filtered) else emptyList()
+                        val chosen = galleryActionItems(selectedMediaInView(selected.toSet(), filtered), media, loading, loadFailed)
                         if (chosen.isNotEmpty()) {
                             saveFavorites(favorites + chosen.map { it.id })
                             scope.launch { snackbar.showSnackbar(favoriteConfirmation) }
@@ -411,22 +417,24 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     destination == Destination.ALBUMS && albumId == null -> AlbumGrid(filtered, device, refresh, albumsPosition) { id -> albumId = id }
                     else -> PhotoGrid(filtered, device, refresh, selectedInView.mapTo(mutableSetOf()) { it.id }, selecting, groupByMonth = mediaSort != MediaSort.NAME,
                         position = if (albumId != null) albumPhotosPosition else if (destination == Destination.FAVORITES) favoritesPosition else photosPosition,
-                        onOpen = { openedId = sourceUiToken(it) },
-                        onToggle = { item -> val token = sourceUiToken(item); selected = if (token in selected) selected - token else selected + token },
-                        onStartSelection = { item -> selecting = true; val token = sourceUiToken(item); if (token !in selected) selected = selected + token },
+                        onOpen = { item -> galleryActionItems(listOf(item), media, loading, loadFailed).singleOrNull()?.let { openedId = sourceUiToken(it) } },
+                        onToggle = { item -> galleryActionItems(listOf(item), media, loading, loadFailed).singleOrNull()?.let { current -> val token = sourceUiToken(current); selected = if (token in selected) selected - token else selected + token } },
+                        onStartSelection = { item -> galleryActionItems(listOf(item), media, loading, loadFailed).singleOrNull()?.let { current -> selecting = true; val token = sourceUiToken(current); if (token !in selected) selected = selected + token } },
                     )
                 }
             }
         }
     }
 
-    if (openedId != null) media.firstOrNull { sourceUiToken(it) == openedId }?.let { item ->
+    if (openedId != null) visibleMedia.firstOrNull { sourceUiToken(it) == openedId }?.let { item ->
         MediaViewer(item, device, refresh, item.id in favoriteIds,
             onClose = { openedId = null },
             onShare = { share(listOf(item)) },
             onFavorite = {
-                val matched = favoriteKeysForSource(item.id, favorites, legacyFavoriteMatches)
-                saveFavorites(if (matched.isEmpty()) favorites + item.id else favorites - matched)
+                galleryActionItems(listOf(item), media, loading, loadFailed).singleOrNull()?.let { current ->
+                    val matched = favoriteKeysForSource(current.id, favorites, legacyFavoriteMatches)
+                    saveFavorites(if (matched.isEmpty()) favorites + current.id else favorites - matched)
+                }
             },
         )
     }

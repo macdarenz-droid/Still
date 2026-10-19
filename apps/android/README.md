@@ -35,6 +35,12 @@ before querying again. Cached thumbnails are memory-only; generation fencing
 rejects late decoding from an invalidated access epoch. Revocation changes
 visibility, never the recorded existence of an original.
 
+Every reload clears visible rows and legacy Favorite aliases, including unchanged
+FULL grants. Only pending source UI tokens may survive for fresh reconciliation.
+Grid/viewer rendering and queued open/select/share/favorite callbacks also check
+current loading/failure and source-token eligibility, so old callbacks cannot act
+on a reused URI during or after a refresh.
+
 Both the memory cache and Compose image state use a local preview fingerprint
 including the source URI, MediaStore modification time, orientation, dimensions,
 byte length, provider/volume/birth/revision provenance and requested preview size. Reconciled edits and rotations therefore

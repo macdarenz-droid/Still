@@ -112,6 +112,21 @@ fun reconcileMediaTokens(tokens: Set<String>, current: List<MediaItem>): Set<Str
 fun selectedMediaInView(tokens: Set<String>, visible: List<MediaItem>): List<MediaItem> =
     if (tokens.isEmpty()) emptyList() else visible.filter { sourceUiToken(it) in tokens }
 
+/** A refresh invalidates the old visible snapshot even when permission bits stay FULL. */
+fun galleryVisibleMedia(snapshot: List<MediaItem>, loading: Boolean, failed: Boolean): List<MediaItem> =
+    if (loading || failed) emptyList() else snapshot
+
+/** Queued callbacks must recheck current eligibility, not a captured row/alias map. */
+fun galleryActionItems(requested: List<MediaItem>, current: List<MediaItem>, loading: Boolean, failed: Boolean): List<MediaItem> {
+    if (loading || failed || requested.isEmpty()) return emptyList()
+    val requestedUris = requested.mapTo(mutableSetOf()) { it.id }
+    val candidates = current.filter { it.id in requestedUris }.groupBy { it.id }
+    val matched = requested.mapNotNull { old ->
+        candidates[old.id]?.singleOrNull()?.takeIf { sourceUiToken(it) == sourceUiToken(old) }
+    }
+    return if (matched.size == requested.size) matched else emptyList()
+}
+
 data class LegacyFavoriteReference(val key: String, val isVideo: Boolean, val externalHandle: String)
 data class LegacyFavoriteProof(
     val providerAuthority: String,
