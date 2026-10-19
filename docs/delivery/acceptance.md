@@ -69,7 +69,26 @@ and /tmp/still-site-text200-{320,390}.png. Screen-reader testing is not implied.
 
 Integrated `npm run check` passed after S01 integration (27 tests, no skips) and
 `npm run check:site` passed after the S03 fix integration. All three components now have separate independent reviewer and red-team passes.
-Combined CP1 awaits full checks and dual review on the integrated SHA.
+Combined CP1: **independent reviewer PASS** and **red-team PASS** at exact
+`1f35568d9cb42204b573b26d47636ccbfec16aed`, development scope only.
+Root install, typecheck, 27 backend tests, discovery validation, Android assemble,
+8 JVM tests (zero failures/errors/skips) and strict lint all passed. Both roles
+verified component source trees were unchanged from their reviewed heads and
+independently hashed/audited the root APK.
+
+Integrated APK SHA-256:
+`69a9e318a8d5300a3af9affd9370d09976f69713982337ac8f44d5753bdb17fb`.
+
+Session evidence: `/tmp/still-cp1-check.log`, `/tmp/still-cp1-android.log`, native
+JUnit/lint reports under `apps/android/app/build`, and ignored local exact-SHA
+record `.artifacts/cp1-validation.json`.
+
+Full baseline whitespace probe `git diff --check b31a7ab..1f35568` reports one
+nonblocking inherited formatting warning: architecture.md:1226 has the supplied
+final blank line. This command is **not a pass**. The document remains byte-identical
+to the original attachment; no exclusion, stripping or guard change hid the warning.
+The working-tree diff is clean. Compiler/API26 and plugin/Gradle10 deprecation
+warnings also remain visible; strict Android lint itself reports no issues.
 
 ### Android lint and toolchain update
 
@@ -128,8 +147,23 @@ committed into app build configuration.
 
 ## CP2 — Final development handoff
 
-Pending exact-SHA regression, artifact hashes, separate reviewer and red-team
-passes, branch/draft PR handoff. Passing CP2 cannot authorize production release.
+CP2 applies to the final committed handoff head after this acceptance record.
+Run full checks on that exact head, then obtain separate independent reviewer and
+red-team verdicts. The final SHA, command outcomes and artifact hash are recorded
+in ignored `.artifacts/cp2-validation.json` and the draft pull request description
+for `build/still-foundation`. Recording the final head outside its own tree avoids
+a self-referential commit ID in this document. The PR description is the persistent
+handoff record; session logs and local artifacts supplement it.
+
+CP2 must preserve all CP1 source subtrees; any material source change reopens the
+affected reviews and tests. Hosted CI results are separately visible on the PR.
+Code/build acceptance cannot authorize publication or replace the blocked device,
+real-provider, backup/restore, creation-output, cost or production-identity gates.
+
+Rollback for this development milestone: close the draft PR/remove the feature
+branch, uninstall `app.still.gallery.dev`, and stop the loopback API. Phone originals
+were not modified. Preserve a copied development SQLite database before changing
+its schema. No cloud copies, provider accounts or production deployment exist.
 
 ## Outstanding feature and release evidence
 

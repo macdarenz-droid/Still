@@ -75,8 +75,9 @@ draft and launch checklist; no public URL implied.
 Use npm ci; npm run typecheck; npm test; npm run check:site; npm run build:android;
 npm run test:android. These commands become passed only when actually executed.
 Android SDK provisioning and local.properties are machine-local; never commit keys.
-Store exact final SHA, commands, environment, results and debug APK SHA-256 in
-docs/delivery/acceptance.md. Native device checks must be marked blocked if no
+Store checkpoint SHA, commands, environment, results and debug APK SHA-256 in
+docs/delivery/acceptance.md. The final handoff head and CP2 verdicts are recorded
+after that commit in .artifacts/cp2-validation.json and the draft PR description. Native device checks must be marked blocked if no
 device is attached. Implemented, independently reviewed, candidate accepted and
 published are separate statuses. No publication is part of this task.
 
@@ -87,8 +88,10 @@ S01 backend and S03 discovery components: both roles passed exact source commits
 the original S03 reflow failure and regression fix remain in acceptance evidence.
 S02 Android: current APK build, 8 JVM tests and strict lint pass. Both independent
 roles passed the final preview-regression fix after reopening the earlier source
-pass. All components are integrated; combined CP1 checks and dual review are next.
-Final CP2 is pending. Nothing is published.
+pass. All components are integrated; combined CP1 passed both roles on exact
+1f35568d9cb42204b573b26d47636ccbfec16aed with all required code/build checks green.
+CP2 verifies the final handoff head; its exact SHA/results/verdicts are retained in
+the draft PR description and local validation record. Nothing is published.
 
 ## Remaining product sequence
 
