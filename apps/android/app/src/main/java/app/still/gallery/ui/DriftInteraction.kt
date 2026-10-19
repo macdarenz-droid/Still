@@ -2,6 +2,9 @@ package app.still.gallery.ui
 
 import app.still.gallery.media.MediaItem
 import app.still.gallery.media.reconcileMediaTokens
+import app.still.gallery.media.DriftNavigationSession
+import app.still.gallery.media.DriftSnapshot
+import app.still.gallery.media.selectedMediaInView
 
 /** UI intent only: it neither retains rows nor grants access while a read is pending. */
 class DriftFocusMemory {
@@ -23,13 +26,16 @@ class DriftInteraction(private val authorized: () -> Boolean) {
     var currentFocus: DriftFocusEntry? = null
         private set
     val focusedToken: String? get() = currentFocus?.sourceToken
+    var railStart: Int? = null
+        private set
 
     fun replace(current: Any, focus: String?) {
         projection = current
         currentFocus = focus?.let(::DriftFocusEntry)
+        railStart = null
     }
 
-    fun invalidate() { projection = null; currentFocus = null }
+    fun invalidate() { projection = null; currentFocus = null; railStart = null }
 
     fun isCurrent(expected: Any, focus: DriftFocusEntry?): Boolean =
         authorized() && projection === expected && focus != null && currentFocus === focus
@@ -38,9 +44,31 @@ class DriftInteraction(private val authorized: () -> Boolean) {
     fun focus(expected: Any, previous: DriftFocusEntry?, nextToken: String): Boolean {
         if (!isCurrent(expected, previous)) return false
         currentFocus = DriftFocusEntry(nextToken)
+        railStart = null
+        return true
+    }
+
+    fun page(expected: Any, previous: DriftFocusEntry?, start: Int): Boolean {
+        if (start < 0 || !isCurrent(expected, previous)) return false
+        currentFocus = DriftFocusEntry(previous!!.sourceToken)
+        railStart = start
         return true
     }
 }
+
+/** A real Grid/Ribbon open also becomes the current browsing-position intent. */
+fun driftRememberOpenedSource(navigation: DriftNavigationSession, snapshot: DriftSnapshot,
+    interaction: DriftInteraction, memory: DriftFocusMemory, token: String): Boolean {
+    val target = navigation.target(snapshot, token) ?: return false
+    if (!interaction.focus(snapshot, interaction.currentFocus, target.sourceUiToken)) return false
+    memory.capture(target.sourceUiToken)
+    return true
+}
+
+/** A retained broad-view batch button cannot consume a newer narrow-view selection. */
+fun driftBatchItems(navigation: DriftNavigationSession, snapshot: DriftSnapshot,
+    selected: Set<String>, visible: List<MediaItem>): List<MediaItem> =
+    if (navigation.isCurrent(snapshot)) selectedMediaInView(selected, visible) else emptyList()
 
 /** Only this bounded window is composed or requests previews, even in a large library. */
 fun driftCardIndices(itemCount: Int, focusedIndex: Int): IntRange =
@@ -97,5 +125,26 @@ class DriftDatePicker(private val currentFocus: () -> Any?) {
         return accepted
     }
 
+    fun invalidate() { current = null }
+}
+
+class DriftOverlayRequest internal constructor()
+
+/** Options edits stay in one opening; cancellation and reopening fence all older callbacks. */
+class DriftOverlaySession(private val authorized: () -> Boolean) {
+    private var current: DriftOverlayRequest? = null
+
+    fun open(): DriftOverlayRequest? = if (authorized()) DriftOverlayRequest().also { current = it } else null
+    fun isCurrent(request: DriftOverlayRequest): Boolean = authorized() && current === request
+    fun edit(request: DriftOverlayRequest, change: () -> Unit): Boolean {
+        if (!isCurrent(request)) return false
+        change()
+        return true
+    }
+    fun close(request: DriftOverlayRequest): Boolean {
+        if (!isCurrent(request)) return false
+        current = null
+        return true
+    }
     fun invalidate() { current = null }
 }

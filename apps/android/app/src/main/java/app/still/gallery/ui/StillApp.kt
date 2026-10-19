@@ -99,6 +99,7 @@ import androidx.core.net.toUri
 import androidx.core.content.edit
 import app.still.gallery.R
 import app.still.gallery.media.DriftNavigationSession
+import app.still.gallery.media.DriftSnapshot
 import app.still.gallery.media.DriftTarget
 import app.still.gallery.media.AccessLevel
 import app.still.gallery.media.DeviceMedia
@@ -159,8 +160,11 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     var selected by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var selecting by rememberSaveable { mutableStateOf(false) }
     var viewMode by rememberSaveable { mutableStateOf("RIBBON") }
-    var controlsVisible by remember { mutableStateOf(false) }
-    var navigationVisible by remember { mutableStateOf(false) }
+    val options = remember(actionLifetime) { DriftOverlaySession { actionLifetime.isActive } }
+    val menu = remember(actionLifetime) { DriftOverlaySession { actionLifetime.isActive } }
+    var optionsRequest by remember { mutableStateOf<DriftOverlayRequest?>(null) }
+    var menuRequest by remember { mutableStateOf<DriftOverlayRequest?>(null) }
+    var initializedProjection by remember { mutableStateOf<DriftSnapshot?>(null) }
     var viewRevision by remember { mutableIntStateOf(0) }
     var focusRevision by remember { mutableIntStateOf(0) }
     val focusMemory = remember { DriftFocusMemory() }
@@ -190,6 +194,8 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     fun invalidateSnapshot() {
         cleanup.invalidate()
+        options.invalidate(); menu.invalidate()
+        optionsRequest = null; menuRequest = null
         focusMemory.capture(driftInteraction.focusedToken)
         drift.invalidate()
         driftInteraction.invalidate()
@@ -216,8 +222,10 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     fun reload() { if (actionLifetime.isActive) invalidateSnapshot() }
 
-    fun changeBrowseScope(change: () -> Unit) {
-        if (!actionLifetime.isActive) return
+    fun changeBrowseScope(expectedOptions: DriftOverlayRequest? = null, change: () -> Unit) {
+        if (!actionLifetime.isActive || expectedOptions != null && !options.isCurrent(expectedOptions)) return
+        if (expectedOptions == null) { options.invalidate(); optionsRequest = null }
+        menu.invalidate(); menuRequest = null
         focusMemory.capture(driftInteraction.focusedToken)
         drift.invalidate()
         driftInteraction.invalidate()
@@ -227,10 +235,26 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         change()
     }
 
-    fun openViewer(item: MediaItem) {
+    fun openViewer(item: MediaItem, projection: DriftSnapshot? = null) {
         galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let {
-            if (viewers.open(sourceUiToken(it)) != null) { focusMemory.capture(sourceUiToken(it)); viewerRevision++ }
+            if (projection != null) {
+                if (!driftRememberOpenedSource(drift, projection, driftInteraction, focusMemory, sourceUiToken(it))) return@let
+                focusRevision++
+            }
+            if (viewers.open(sourceUiToken(it)) != null) viewerRevision++
         }
+    }
+
+    fun openOptions() {
+        if (!actionLifetime.isActive) return
+        menu.invalidate(); menuRequest = null
+        optionsRequest = options.open()
+    }
+
+    fun openMenu() {
+        if (!actionLifetime.isActive) return
+        options.invalidate(); optionsRequest = null
+        menuRequest = menu.open()
     }
 
     fun saveFavorites(next: Set<String>) {
@@ -277,6 +301,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
             drift.invalidate()
             driftInteraction.invalidate()
             viewers.invalidate()
+            options.invalidate(); menu.invalidate()
             actionLifetime.invalidate()
             cleanup.invalidate()
             device.invalidateScans()
@@ -384,15 +409,21 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     val driftSnapshot = remember(filtered, refresh, viewRevision, destination, albumId, query, mediaFilter, mediaSort, viewMode, selecting, zone) {
         drift.replace(filtered, mediaSort, zone)
     }
-    remember(driftSnapshot) {
+    LaunchedEffect(driftSnapshot) {
+        if (!drift.isCurrent(driftSnapshot)) return@LaunchedEffect
         val oldFocus = focusMemory.token ?: driftInteraction.focusedToken
         val current = oldFocus?.let { drift.target(driftSnapshot, it) } ?: drift.first(driftSnapshot)
         driftInteraction.replace(driftSnapshot, current?.sourceUiToken)
         focusMemory.settle(current?.sourceUiToken, loading || loadFailed)
+        initializedProjection = driftSnapshot
+        focusRevision++
     }
-    val focusedIntent = remember(driftSnapshot, focusRevision) { driftInteraction.currentFocus }
+    val focusedIntent = remember(driftSnapshot, focusRevision, initializedProjection) {
+        if (initializedProjection === driftSnapshot) driftInteraction.currentFocus else null
+    }
     val focused = focusedIntent?.sourceToken?.let { drift.target(driftSnapshot, it) }
-    var railStart by remember(driftSnapshot, focused?.sourceUiToken) { mutableStateOf<Int?>(null) }
+    val railStart = remember(driftSnapshot, focusRevision) { driftInteraction.railStart }
+    val navigationReady = initializedProjection === driftSnapshot && drift.isCurrent(driftSnapshot)
     fun focusedCurrent(): Boolean = focused != null && drift.isCurrent(driftSnapshot) && driftInteraction.isCurrent(driftSnapshot, focusedIntent)
     fun focus(target: DriftTarget?): Boolean {
         if (target == null || focused == null || !drift.isCurrent(driftSnapshot)) return false
@@ -417,13 +448,13 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     selecting = selecting, canBrowse = canBrowse && access.level != AccessLevel.NONE && !compactChrome,
                     showBack = albumId != null && !selecting,
                     onBack = { changeBrowseScope { albumId = null } },
-                    onSearch = { if (actionLifetime.isActive) controlsVisible = true },
-                    onOptions = { if (actionLifetime.isActive) controlsVisible = true },
-                    onSettings = { changeBrowseScope { destinationName = Destination.SETTINGS.name; albumId = null; selecting = false; selected = emptyList(); controlsVisible = false } },
+                    onSearch = ::openOptions,
+                    onOptions = ::openOptions,
+                    onSettings = { changeBrowseScope { destinationName = Destination.SETTINGS.name; albumId = null; selecting = false; selected = emptyList() } },
                     onCancelSelection = { changeBrowseScope { selecting = false; selected = emptyList() } },
                 )
                 if (canBrowse && !selecting && access.level != AccessLevel.NONE) {
-                    TextButton(onClick = { if (actionLifetime.isActive) controlsVisible = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    TextButton(onClick = { openOptions() }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                         Text(stringResource(R.string.drift_scope_summary, filterLabel, sortLabel,
                             stringResource(if (viewMode == "GRID" || destination == Destination.ALBUMS && albumId == null) R.string.drift_grid else R.string.drift_ribbon)) + if (query.isNotBlank()) " · " + stringResource(R.string.drift_search_active) else "")
                     }
@@ -433,9 +464,9 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         bottomBar = {
             if (selecting) {
                 FlowRow(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    TextButton(onClick = { if (!loading && !loadFailed) share(selectedMediaInView(selected.toSet(), filtered)) }, enabled = !loading && !loadFailed && selectedInView.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp)) { MarkIcon(Mark.SHARE, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.share)) }
+                    TextButton(onClick = { if (!loading && !loadFailed) share(driftBatchItems(drift, driftSnapshot, selected.toSet(), filtered)) }, enabled = !loading && !loadFailed && selectedInView.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp)) { MarkIcon(Mark.SHARE, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.share)) }
                     TextButton(onClick = {
-                        val chosen = galleryActionItems(selectedMediaInView(selected.toSet(), filtered), media, loading, loadFailed, actionLifetime)
+                        val chosen = galleryActionItems(driftBatchItems(drift, driftSnapshot, selected.toSet(), filtered), media, loading, loadFailed, actionLifetime)
                         if (chosen.isNotEmpty()) {
                             saveFavorites(favorites + chosen.map { it.id })
                             scope.launch { snackbar.showSnackbar(favoriteConfirmation) }
@@ -443,10 +474,10 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     }, enabled = !loading && !loadFailed && selectedInView.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp)) { MarkIcon(Mark.HEART, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.favorites)) }
                 }
             } else if (compactChrome) {
-                TextButton(onClick = { if (actionLifetime.isActive) navigationVisible = true }, modifier = Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 48.dp)) { Text(stringResource(R.string.drift_navigate)) }
+                TextButton(onClick = { openMenu() }, modifier = Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 48.dp)) { Text(stringResource(R.string.drift_navigate)) }
             } else DriftDock(
                 entries = Destination.entries.filter { it != Destination.SETTINGS }.map { DriftDockEntry(it.name, stringResource(it.label), it.mark, it == destination) },
-                onNavigate = { name -> changeBrowseScope { destinationName = name; albumId = null; query = ""; selected = emptyList(); controlsVisible = false } },
+                onNavigate = { name -> changeBrowseScope { destinationName = name; albumId = null; query = ""; selected = emptyList() } },
             )
         },
     ) { padding ->
@@ -527,6 +558,10 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     loadFailed -> MessagePanel(R.string.load_failed, R.string.permission_settings_note) {
                         Button(onClick = ::reload) { Text(stringResource(R.string.retry)) }
                     }
+                    !driftSnapshot.isUsable -> MessagePanel(R.string.load_failed, R.string.permission_settings_note) {
+                        Button(onClick = ::reload) { Text(stringResource(R.string.retry)) }
+                    }
+                    !navigationReady && filtered.isNotEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(Modifier.size(28.dp)) }
                     filtered.isEmpty() -> {
                         val unmatchedFavorites = destination == Destination.FAVORITES && favoriteIds.isEmpty() && unresolvedFavorites.isNotEmpty()
                         val emptyTitle = when { query.isNotBlank() -> R.string.no_results_title; mediaFilter == MediaFilter.VIDEOS -> R.string.no_videos_title; mediaFilter == MediaFilter.PHOTOS -> R.string.no_photos_title; unmatchedFavorites -> R.string.favorites_unavailable_title; destination == Destination.FAVORITES -> R.string.no_favorites_title; else -> R.string.empty_title }
@@ -542,7 +577,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     }
                     !selecting && viewMode == "RIBBON" && focused != null && driftSnapshot.isUsable && drift.isCurrent(driftSnapshot) -> key(driftSnapshot) {
                         val current = filtered[focused.index]
-                        DriftRibbon(filtered, driftSnapshot, focusedIntent!!, focused, device, refresh, current.id in favoriteIds,
+                        DriftRibbon(filtered, driftSnapshot, focusedIntent, focused, device, refresh, current.id in favoriteIds,
                             heading = if (albumId != null) albumTitle else stringResource(if (destination == Destination.FAVORITES) R.string.favorites else R.string.photos),
                             day = drift.dayOf(driftSnapshot, focused.sourceUiToken),
                             rail = drift.rail(driftSnapshot, focused.sourceUiToken, railStart),
@@ -550,8 +585,10 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                             canInteract = ::focusedCurrent,
                             onMove = { direction -> if (focusedCurrent()) focus(drift.move(driftSnapshot, focused.sourceUiToken, direction)) },
                             onJump = { date -> if (focusedCurrent()) focus(drift.jump(driftSnapshot, date)) else false },
-                            onPage = { start -> if (focusedCurrent()) railStart = start },
-                            onOpen = { if (focusedCurrent()) openViewer(current) },
+                            onPage = { start ->
+                                if (focusedCurrent() && drift.rail(driftSnapshot, focused.sourceUiToken, start) != null && driftInteraction.page(driftSnapshot, focusedIntent, start)) focusRevision++
+                            },
+                            onOpen = { if (focusedCurrent()) openViewer(current, driftSnapshot) },
                             onFavorite = {
                                 if (focusedCurrent()) galleryActionItems(listOf(current), media, loading, loadFailed, actionLifetime).singleOrNull()?.let {
                                     val matched = favoriteKeysForSource(it.id, favorites, legacyFavoriteMatches)
@@ -566,7 +603,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     }
                     else -> PhotoGrid(filtered, device, refresh, selectedInView.mapTo(mutableSetOf()) { it.id }, selecting, groupByMonth = mediaSort != MediaSort.NAME,
                         position = if (albumId != null) albumPhotosPosition else if (destination == Destination.FAVORITES) favoritesPosition else photosPosition,
-                        onOpen = { item -> if (drift.isCurrent(driftSnapshot)) openViewer(item) },
+                        onOpen = { item -> if (drift.isCurrent(driftSnapshot)) openViewer(item, driftSnapshot) },
                         onToggle = { item -> if (drift.isCurrent(driftSnapshot)) galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current -> val token = sourceUiToken(current); selected = if (token in selected) selected - token else selected + token } },
                         onStartSelection = { item -> if (drift.isCurrent(driftSnapshot)) galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current ->
                             changeBrowseScope { selecting = true; viewMode = "GRID"; val token = sourceUiToken(current); if (token !in selected) selected = selected + token }
@@ -577,43 +614,50 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         }
     }
 
-    if (navigationVisible) {
-        AlertDialog(onDismissRequest = { navigationVisible = false },
+    val activeMenu = menuRequest
+    if (activeMenu != null && menu.isCurrent(activeMenu)) {
+        AlertDialog(onDismissRequest = { if (menu.close(activeMenu)) menuRequest = null },
             title = { Text(stringResource(R.string.drift_navigate)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     Destination.entries.forEach { entry ->
-                        TextButton(onClick = { changeBrowseScope { destinationName = entry.name; albumId = null; query = ""; selected = emptyList(); navigationVisible = false; controlsVisible = false } }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(entry.label)) }
+                        TextButton(onClick = {
+                            if (menu.close(activeMenu)) changeBrowseScope { destinationName = entry.name; albumId = null; query = ""; selected = emptyList() }
+                        }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(entry.label)) }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { navigationVisible = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.close)) } },
+            confirmButton = { TextButton(onClick = { if (menu.close(activeMenu)) menuRequest = null }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.close)) } },
         )
     }
 
-    if (controlsVisible && canBrowse) {
-        AlertDialog(onDismissRequest = { controlsVisible = false },
+    val activeOptions = optionsRequest
+    if (activeOptions != null && options.isCurrent(activeOptions) && canBrowse) {
+        fun editScope(change: () -> Unit) { options.edit(activeOptions) { changeBrowseScope(activeOptions, change) } }
+        AlertDialog(onDismissRequest = { if (options.close(activeOptions)) optionsRequest = null },
             title = { Text(stringResource(R.string.drift_options)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(value = query, onValueChange = { next -> changeBrowseScope { query = next; selected = emptyList() } },
+                    OutlinedTextField(value = query, onValueChange = { next -> editScope { query = next; selected = emptyList() } },
                         label = { Text(stringResource(R.string.search_media)) }, singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        trailingIcon = if (query.isNotEmpty()) ({ IconButton(onClick = { changeBrowseScope { query = ""; selected = emptyList() } }) { MarkIcon(Mark.CLOSE, stringResource(R.string.clear_search)) } }) else null,
+                        trailingIcon = if (query.isNotEmpty()) ({ IconButton(onClick = { editScope { query = ""; selected = emptyList() } }) { MarkIcon(Mark.CLOSE, stringResource(R.string.clear_search)) } }) else null,
                         modifier = Modifier.fillMaxWidth())
                     LibraryControls(mediaFilter, mediaSort,
-                        onFilter = { next -> if (next != mediaFilter) changeBrowseScope { filterName = next.name; selected = emptyList() } },
-                        onSort = { next -> if (next != mediaSort) changeBrowseScope { sortName = next.name } })
+                        onFilter = { next -> if (next != mediaFilter) editScope { filterName = next.name; selected = emptyList() } },
+                        onSort = { next -> if (next != mediaSort) editScope { sortName = next.name } })
                     if (destination != Destination.ALBUMS || albumId != null) {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(selected = viewMode == "RIBBON", onClick = { changeBrowseScope { viewMode = "RIBBON"; selecting = false; selected = emptyList() } }, label = { Text(stringResource(R.string.drift_ribbon)) }, modifier = Modifier.heightIn(min = 48.dp))
-                            FilterChip(selected = viewMode == "GRID", onClick = { changeBrowseScope { viewMode = "GRID" } }, label = { Text(stringResource(R.string.drift_grid)) }, modifier = Modifier.heightIn(min = 48.dp))
+                            FilterChip(selected = viewMode == "RIBBON", onClick = { editScope { viewMode = "RIBBON"; selecting = false; selected = emptyList() } }, label = { Text(stringResource(R.string.drift_ribbon)) }, modifier = Modifier.heightIn(min = 48.dp))
+                            FilterChip(selected = viewMode == "GRID", onClick = { editScope { viewMode = "GRID" } }, label = { Text(stringResource(R.string.drift_grid)) }, modifier = Modifier.heightIn(min = 48.dp))
                         }
-                        TextButton(onClick = { if (!loading && !loadFailed && visibleMedia.isNotEmpty()) changeBrowseScope { selecting = true; viewMode = "GRID"; controlsVisible = false } }, enabled = !loading && !loadFailed && filtered.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.select)) }
+                        TextButton(onClick = {
+                            if (!loading && !loadFailed && visibleMedia.isNotEmpty() && options.close(activeOptions)) changeBrowseScope { selecting = true; viewMode = "GRID" }
+                        }, enabled = !loading && !loadFailed && filtered.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.select)) }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { controlsVisible = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.done)) } },
+            confirmButton = { TextButton(onClick = { if (options.close(activeOptions)) optionsRequest = null }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.done)) } },
         )
     }
 

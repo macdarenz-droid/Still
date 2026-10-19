@@ -9,6 +9,55 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class DriftInteractionTest {
+    @Test fun dismissedOverlayCannotEditOrCloseReopeningButActiveOptionsCanKeepEditing() {
+        var authorized = true
+        val overlays = DriftOverlaySession { authorized }
+        val cancelled = overlays.open()!!
+        assertTrue(overlays.close(cancelled))
+        val reopened = overlays.open()!!
+        var edits = 0
+        assertFalse(overlays.edit(cancelled) { edits++ })
+        assertFalse(overlays.close(cancelled))
+        assertTrue(overlays.edit(reopened) { edits++ })
+        assertTrue(overlays.edit(reopened) { edits++ })
+        assertTrue(overlays.isCurrent(reopened))
+        assertEquals(2, edits)
+        authorized = false
+        assertFalse(overlays.edit(reopened) { edits++ })
+        overlays.invalidate()
+        authorized = true
+        assertFalse(overlays.close(reopened))
+        assertFalse(overlays.edit(reopened) { edits++ })
+        assertEquals(2, edits)
+    }
+
+    @Test fun railPagingRenewsIntentEvenWhenFocusAndPageReturnToTheirOriginalValues() {
+        val projection = Any()
+        val interaction = DriftInteraction { true }
+        interaction.replace(projection, "A")
+        val pageZero = interaction.currentFocus
+        assertTrue(interaction.page(projection, pageZero, 7))
+        assertTrue(interaction.page(projection, interaction.currentFocus, 14))
+        assertFalse(interaction.page(projection, pageZero, 7))
+        assertEquals(14, interaction.railStart)
+        assertTrue(interaction.page(projection, interaction.currentFocus, 0))
+        assertFalse(interaction.page(projection, pageZero, 7))
+        assertEquals(0, interaction.railStart)
+        assertEquals("A", interaction.focusedToken)
+        assertTrue(interaction.page(projection, interaction.currentFocus, 7))
+    }
+
+    @Test fun retainedBroadBatchCannotActOnNewNarrowViewSelection() {
+        fun row(id: String) = MediaItem(id, "$id.jpg", "image/jpeg", false, 1000, 100, 100, 10, 0, "album", "Album")
+        val rows = listOf(row("A"), row("B"))
+        val navigation = DriftNavigationSession { true }
+        val broad = navigation.replace(rows, MediaSort.NAME, ZoneId.of("UTC"))
+        val selection = setOf(sourceUiToken(rows[1]))
+        val narrow = navigation.replace(listOf(rows[1]), MediaSort.NAME, ZoneId.of("UTC"))
+        assertTrue(driftBatchItems(navigation, broad, selection, rows).isEmpty())
+        assertEquals(listOf(rows[1]), driftBatchItems(navigation, narrow, selection, listOf(rows[1])))
+    }
+
     @Test fun nonfirstFocusSurvivesLoadingAndSafeRefreshWithoutRevivingOldIntent() {
         fun row(id: String, watermark: Long, modified: Long = 2) = MediaItem(
             "content://media/external_primary/images/media/$id", "$id.jpg", "image/jpeg", false,
@@ -21,7 +70,11 @@ class DriftInteractionTest {
         val interaction = DriftInteraction { true }
         val memory = DriftFocusMemory()
         val old = navigation.replace(before, MediaSort.NEWEST, ZoneId.of("UTC"))
-        interaction.replace(old, sourceUiToken(before[1]))
+        interaction.replace(old, sourceUiToken(before[0]))
+        memory.capture(interaction.focusedToken)
+        assertTrue(driftRememberOpenedSource(navigation, old, interaction, memory, sourceUiToken(before[1])))
+        assertEquals(sourceUiToken(before[1]), interaction.focusedToken)
+        assertEquals(sourceUiToken(before[1]), memory.token)
         val oldIntent = interaction.currentFocus
         memory.capture(interaction.focusedToken)
         navigation.invalidate(); interaction.invalidate()
