@@ -268,7 +268,7 @@
     <string name="similarity_stop">Stop</string>
     <string name="similarity_retry">Retry</string>
     <string name="similarity_compare">Compare</string>
-    <string name="similarity_selection_limit">Select 2–200 photos to find similar photos.</string>
+    <string name="similarity_selection_limit">Select 2–200 photos. Supports static JPEG and PNG; up to 16 MiB per photo and 256 MiB per search.</string>
     <string name="similarity_scope">Checks only the selected photos, across dates. Supports static JPEG and PNG photos. Limit: 16 MiB per photo and 256 MiB per search. Android may convert photos, remove metadata or fetch cloud-backed media.</string>
     <string name="similarity_detail_warning">Similar-looking photos can contain different text, expressions or changes. Compare to check the details.</string>
     <string name="similarity_scanning">Checking selected photos</string>
@@ -289,7 +289,7 @@
     <string name="similarity_pair_number">Pair %1$d</string>
     <string name="similarity_photo_name">Photo %1$d: %2$s</string>
     <string name="similarity_date_unavailable">Date unavailable</string>
-    <string name="similarity_checked">Tried to read %1$d of %2$d selected photos</string>
+    <plurals name="similarity_checked"><item quantity="one">Tried to read %1$d of %2$d selected photo</item><item quantity="other">Tried to read %1$d of %2$d selected photos</item></plurals>
     <string name="similarity_bytes_read">Data read: %1$s</string>
     <plurals name="similarity_pairs"><item quantity="one">%1$d pair to review</item><item quantity="other">%1$d pairs to review</item></plurals>
     <plurals name="similarity_selected"><item quantity="one">%1$d selected photo</item><item quantity="other">%1$d selected photos</item></plurals>

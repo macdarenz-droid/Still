@@ -131,7 +131,7 @@ private fun SimilarityCoverage(coverage: SimilarityCoverageUi) {
     val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(pluralStringResource(R.plurals.similarity_selected, coverage.selected, coverage.selected))
-        Text(stringResource(R.string.similarity_checked, coverage.attempted, coverage.selected), Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+        Text(pluralStringResource(R.plurals.similarity_checked, coverage.selected, coverage.attempted, coverage.selected), Modifier.semantics { liveRegion = LiveRegionMode.Polite })
         Text(pluralStringResource(R.plurals.similarity_analyzed, coverage.featured, coverage.featured))
         listOf(R.plurals.similarity_empty to coverage.empty, R.plurals.similarity_unreadable to coverage.unreadable,
             R.plurals.similarity_oversized to coverage.oversized, R.plurals.similarity_unsupported to coverage.unsupported,
