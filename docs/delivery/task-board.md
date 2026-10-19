@@ -92,8 +92,9 @@ pass. All components are integrated; combined CP1 passed both roles on exact
 1f35568d9cb42204b573b26d47636ccbfec16aed with all required code/build checks green.
 CP2 verifies the final handoff head; its exact SHA/results/verdicts are retained in
 the draft PR description and local validation record. Nothing is published.
-CP3 adds optional whole-app lock; its exact final head, checks, APK identity and
-both independent verdicts are recorded in the same draft PR and ignored
+CP3 optional whole-app lock passed both independent development gates at
+`e285a22d477a04f39fd7ea0d02758f44cc4486df`, with local checks and all four hosted
+checks green. Its exact APK/evidence is retained in acceptance.md and ignored
 `.artifacts/cp3-validation.json`. Native lock device acceptance is separate.
 
 ## Remaining product sequence
@@ -171,6 +172,10 @@ Builders create new named branches in their existing separate worktrees from the
 CP4 card commit. Supervisor owns CI, package scripts/manifests, task/evidence/ADR
 records, final integration and PR. New dependencies require supervisor approval;
 none are approved/needed here. Existing tests and lint guards remain mandatory.
+Backend explicitly delegated only `scripts/test-android-catalogue.py` to
+`/root/backend/catalogue_sql_probe`. Frontend delegated only the new
+`ui/LibraryControls.kt` to `/root/frontend/android_tooling`. Parent builders retain
+their remaining source ownership, tests, commits and integration accountability.
 
 Data scope is the already-authorized on-phone gallery catalogue from architecture
 sections 7–8: metadata already read for browsing, local opaque IDs and observation

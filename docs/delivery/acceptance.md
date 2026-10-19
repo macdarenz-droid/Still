@@ -177,6 +177,18 @@ branch, uninstall `app.still.gallery.dev`, and stop the loopback API. Phone orig
 were not modified. Preserve a copied development SQLite database before changing
 its schema. No cloud copies, provider accounts or production deployment exist.
 
+### CP2 final development outcome (recorded by the next checkpoint)
+
+The final CP2 source was `42432e65c4b14935de916913228da5f4e799f07c`.
+Independent reviewer and red team both passed the exact local source/APK and
+separately confirmed both hosted runs successful: [PR run39189212426](https://github.com/macdarenz-droid/Still/actions/runs/39189212426)
+and [push run39189208299](https://github.com/macdarenz-droid/Still/actions/runs/39189208299).
+All four PR checks passed. The locally delivered APK SHA-256 was
+`69a9e318a8d5300a3af9affd9370d09976f69713982337ac8f44d5753bdb17fb`.
+This promoted historical result preserves the exact gate after the PR description
+moves to a later checkpoint. Hosted binary download/inspection was blocked;
+native-device and production acceptance were excluded. Nothing was published.
+
 ## CP2 outstanding feature and release evidence (historical)
 
 - No attached Android device or accelerated emulator: x86_64 worker has no
@@ -290,3 +302,18 @@ Rollback: revert the CP3 development commits or uninstall the development app.
 Phone originals are unchanged; uninstall clears Still-local favorites/settings.
 No production signing, account/provider connection, main merge or publication
 forms part of CP3.
+
+### CP3 final development outcome (recorded by the next checkpoint)
+
+Final source `e285a22d477a04f39fd7ea0d02758f44cc4486df` passed both independent
+reviewer and red-team source/build/local-artifact gates, followed by each role's
+separate confirmation of both successful hosted runs: [PR run39196615135](https://github.com/macdarenz-droid/Still/actions/runs/39196615135)
+and [push run39196610661](https://github.com/macdarenz-droid/Still/actions/runs/39196610661).
+All four PR checks were green. Root typecheck/site checks, all27 backend tests,
+all33 Android JVM tests, assemble and strict lint passed on that exact head.
+Audited local APK SHA-256:
+`2604452f0ad0a7771388b4aed5a5f9b9f1d7e8a0892730f97df6fd85ce12037e`.
+The local validation record independently retains both verdicts and hosted IDs.
+No hosted binary inspection, native lock/device-security acceptance, main merge
+or publication was inferred. This historical record remains after the PR moves
+to CP4; all device limits above remain open.

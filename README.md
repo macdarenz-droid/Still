@@ -31,8 +31,9 @@ npm ci --ignore-scripts
 npm run check
 ```
 
-`npm run check` typechecks TypeScript, runs required contract/fault suites and
-validates discovery assets. Missing test suites fail rather than report a false
+`npm run check` typechecks TypeScript, runs required contract/fault suites,
+validates discovery assets and runs real SQLite probes against the Android
+catalogue's shared SQL assets. Missing or empty required suites/assets fail rather than report a false
 pass. The API is a local development service; authentication, consent and provider
 availability are described in `services/api/README.md`. No media upload service or
 production login is included. Do not expose the API to the Internet.
