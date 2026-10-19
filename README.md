@@ -92,6 +92,14 @@ See [the selected design](docs/decisions/0006-drift-gallery.md) for source fence
 and [native checks](apps/android/DEVICE_CHECKS.md) for motion, accessibility and
 device checks that remain unverified.
 
+Select exactly two photos in Grid and use Compare for linked zoom/pan and paired
+previews. It prepares temporary readable copies, at most32MiB each/64MiB total,
+then clears them when the session closes. Interrupted cleanup is retried before
+another comparison; a failure blocks new preparation. These copies are not proof
+of original fidelity or backup/removal readiness. See
+[the selected-input design](docs/decisions/0008-selected-input-comparison.md) and
+the device matrix for native decoding, storage and lifecycle checks still open.
+
 Cleanup can scan for matching readable copies, show its comparison coverage and
 let you choose keepers or explicitly protect matching content on this phone.
 Scans start manually, use fresh Android-authorized media and invalidate when

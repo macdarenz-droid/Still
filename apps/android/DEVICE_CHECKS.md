@@ -130,3 +130,25 @@ establish native rendering, gestures, motion, focus, accessibility or performanc
 | All | Use TalkBack, keyboard/switch, 200% font, RTL, 320dp width, landscape and split-screen | Focused photo only among decorative cards; settled-position announcements; selected states and 48dp actions; all content/menu/dialog actions reachable without clipping | Blocked |
 | All | Open videos from ribbon/grid/Cleanup; Play/Pause/seek, background, lock, rotate and edit source | Existing explicit/no-autoplay/native-seek behavior and current-source/lifecycle start checks preserved | Blocked |
 | Reference device | Browse 17,000 synthetic/consented rows, large albums and legacy Favorites; measure ribbon/Grid/date/search transitions | Record actual thumbnail requests, heap, startup and frame timings; bounded composition is not a measured performance guarantee | Blocked |
+
+## S29/S30 selected inputs and photo comparison
+
+Every row is **Blocked** until run on an identified device/API with exact source
+and APK hash. JVM files/streams, sampled-decode policy tests and APK inspection
+do not establish Android provider output, native decoding, IO event order or UI.
+Keep synthetic/consented fixtures outside git.
+
+| Environment | Procedure | Expected result | Status |
+| --- | --- | --- | --- |
+| API 26–37 | Select exactly two photos from Photos/Favorites/album Grid, compare, zoom/pan with gestures and buttons, Reset and Close/Back | Two real bounded prepared-file previews; linked controls and filenames; selection scope retained; no source/share/delete operation | Blocked |
+| All | Select zero/one/three photos, mixed photo/video, hide a selected photo by filter/search, or invoke a retained old selection callback | Comparison accepts exactly the current two visible photo sources; old/hidden/replaced selections cannot retarget it | Blocked |
+| All | Compare JPEG/PNG/HEIC/WebP, eight EXIF mirror/rotation fixtures, mismatched dimensions, damaged/unsupported/animated files and very large dimensions | Orientation follows staged bytes; bounded sampled/allocation checks; honest preview failure; no source fallback or autoplay/full-quality claim | Blocked |
+| All | Use a provider that redacts/transcodes/cloud-fetches; vary reported size and actual representation length | Actual readable bytes govern quotas and identity; no original fidelity, offline, backup or deletion-readiness claim | Blocked |
+| All | Prepare exact32MiB inputs then one byte over, unknown/lying sizes, empty/stalled/failed/close-failed streams or low-storage/sync/readback failure | At most64MiB retained pair; no partial pair/READY; explicit failure and verified cleanup or blocked staging on cleanup failure | Blocked |
+| All | Change first source while second prepares; reset/advance provider, replace same URI, remove volume or withdraw same-bit selected access | Whole pair fenced; both previews disappear; no old-byte fallback or late completion | Blocked |
+| All | Cancel before worker starts, delay read and close, tap Compare repeatedly, navigate and recreate while IO is blocked; overlap old Cleanup scan | Immediate UI fencing; shared process admission held through actual closure; no queued readers, deleted live files or accumulated sessions | Blocked |
+| All | Close/background/lock, change browse scope/refresh, rotate/recreate and authenticate later; retain old zoom/reset/close/completion callbacks | No saved comparison or inherited ticket/path; current session alone acts; new gallery can recover after admitted cleanup settles | Blocked |
+| All | Kill process at partial write/publish/readback/ready/cleanup boundaries, reopen gallery and compare again; inject file eviction/deletion failure and unexpected link/path | No session resumes; own orphan cleanup is coordinated, no unrelated cache/original touched; failed cleanup remains visible and blocks added staging | Blocked |
+| All | Inspect app-private comparison cache, backup/transfer and recipient/share behavior during/after comparison | Only explicitly selected temporary representations in owned cache; no preview cache/export/FileProvider/network path; existing backup exclusions hold; no secure-erasure promise | Blocked |
+| All | TalkBack, keyboard/switch, 200% font, RTL, 320dp width, landscape/split-screen and live animator scale zero | Paired content and essential pan/zoom/reset/close/cancel/recovery controls reachable and labelled; source withdrawal has no exit animation | Blocked |
+| Reference device | Repeated maximum-size comparisons plus Cleanup; measure heap/decode/IO/cancel/frame behavior and retention | Record actual bitmap/CPU/disk/latency/thermal values; bounded requests are not measured throughput or heap guarantees | Blocked |

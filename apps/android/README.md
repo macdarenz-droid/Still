@@ -304,6 +304,40 @@ annotation replacement may finish after lock, but no stale UI completion publish
 Filesystem/power-loss behavior remains a device check. This preference does not
 lock files or stop another app changing or deleting them.
 
+## Selected inputs and photo comparison (S29/S30)
+
+Compare accepts exactly two currently selected visible photos from Photos,
+Favorites or album Grid. It prepares temporary readable representations before
+showing paired previews with linked zoom/pan, non-gesture controls, Reset and Close.
+The flow is read-only and has no share, Favorite, keeper, delete or restore action.
+
+The input core counts actual bytes with a64KiB buffer, capped at32MiB per photo
+and64MiB for the whole retained pair. Complete EOF, successful closes, sync,
+readback and before/after/whole-pair source/access checks precede publication.
+MediaStore.SIZE is not a promise about a transformed readable stream. IDs refer
+only to captured task representations; redaction/conversion/cloud sourcing can
+prevent original-fidelity claims. Existing catalogue observations and CP9's
+default-deny development journal receive no new authority.
+
+The app-private cache is excluded from backup. No media, file paths, tickets or
+hashes enter logs, saved UI state, the catalogue, export or network. One heavy-read
+lane is shared with Cleanup; actual blocked reads/closes retain admission. Session
+ownership covers files left during failure, so cleanup failure blocks new staging
+rather than accumulating more pairs. Orphan cleanup is coordinated with live
+workers on gallery initialization/before preparation. Close, background, lock,
+refresh, source/access change, navigation and recreation discard the session;
+there is no restored comparison. Interrupted remnants may remain until that next
+cleanup, and Android may evict cache earlier; secure erasure is not promised.
+
+Previews decode only ticket-bound staged streams, with no source fallback or
+image-loading cache/dependency. Sampling bounds each bitmap to1536 pixels on an
+edge and4million pixels, with allocation checks around decode/orientation. EXIF
+comes from the staged representation and includes mirrored/rotated forms. These
+bounds and JVM policies do not prove Android decoder/orientation support or total
+app heap/performance. Native provider/filesystem/gesture/TalkBack/large-text/process-
+kill behavior remains in the [manual matrix](DEVICE_CHECKS.md). See
+[ADR0008](../../docs/decisions/0008-selected-input-comparison.md) for full scope.
+
 ## Verification limits
 
 Unit tests exercise API-specific permission policy, mixed-media sharing,

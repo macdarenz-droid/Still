@@ -30,6 +30,9 @@ observations, and CP9 remains a separate internal development module.
 Use a 64KiB buffer, at most32MiB per input and64MiB for the complete pair, counted
 from actual reads rather than metadata. Reject empty, stalled, malformed,
 oversized, short/failed/close-failed reads and any sync/readback/source failure.
+An exact declared readable-representation length, when available, or the staged
+readback establishes a short read; MediaStore's reported original size does not.
+Unknown readable length stays unknown while actual reads still enforce quotas.
 All-or-nothing publication: if the second input fails, publish neither and clear
 both temporary inputs. One nonqueueing heavy-reader admission is shared with
 Cleanup, held through actual provider closure even after cancellation. Staging
@@ -69,7 +72,9 @@ dialog solely for this reversible action.
 The read-only comparison shows two bounded previews and real filenames, responsive
 paired panes, linked zoom/pan with buttons plus gestures, Reset and Close. Decode
 only prepared files, with sampled pixel/allocation bounds and no new image-loading
-dependency or disk/memory cache retaining copies after the session. Honor orientation and fail honestly for
+dependency or disk/memory cache retaining copies after the session. The decoder
+receives only ticket/member-bound staged streams, never paths or source fallback.
+Honor orientation and fail honestly for
 unsupported decoding; no auto-playing video/animation or quality recommendation.
 All essential controls remain reachable with large text and TalkBack. Any motion
 is finite and follows reduced motion; withdrawn images have no exit animation.
