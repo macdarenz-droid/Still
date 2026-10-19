@@ -50,7 +50,7 @@ fun StillTheme(content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors, content = content)
 }
 
-enum class Mark { PHOTOS, ALBUMS, HEART, SETTINGS, BACK, CLOSE, SHARE, SELECT, INFO, PLUS, MINUS, REFRESH }
+enum class Mark { PHOTOS, ALBUMS, HEART, CLEANUP, SETTINGS, BACK, CLOSE, SHARE, SELECT, INFO, PLUS, MINUS, REFRESH }
 
 @Composable
 fun MarkIcon(mark: Mark, description: String?, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurface) {
@@ -67,6 +67,7 @@ fun MarkIcon(mark: Mark, description: String?, modifier: Modifier = Modifier, co
                 line(5f, 17f, 11f, 12f); line(11f, 12f, 15f, 16f); line(15f, 16f, 18f, 13f)
             }
             Mark.ALBUMS -> { rounded(7f, 7f, 14f, 14f); line(3f, 16f, 3f, 3f); line(3f, 3f, 16f, 3f) }
+            Mark.CLEANUP -> { rounded(3f, 6f, 12f, 15f); rounded(9f, 3f, 12f, 15f); line(12f, 11f, 15f, 14f); line(15f, 14f, 19f, 8f) }
             Mark.HEART -> {
                 val path = Path().apply {
                     moveTo(12 * unit, 21 * unit)

@@ -112,6 +112,9 @@ import app.still.gallery.media.unresolvedFavoriteKeys
 import app.still.gallery.media.galleryVisibleMedia
 import app.still.gallery.media.galleryActionItems
 import app.still.gallery.media.GalleryActionLifetime
+import app.still.gallery.media.AndroidCleanupSourceReader
+import app.still.gallery.media.cleanupSnapshotMatchesGallery
+import app.still.gallery.cleanup.AndroidContentProtections
 import app.still.gallery.security.AppLockUiState
 import app.still.gallery.security.LockAction
 import java.time.Instant
@@ -123,7 +126,7 @@ import kotlinx.coroutines.launch
 
 private enum class Destination(val label: Int, val mark: Mark) {
     PHOTOS(R.string.photos, Mark.PHOTOS), ALBUMS(R.string.albums, Mark.ALBUMS),
-    FAVORITES(R.string.favorites, Mark.HEART), SETTINGS(R.string.settings, Mark.SETTINGS),
+    FAVORITES(R.string.favorites, Mark.HEART), CLEANUP(R.string.cleanup_title, Mark.CLEANUP), SETTINGS(R.string.settings, Mark.SETTINGS),
 }
 
 @Composable
@@ -152,6 +155,11 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     var legacyFavoriteMatches by remember { mutableStateOf(emptyMap<String, String>()) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val cleanup = remember(device, actionLifetime) {
+        CleanupCoordinator(scope, actionLifetime,
+            { granted -> AndroidCleanupSourceReader(context.applicationContext, device, granted) },
+            { AndroidContentProtections(context.applicationContext) })
+    }
     val shareLabel = stringResource(R.string.share_media)
     val shareFailure = stringResource(R.string.share_failed)
     val favoriteConfirmation = stringResource(R.string.favorites_saved)
@@ -164,6 +172,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     val albumPhotosPosition = rememberLazyGridState()
 
     fun invalidateSnapshot() {
+        cleanup.invalidate()
         val fresh = context.mediaAccess()
         if (fresh != access || fresh.level == AccessLevel.PARTIAL) {
             // Never keep an already-open item visible while reduced permissions are reconciled.
@@ -189,6 +198,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     fun saveFavorites(next: Set<String>) {
         preferences.edit { putStringSet("favorites", next) }
         favorites = next
+        cleanup.invalidate()
     }
 
     fun share(items: List<MediaItem>) {
@@ -220,6 +230,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     DisposableEffect(actionLifetime, device) {
         onDispose {
             actionLifetime.invalidate()
+            cleanup.invalidate()
             device.invalidateScans()
             device.clearThumbnails()
         }
@@ -299,6 +310,10 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         else albumId = null
     }
 
+    LaunchedEffect(destination) {
+        if (destination == Destination.CLEANUP && actionLifetime.isActive) cleanup.loadProtections()
+    }
+
     val currentlyAuthorized = actionLifetime.isActive
     val visibleMedia = remember(media, loading, loadFailed, currentlyAuthorized) { galleryVisibleMedia(media, loading || !currentlyAuthorized, loadFailed) }
     val favoriteIds = remember(visibleMedia, favorites, legacyFavoriteMatches) { visibleFavoriteSourceIds(favorites, legacyFavoriteMatches, visibleMedia) }
@@ -338,11 +353,11 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                         }
                     }
                     if (selecting) TextButton(onClick = { selecting = false; selected = emptyList() }) { Text(stringResource(R.string.cancel)) }
-                    else if (destination != Destination.SETTINGS && destination != Destination.ALBUMS && visibleMedia.isNotEmpty()) {
+                    else if (destination != Destination.SETTINGS && destination != Destination.CLEANUP && destination != Destination.ALBUMS && visibleMedia.isNotEmpty()) {
                         TextButton(onClick = { if (actionLifetime.isActive && !loading && !loadFailed) selecting = true }) { Text(stringResource(R.string.select)) }
                     }
                 }
-                if (destination != Destination.SETTINGS && access.level != AccessLevel.NONE) {
+                if (destination != Destination.SETTINGS && destination != Destination.CLEANUP && access.level != AccessLevel.NONE) {
                     OutlinedTextField(
                         value = query,
                         onValueChange = { query = it; selected = emptyList() },
@@ -386,7 +401,41 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            if (destination == Destination.SETTINGS) {
+            if (destination == Destination.CLEANUP) {
+                val expectedReview = cleanup.currentReview
+                val expectedScan = cleanup.currentScan
+                val expectedAction = cleanup.actionIdentity
+                val expectedRevision = cleanup.protectionRevision
+                CleanupScreen(
+                    state = cleanup.display(access, !loading && !loadFailed && !indexing),
+                    onStart = {
+                        val startedAt = refresh
+                        val startedAccess = access
+                        cleanup.start(expectedAction, CleanupStartBindings(
+                            access = startedAccess, favorites = favorites,
+                            isCurrent = { actionLifetime.isActive && refresh == startedAt && context.mediaAccess() == startedAccess && !loading && !loadFailed && !indexing },
+                            acceptSnapshot = { fresh ->
+                                if (!cleanupSnapshotMatchesGallery(fresh.items, media)) {
+                                    invalidateSnapshot()
+                                    false
+                                } else {
+                                    legacyFavoriteMatches = fresh.legacyFavoriteMatches
+                                    true
+                                }
+                            },
+                            currentFavorites = { favorites }, currentAliases = { legacyFavoriteMatches },
+                            openMember = { item -> galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { openedId = sourceUiToken(it) } },
+                        ))
+                    },
+                    onCancel = { cleanup.stop(expectedScan) },
+                    onKeeperChange = { group, member, keep -> cleanup.keep(expectedReview, group, member, keep) },
+                    onProtectionChange = { group, protect -> cleanup.protect(expectedReview, group, protect, expectedRevision) },
+                    onOpenMember = { group, member -> cleanup.open(expectedReview, group, member) },
+                    onChangeAccess = ::changeAccess,
+                    onRefresh = ::reload,
+                    onRetryProtection = { cleanup.loadProtections() },
+                )
+            } else if (destination == Destination.SETTINGS) {
                 SettingsContent(access, ::changeAccess, ::settings, ::reload, lockState,
                     { if (actionLifetime.isActive) authenticateLock(it) },
                     { if (actionLifetime.isActive) securitySettings() })

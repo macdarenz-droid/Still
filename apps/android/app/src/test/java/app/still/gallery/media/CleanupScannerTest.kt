@@ -116,7 +116,43 @@ class CleanupScannerTest {
         assertEquals(0, lastChecked)
     }
 
+    @Test fun grantLossAfterChunkClosesWithoutEvidenceOrAnotherOpen() = runBlocking {
+        val reader = FakeReader()
+        var revoked = false; var closed = false; var opens = 0
+        reader.onAccess = { if (revoked) throw CancellationException("synthetic revocation") }
+        reader.onStream = {
+            opens++
+            object : ByteArrayInputStream("abc".toByteArray()) {
+                override fun read(buffer: ByteArray, offset: Int, length: Int): Int { val count = super.read(buffer, offset, length); revoked = true; return count }
+                override fun close() { closed = true }
+            }
+        }
+        assertTrue(runCatching { CleanupScanner(reader, CleanupReadAdmission()).scan(emptySet(), {}, {}, {}, {}) }.exceptionOrNull() is CancellationException)
+        assertTrue(closed)
+        assertEquals(1, opens)
+    }
+
+    @Test fun reportedSizeIsOnlyPrefilterAndActualLengthIsEvidence() = runBlocking {
+        val reader = FakeReader()
+        reader.onStream = { ByteArrayInputStream("longer".toByteArray()) }
+        val result = CleanupScanner(reader, CleanupReadAdmission()).scan(emptySet(), {}, {}, {}, {})
+        assertEquals(listOf(6L, 6L), result.members.map { it.digest.byteCount })
+        assertEquals(listOf(3L, 3L), result.members.map { it.item.bytes })
+    }
+
+    @Test fun scopeLimitStopsBeforeOpenAndReleasesAdmission() = runBlocking {
+        val lane = CleanupReadAdmission()
+        val reader = FakeReader(MutableList(CleanupBounds.MAX_SOURCES + 1) { cleanupTestItem(1) })
+        var opened = false
+        reader.onOpen = { opened = true }
+        assertTrue(runCatching { CleanupScanner(reader, lane).scan(emptySet(), {}, {}, {}, {}) }.exceptionOrNull() is CleanupScopeLimitException)
+        assertFalse(opened)
+        assertEquals(2, CleanupScanner(FakeReader(), lane).scan(emptySet(), {}, {}, {}, {}).members.size)
+    }
+
     private class FakeReader(val rows: MutableList<MediaItem> = mutableListOf(cleanupTestItem(1), cleanupTestItem(2))) : CleanupSourceReader {
+        var onAccess: () -> Unit = {}
+        override fun checkAccess() { onAccess() }
         var onOpen: (MediaItem) -> Unit = {}
         var onStream: (MediaItem) -> InputStream = { ByteArrayInputStream("abc".toByteArray()) }
         var onProbe: ((MediaItem) -> MediaItem?)? = null

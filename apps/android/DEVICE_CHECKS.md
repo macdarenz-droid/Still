@@ -48,7 +48,7 @@ count as lock acceptance.
 | All | Enable and background quickly; disable then background; return from authentication while screen off | No sensitive first frame or recents flash; only foreground accepted authentication grants access | Blocked |
 | All | Gate/settings with TalkBack, switch/keyboard navigation and 200% font; trigger cancel/error/recovery | Textual state and polite error announcements; readable scrolling; reachable actions without icon/color dependence | Blocked |
 
-Cleanup, backup/restore, AI, OCR and editing remain future tasks. No runtime or
+Native deletion/trash, backup/restore, AI, OCR and editing remain future tasks. No runtime or
 production security acceptance is claimed by the native implementation alone.
 
 ## S09/S10 local catalogue and gallery controls
@@ -74,3 +74,30 @@ and APK hash. Host SQLite/pure JVM probes validate the tested rules and SQL only
 | All | Filters, dropdown, errors and playback with TalkBack, keyboard/switch, 200% font, RTL and narrow/landscape window | Selected choice/action announced, visible 48dp controls, text/actions reachable without clipping; native controls accessible | Blocked |
 | Reference device | Cold browse/index at least 17,000 synthetic/consented items; repeat filtering/sorting/search and cancellation | Record actual memory/startup/frame/SQL timings; no responsiveness or scalability claim without measurements | Blocked |
 | Reference device | Upgrade a large set of legacy Favorites; cancel/revoke/reset provider midway through sequential metadata alias queries | Record linear lookup latency and cancellation behavior; no partial alias publication, guessed attachment or claimed fast upgrade | Blocked |
+
+
+## S13/S14 exact readable-byte review
+
+Every row is **Blocked** until run on an identified device/API and exact source/APK.
+Synthetic JVM streams, policy/fault tests and source review do not establish native
+provider transformations, actual filesystem durability, performance or event order.
+Use synthetic or explicitly consented media outside git; never commit private media.
+
+| Environment | Procedure | Expected result | Status |
+| --- | --- | --- | --- |
+| API 26–29, 30–37 | Start scans with known matching bytes, same-name different bytes, same pixels/different encoding, mixed type/size and unknown sizes | Only complete same-kind readable digest/actual-length matches group; coverage states omitted/unreadable/empty/changed items and never whole-phone/original equivalence | Blocked |
+| All | Open Cleanup without Start; change type/search in gallery, then start manually | No automatic reads; scan uses fresh authorized full scope independent of UI filters | Blocked |
+| All | Use redacted, transformed, cloud-backed or unsupported provider media | Readable representation scope stays honest; actual length counted; failures excluded; no offline/original/pinned-version claim | Blocked |
+| All | Delay a read, Stop, tap Start repeatedly, navigate, lock/unlock and recreate | Output fenced immediately; Stopping lasts until real reader exit; one process-wide lane stays held; no queued or resumed scan; explicit retry after Busy | Blocked |
+| All | Fail open/read/close; use empty, short-chunk, stalled or over-16-GiB representation; exceed 50,000 snapshot rows | No prefix/partial evidence; honest separate coverage or scope-limit failure; resources close; no fake successful groups | Blocked |
+| API 30–37 | Change an early item while the final candidate reads; advance generation normally, reset/rollback version, mount/unmount storage | Whole result rejected after final namespace/member/access checks, even if an early digest was already read | Blocked |
+| API 26–29 | Replace/edit an early item and preserve coarse metadata while scanning | Final per-member checks reject observed changes; unchanged coarse metadata remains explicitly best effort, never immutable byte proof | Blocked |
+| API 34–37 | Reselect with same permission bits or withdraw an early selected member mid-scan | Late progress/results and old member actions blocked; fresh proof required, no withdrawn preview or alias-based action | Blocked |
+| All | Change gallery between snapshot and scan, invoke old member/keeper/protection callbacks after new scan, refresh, lock and disposal | Different mapping invalidates and refreshes with manual retry; scan-object identity and live authority reject stale actions and completions | Blocked |
+| API 29–37 | Include unresolved legacy Favorites, volume/handle collisions, current Favorites changes and mixed raw/proven references | Possible Favorites stay Unknown; affected extras paused; Favorites mutation invalidates review; raw keys preserved | Blocked |
+| All | Choose/reverse multiple keepers; open member in photo/video viewer; protect/unprotect matching content | Keepers reversible and scan-bound; ordinary viewer/share/playback gates retained; no extras without keeper and no deletion affordance | Blocked |
+| All | Protect then restart/reset/miss sources; reuse URI with different bytes; freshly hash equal bytes at another URI | Only content-key matches share durable protection; missing annotations retained; no URI rebinding or historical-identity claim | Blocked |
+| All | Inject format/oversize/corruption/revision/write/sync/readback/marker failure; fill 4,096-key/512-KiB bounds; delay old READY load behind failed save/new request | Unknown blocks extras and labels; no optimistic saved/unprotected state; raw records retained; old completions denied; explicit reread never promises repair | Blocked |
+| All | Stop/background during annotation admission; delay store coordinator; lock/recreate | New mutation denied after invalidation; admitted tiny replacement may finish but cannot publish to old/new gallery; new gallery reloads durable state | Blocked |
+| All | TalkBack, switch/keyboard, 200% font, RTL, narrow/landscape; one very large matching group | Reachable Stop/Refresh/keeper/protection confirmation; textual unknown/saved/error states and lazy members; no clipped essential action | Blocked |
+| Reference device | Measure 17,000-item scans, large videos, many legacy references and 50,000-member synthetic group | Record actual read/CPU/memory/battery/thermal/cancellation/frame timings; no throughput, responsiveness or durability guarantee before measurement | Blocked |

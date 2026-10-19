@@ -151,7 +151,7 @@ terminal errors, cancellation, screen-off and new entry fence stale callbacks.
 If the phone screen lock is unavailable, an enabled Still stays locked and offers
 Android security settings.
 
-The only new durable data is a strict, versioned local on/off setting and a
+The app lock’s durable data is a strict, versioned local on/off setting and a
 pending-write marker. The adapter syncs marker file bytes and its parent directory
 before touching the setting. It then syncs the AtomicFile record and replacement
 directory entry before verification and marker removal. Directory descriptors
@@ -170,6 +170,74 @@ enabled, authenticating or recovering a failed setting. Viewer and information
 dialogs inherit the Activity's secure policy; API 33+ also disables recents
 screenshots. Actual screenshot/recording/recents behavior needs hardware checks.
 No custom PIN, credential storage, vault or encryption is implemented.
+
+## Exact readable-byte review (S13/S14)
+
+Cleanup starts only after an explicit Start scan. It requests a fresh authorized
+photo/video snapshot, independent of gallery filters/search, and requires its
+observed source tokens to match the current live gallery mapping. A mismatch
+invalidates the scan and refreshes the gallery for a manual retry. Open member
+uses the ordinary, currently eligible gallery viewer; there is no index or stale
+review fallback. Current Favorites use full saved-reference and exact alias-proof
+evidence. An unresolved old reference that could name a member makes that member's
+Favorite state unknown and blocks its group's extra-copy review.
+
+The prefilter considers same media kind and positive reported-size buckets with
+at least two sources. Unknown sizes and singletons are omitted, so completion
+never means every accessible item was byte-compared. Each candidate stream is
+read sequentially to EOF with SHA-256 and an actual checked byte count. A positive
+length and successful close are required before evidence enters a group. Failed,
+empty, changed, canceled, over-limit or close-failed reads create no evidence.
+Coverage separates considered/candidate/checked/compared/omitted/empty/unavailable/
+changed counts and excluded repeated source aliases. Equal hashes and lengths
+refer only to the representations Android supplied. Android may redact metadata,
+transcode or fetch cloud-backed media; this does not prove unredacted originals,
+independent storage, immutable versions or current deletion eligibility.
+
+Resource bounds are one process-wide **nonqueueing** read lane, one open media
+stream and **64 KiB** buffer per reader, **50,000** snapshot rows and **16 GiB**
+per readable stream. A larger snapshot aborts honestly; an oversized stream is
+excluded without a prefix hash. Scan results and digests stay memory-only unless the user explicitly saves a
+content protection choice. No media bytes or previews are persisted; no hashes
+are logged or transmitted. Start while an old blocked provider reader is still
+unwinding returns Busy, rather than queueing or resuming work. Stop fences results
+immediately and shows Stopping until the actual reader exits and closes; provider
+calls may delay that exit. Lock, refresh, permission changes, Favorites mutation
+and gallery disposal invalidate scan results/actions. New scopes never restore
+scan tokens, keepers or old completion callbacks.
+
+Source metadata is probed before and after each read. The entire scan rechecks
+access, volumes and namespaces, plus all successful members at the end. On Android
+30+ ANY provider generation/version change rejects the scan, including ordinary
+generation advance after an early member was read. Older platforms' final member
+checks are explicitly best effort; equal old metadata cannot pin concurrent bytes.
+Publication and every keeper/open/protection action require the current scan,
+live gallery authority, source mapping and lifetime. Members are individual lazy
+UI items, including a single large group, but device latency/memory/font behavior
+is unmeasured.
+
+Keepers are manual, multiple, reversible and memory-only for that scan. Favorites,
+all manually kept members and protected matching content remain keepers. No extras
+are shown without a keeper; unknown Favorites or protection prevent the affected
+review decisions. An extra is a reversible review choice, never permission to
+remove media. There is no quality ranking, automatic keeper, deletion/trash,
+savings estimate or native mutation in this checkpoint.
+
+Protect/unprotect is explicitly confirmed for ALL matching readable content,
+including a later copy only after fresh hashing. The separate local record stores
+only algorithm/version + SHA-256 + actual positive byte count, not URI/name/source
+identity. Fresh different bytes at a reused URI cannot inherit protection. Missing
+media does not prune saved choices. The store supports **4,096 content keys** in
+**512 KiB**, expected-revision writes, pending/file/directory sync/readback fences
+and no silent corruption/newer-format/uncertain-write recovery. Capacity rejection
+retains existing choices and cannot report saved protection. UNKNOWN blocks extras;
+a retry rereads the record without promising repair. Separate instance-bound
+annotation request fences prevent delayed READY loads or saves from overwriting
+newer UNKNOWN/revision state. Writes recheck live authorization/cancellation inside
+the shared store coordinator immediately before admission; an already-admitted tiny
+annotation replacement may finish after lock, but no stale UI completion publishes.
+Filesystem/power-loss behavior remains a device check. This preference does not
+lock files or stop another app changing or deleting them.
 
 ## Verification limits
 

@@ -164,11 +164,13 @@ class DeviceMedia(private val context: Context) {
         before.zip(namespaces).forEach { (first, last) ->
             if (!(if (strictGeneration) cleanupNamespaceUnchanged(first.providerVersion, first.providerGeneration, last.providerVersion, last.providerGeneration)
                 else providerReadRemainedCurrent(first.providerVersion, first.providerGeneration, last.providerVersion, last.providerGeneration))) {
+                if (strictGeneration) throw CleanupSourceChangedException()
                 throw IllegalStateException("Media provider changed during the read")
             }
         }
         currentCoroutineContext().ensureActive()
         if (Build.VERSION.SDK_INT >= 29 && MediaStore.getExternalVolumeNames(context).sorted() != volumes) {
+            if (strictGeneration) throw CleanupSourceChangedException()
             throw IllegalStateException("Media volumes changed during the read")
         }
         val byVolume = namespaces.associateBy { it.volumeName }

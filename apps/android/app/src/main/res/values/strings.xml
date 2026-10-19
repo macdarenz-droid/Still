@@ -80,7 +80,7 @@
     <string name="unknown_dimensions">Dimensions unavailable</string>
     <string name="dimensions">%1$d × %2$d</string>
     <string name="development_title">Still is in development</string>
-    <string name="development_body">This development build opens your phone library. Cleanup, backup and creative tools are still being built.</string>
+    <string name="development_body">This development build opens your phone library. Matching-copy review is available in Cleanup. Deletion, backup and creative tools are still being built.</string>
     <string name="privacy_title">On this phone</string>
     <string name="privacy_body">This build has no internet permission. It reads permitted media in place and does not upload your photos or library metadata.</string>
     <string name="favorites_title">Favorites in Still</string>
@@ -120,4 +120,52 @@
         <item quantity="one">%1$d selected</item>
         <item quantity="other">%1$d selected</item>
     </plurals>
+
+    <!-- CP5: observed readable-byte review only; no native mutation. -->
+    <string name="cleanup_title">Cleanup</string>
+    <string name="cleanup_scope">Compare the photo and video data Android lets Still read. Android may fetch cloud-backed media, remove metadata or convert media before it is read. A match does not prove the underlying originals are identical. Nothing is deleted.</string>
+    <string name="cleanup_limited_access">This scan covers only the media currently available through your limited Android access.</string>
+    <string name="cleanup_gallery_unready">The gallery is still loading or could not be read. Wait for it to finish, or refresh before starting a scan.</string>
+    <string name="cleanup_no_access">Allow photo and video access before starting a scan.</string>
+    <string name="cleanup_start">Start scan</string>
+    <string name="cleanup_scan_again">Start a new scan</string>
+    <string name="cleanup_cancel_scan">Stop scan</string>
+    <string name="cleanup_scanning">Scanning readable media…</string>
+    <string name="cleanup_stopping">Stopping… A provider read may need to finish before the scan stops.</string>
+    <string name="cleanup_complete">Scan finished</string>
+    <string name="cleanup_cancelled">Scan stopped. Start a new scan when you are ready.</string>
+    <string name="cleanup_invalidated">This scan is no longer current. Refresh, access changes or leaving Still can end a scan. Start a new scan to compare again.</string>
+    <string name="cleanup_busy">A previous provider read is still finishing. Try starting again after it stops. No scan has been queued.</string>
+    <string name="cleanup_failed">The scan could not finish. No matching-copy results were kept.</string>
+    <string name="cleanup_source_limit">This scan supports up to 50,000 accessible items. The scan stopped without matching-copy results.</string>
+    <string name="cleanup_coverage_unknown">Finding the currently accessible photos and videos…</string>
+    <string name="cleanup_coverage_scope">%1$d accessible items considered; %2$d candidates share a media type and reported size.</string>
+    <string name="cleanup_coverage_checked">Checked %1$d candidates; compared %2$d complete, nonempty readable streams.</string>
+    <string name="cleanup_coverage_skipped">Not compared: %1$d empty, %2$d unavailable or over the read limit, %3$d changed, %4$d omitted by the type/size prefilter. %5$d repeated source references were excluded.</string>
+    <string name="cleanup_no_compared">No items could be compared. See the coverage counts and start a new scan after access or media changes.</string>
+    <string name="cleanup_no_matches">No matching copies found among the items compared. Items omitted by the prefilter, changed or unreadable items were not compared.</string>
+    <string name="cleanup_group_title">Matching group %1$d · %2$d copies</string>
+    <string name="cleanup_member_details">%1$s · %2$d readable bytes</string>
+    <string name="cleanup_unnamed">Unnamed media</string>
+    <string name="cleanup_open_member">Open %1$s</string>
+    <string name="cleanup_keep_member">Keep for this scan: %1$s</string>
+    <string name="cleanup_favorite">Kept by Still favorites</string>
+    <string name="cleanup_favorite_unknown">Favorite status unavailable. Extra-copy choices for this group are paused.</string>
+    <string name="cleanup_protected">Matching readable content is protected in Still</string>
+    <string name="cleanup_protection_loading">Reading protection choices…</string>
+    <string name="cleanup_protection_ready">Protection choices are current. They are Still cleanup preferences; they do not lock files or stop other apps changing or deleting them.</string>
+    <string name="cleanup_protection_unknown">Protection status unavailable. Extra-copy choices are paused. Existing saved records are retained.</string>
+    <string name="cleanup_protection_saving">Saving the protection choice…</string>
+    <string name="cleanup_protection_write_failed">The protection change could not be confirmed. Extra-copy choices are paused.</string>
+    <string name="cleanup_retry_protection">Retry reading protection</string>
+    <string name="cleanup_protect_group">Protect matching copies</string>
+    <string name="cleanup_unprotect_group">Unprotect matching copies</string>
+    <string name="cleanup_confirm_protect_title">Protect all matching content?</string>
+    <string name="cleanup_confirm_unprotect_title">Unprotect all matching content?</string>
+    <string name="cleanup_confirm_protect_body">Save protection for this readable content in Still. This applies to ALL copies with matching readable data, including later copies only after they are freshly scanned. Changed or converted data may no longer match. It does not lock files or change other apps.</string>
+    <string name="cleanup_confirm_unprotect_body">Remove the Still protection choice for ALL copies with this matching readable data, including later freshly scanned matches. Manual keepers and Still favorites remain separate. Nothing is deleted.</string>
+    <string name="cleanup_confirm_protect">Protect matching content</string>
+    <string name="cleanup_confirm_unprotect">Unprotect matching content</string>
+    <string name="cleanup_review_needs_keeper">Choose at least one keeper before marking other copies for review. You can keep multiple copies. Keeper choices last only for this scan.</string>
+    <string name="cleanup_review_extras">%1$d copies marked as extra for review. This is reversible and does not authorize removal.</string>
 </resources>

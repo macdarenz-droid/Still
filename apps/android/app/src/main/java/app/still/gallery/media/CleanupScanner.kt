@@ -28,6 +28,7 @@ class CleanupReaderBusyException : IOException("A previous provider read is stil
 
 /** IO abstraction lets synthetic streaming/provenance tests exercise the actual scanner. */
 interface CleanupSourceReader {
+    fun checkAccess()
     suspend fun snapshot(favorites: Set<String>): CleanupSourceSnapshot
     suspend fun probe(item: MediaItem): MediaItem?
     suspend fun validateScope(snapshot: CleanupSourceSnapshot)
@@ -35,6 +36,7 @@ interface CleanupSourceReader {
 }
 
 class AndroidCleanupSourceReader(private val context: Context, private val device: DeviceMedia, private val access: MediaAccess) : CleanupSourceReader {
+    override fun checkAccess() { if (context.mediaAccess() != access) throw CancellationException("Media access changed") }
     override suspend fun snapshot(favorites: Set<String>) = device.cleanupSnapshot(access, favorites)
     override suspend fun probe(item: MediaItem) = device.cleanupProbe(item)
     override suspend fun validateScope(snapshot: CleanupSourceSnapshot) = device.cleanupValidateScope(snapshot)
@@ -54,7 +56,7 @@ class CleanupScanner(private val reader: CleanupSourceReader, private val admiss
         try {
             return withContext(Dispatchers.IO) {
                 val job = currentCoroutineContext()
-                val check = { job.ensureActive(); checkCurrent() }
+                val check = { job.ensureActive(); checkCurrent(); reader.checkAccess() }
                 check()
                 val snapshot = reader.snapshot(favorites)
                 check()
