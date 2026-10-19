@@ -108,7 +108,7 @@ class AppLockController(
         val flow = if (biometric) AuthenticationFlow.IN_APP_BIOMETRIC else AuthenticationFlow.EXTERNAL_DEVICE_CREDENTIAL
         val attempt = session.beginAuthentication(action, flow) ?: run { publish(); return }
         activeAttempt = attempt
-        publish() // Hide gallery and apply secure flags before any system prompt/Activity.
+        publish() // Hide gallery before any system prompt/Activity.
         if (biometric && Build.VERSION.SDK_INT >= 28) startBiometric(attempt)
         else startCredential(attempt)
     }
