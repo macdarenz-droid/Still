@@ -273,12 +273,13 @@ class SimilaritySession {
     private data class Ranked(val pair: SimilarityPair, val first: String, val second: String)
     private val state = AtomicReference(State())
     fun begin(selected: List<MediaItem>, checkCurrent: () -> Unit): SimilarityTicket {
-        if (selected.size !in 2..SimilarityBounds.MAX_SELECTED || selected.any { it.isVideo } ||
-            selected.map { it.id }.toSet().size != selected.size || selected.map(::sourceUiToken).toSet().size != selected.size ||
-            selected.map(::cleanupSourceReference).toSet().size != selected.size) throw SimilarityException(SimilarityFailure.INVALID_SELECTION)
+        val selection = selected.toList()
+        if (selection.size !in 2..SimilarityBounds.MAX_SELECTED || selection.any { it.isVideo } ||
+            selection.map { it.id }.toSet().size != selection.size || selection.map(::sourceUiToken).toSet().size != selection.size ||
+            selection.map(::cleanupSourceReference).toSet().size != selection.size) throw SimilarityException(SimilarityFailure.INVALID_SELECTION)
         val empty = State()
         state.getAndSet(empty).ticket?.invalidate()
-        val next = SimilarityTicket(identity, selected, checkCurrent)
+        val next = SimilarityTicket(identity, selection, checkCurrent)
         next.requireCurrent()
         if (!state.compareAndSet(empty, State(next))) { next.invalidate(); throw SimilarityException(SimilarityFailure.STALE) }
         return next
@@ -299,23 +300,24 @@ class SimilaritySession {
     fun finish(expected: SimilarityTicket, sources: List<SimilarityAnalyzedSource>, coverage: SimilarityCoverage): SimilarityResult {
         val origin = state.get()
         if (origin.ticket !== expected || origin.result != null || !isCurrent(expected)) throw SimilarityException(SimilarityFailure.STALE)
+        val analyzed = sources.toList()
         val selected = expected.selected.associateBy(::sourceUiToken)
-        require(sources.size <= selected.size && sources.map { sourceUiToken(it.item) }.toSet().size == sources.size)
-        require(sources.all { selected[sourceUiToken(it.item)] == it.item && it.byteCount in 1..SimilarityBounds.MAX_INPUT_BYTES && it.sha256.matches(Regex("[0-9a-f]{64}")) })
-        require(coverage.selected == selected.size && coverage.featured == sources.size && coverage.attempted in 0..selected.size)
+        require(analyzed.size <= selected.size && analyzed.map { sourceUiToken(it.item) }.toSet().size == analyzed.size)
+        require(analyzed.all { selected[sourceUiToken(it.item)] == it.item && it.byteCount in 1..SimilarityBounds.MAX_INPUT_BYTES && it.sha256.matches(Regex("[0-9a-f]{64}")) })
+        require(coverage.selected == selected.size && coverage.featured == analyzed.size && coverage.attempted in 0..selected.size)
         require(listOf(coverage.empty, coverage.unreadable, coverage.oversized, coverage.unsupported, coverage.lowInformation, coverage.budgetOmitted).all { it in 0..selected.size })
         require(coverage.featured + coverage.empty + coverage.unreadable + coverage.oversized + coverage.unsupported + coverage.lowInformation + coverage.budgetOmitted == selected.size)
         require(coverage.admittedBytes in 0..SimilarityBounds.MAX_RUN_BYTES && coverage.quotaProbeBytes in 0..coverage.attempted && coverage.admittedBytes + coverage.quotaProbeBytes <= SimilarityBounds.MAX_RUN_BYTES)
         require(coverage.attempted >= coverage.featured + coverage.empty + coverage.unreadable + coverage.oversized + coverage.lowInformation)
-        require(coverage.admittedBytes >= sources.sumOf { it.byteCount })
+        require(coverage.admittedBytes >= analyzed.sumOf { it.byteCount })
         require(coverage.attempted != 0 || (coverage.admittedBytes == 0L && coverage.quotaProbeBytes == 0))
         val candidates = mutableListOf<Ranked>()
-        val keys = sources.map { sourceUiToken(it.item) }
+        val keys = analyzed.map { sourceUiToken(it.item) }
         var exact = 0; var checks = 0
-        for (i in sources.indices) for (j in i + 1 until sources.size) {
+        for (i in analyzed.indices) for (j in i + 1 until analyzed.size) {
             if (checks % 256 == 0) expected.requireCurrent()
             checks++
-            val first = sources[i]; val second = sources[j]
+            val first = analyzed[i]; val second = analyzed[j]
             if (first.sha256 == second.sha256 && first.byteCount == second.byteCount) { exact++; continue }
             val distance = similarityDistance(first.feature, second.feature) ?: continue
             candidates += Ranked(SimilarityPair(first.item, second.item, distance), keys[i], keys[j])

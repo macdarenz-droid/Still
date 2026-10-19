@@ -152,6 +152,31 @@ class SimilarityPolicyTest {
         assertTrue(outcome.get() is SimilarityException)
         assertEquals(SimilarityFailure.STALE, (outcome.get() as SimilarityException).reason)
     }
+    @Test fun callerMutationCannotAlterValidatedEvidenceDuringPairFinalization() {
+        val session = SimilaritySession()
+        val rows = List(200) { cleanupTestItem(it + 1) }
+        val mutableEvidence = analyzed(rows).toMutableList()
+        val entered = CountDownLatch(1); val release = CountDownLatch(1)
+        var checks = 0
+        val ticket = session.begin(rows) {
+            if (Thread.currentThread().name == "similarity-evidence" && ++checks == 2) {
+                entered.countDown(); check(release.await(5, TimeUnit.SECONDS))
+            }
+        }
+        val outcome = AtomicReference<SimilarityResult?>(); val error = AtomicReference<Throwable?>()
+        val worker = Thread({ try { outcome.set(session.finish(ticket, mutableEvidence, coverage(rows))) } catch (failure: Throwable) { error.set(failure) } }, "similarity-evidence")
+        worker.start()
+        try {
+            assertTrue(entered.await(5, TimeUnit.SECONDS))
+            mutableEvidence.clear()
+        } finally { release.countDown(); worker.join(5000) }
+        assertFalse(worker.isAlive)
+        assertNull("Finalization must own its validated evidence", error.get())
+        val result = requireNotNull(outcome.get())
+        assertEquals(200, result.coverage.featured)
+        assertEquals(50, result.pairs.size)
+        assertTrue(result.pairs.all { it.first in rows && it.second in rows })
+    }
     companion object {
         internal fun feature(hash: Long = 0) = SimilarityFeature(hash, 1.0, DoubleArray(48) { 0.5 }, DoubleArray(12) { 0.25 })
         internal fun sha(index: Int) = "%064x".format(index + 1)
