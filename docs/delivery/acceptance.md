@@ -385,8 +385,24 @@ access or imply that a missing source was deleted.
 
 ### Exact candidate and remaining acceptance
 
-S10 final source, regressions and checks must be integrated before the final
-candidate is committed. Run root `npm run check`, Android assemble, all JVM tests
+S10 final builder source `cc42e288cea57a9b7e9b56ccb2221de18b4af3fa` is integrated
+through `d49513b`. Android source/tests/assets match that reviewed builder tree.
+The constructor fix passed assemble/all72 JVM/strict lint in46s, and the final
+documentation head repeated the full command successfully in10s with lint
+"No issues found." Logs: `/tmp/still-gallery-final-green.log` and
+`/tmp/still-gallery-final-exact-head.log`. Existing33 tests are retained unchanged;
+new suites add catalogue12, library10, Favorites13 and refresh/lifetime4 cases.
+SEO's precise current-reference/observed-token wording is included.
+
+Meaningful counterfactuals in separate worktrees restored old behavior: URI-only
+UI/preview rules failed3 of18 selected tests, raw Favorites membership/removal
+failed3 of31, missing refresh eligibility failed2 of33, and missing lifetime/live
+authority failed2 of35. Fixed code passes all corresponding suites. Session
+evidence is `/tmp/still-gallery-{uri,favorites,refresh,lifetime}-before.log` and
+matching before/after XML plus mutant patches. The earlier genuine lint failure
+stays recorded above; no tests, detectors or checks were waived or weakened.
+
+After this final candidate record is committed, run root `npm run check`, Android assemble, all JVM tests
 and strict lint on that exact head; audit the local APK permissions/assets and
 record its SHA-256. Both independent reviewer and separate red team must pass
 the integrated source and artifact, including rechecks of the Favorites finding.

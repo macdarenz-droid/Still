@@ -86,7 +86,7 @@ published are separate statuses. No publication is part of this task.
 CP0 scaffold/workflow: accepted with independent reviewer and red-team passes.
 S01 backend and S03 discovery components: both roles passed exact source commits;
 the original S03 reflow failure and regression fix remain in acceptance evidence.
-S02 Android: current APK build, 8 JVM tests and strict lint pass. Both independent
+S02 Android: foundation APK build, 8 then-current JVM tests and strict lint passed. Both independent
 roles passed the final preview-regression fix after reopening the earlier source
 pass. All components are integrated; combined CP1 passed both roles on exact
 1f35568d9cb42204b573b26d47636ccbfec16aed with all required code/build checks green.
@@ -96,6 +96,11 @@ CP3 optional whole-app lock passed both independent development gates at
 `e285a22d477a04f39fd7ea0d02758f44cc4486df`, with local checks and all four hosted
 checks green. Its exact APK/evidence is retained in acceptance.md and ignored
 `.artifacts/cp3-validation.json`. Native lock device acceptance is separate.
+CP4 catalogue/controls are integrated for exact-head validation: builder source
+`cc42e288cea57a9b7e9b56ccb2221de18b4af3fa` passed assemble, all72 JVM tests and
+strict lint after the recorded review fixes. Final integrated source/APK, separate
+verdicts and hosted checks belong in `.artifacts/cp4-validation.json` and draft
+PR1. No CP4 acceptance is inferred from component checks alone.
 
 ## Remaining product sequence
 
@@ -155,7 +160,7 @@ Commands: `npm run check`; `npm run build:android -- --max-workers=4`;
 environment. Record results, exact source head and local APK SHA-256, separate
 reviewer/red-team verdicts, and all blocked device checks before handing off CP3.
 
-## Next checkpoint — CP4 local index and gallery controls (R01 / F01 / F02)
+## CP4 local index and gallery controls (R01 / F01 / F02)
 
 The owner authorized continuing other features after lock, retaining independent
 reviewer and red-team gates. CP3 development acceptance passed at `e285a22`;

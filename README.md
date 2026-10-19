@@ -70,7 +70,7 @@ Still; other galleries can still open ordinary phone photos. This is not an
 encrypted vault. Native authentication and screen-protection checks remain in the
 [device matrix](apps/android/DEVICE_CHECKS.md); see [the design](docs/decisions/0003-app-lock.md).
 
-The next development checkpoint adds All/Photos/Videos filters, newest/oldest and
+The development app adds All/Photos/Videos filters, newest/oldest and
 filename sorting, visible video Play/Pause controls, and an on-phone metadata
 index. Fresh Android media access governs browsing; retained index records never
 restore access to unavailable media. Older Favorites references stay saved and
