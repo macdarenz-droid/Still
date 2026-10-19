@@ -782,6 +782,15 @@ inspection follow on root's frozen integrated head. Source evidence:
 general secure-window support; inspect app-owned compiled methods rather than
 claiming every such library symbol must disappear from the APK.
 
+The first integrated candidate `688f385` passed assemble/all155 JVM/strict lint
+and repository checks. Independent red-team APK inspection confirmed removal of
+the app-owned window calls, controller callback and old compiled Settings promise.
+It found one stale inline comment still claiming secure flags were applied before
+authentication. Builder follow-up `82695339233e0ad5f0bd7110dbc2a33296a84c93`
+corrects that comment only; no functional failure was reported. Final candidate
+checks and both exact-source/APK verdicts follow the correction. Earlier source
+comparison's two-line callback delta is now accompanied by this comment change.
+
 No attached phone or accelerated emulator is available. Actual capture/recording/
 Recents surfaces, system prompt policy, authentication/lifecycle/accessibility and
 performance remain blocked/unverified until observed on identified hardware.
