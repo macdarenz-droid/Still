@@ -464,9 +464,10 @@ restore, power loss, capture/motion/accessibility and provider operations remain
 unverified/unimplemented as recorded. Roll back with journal/WAL retained; do not
 drop/reset records. No main merge, production signing, spending or publication.
 
-S25 and S26 frozen components are integrated from `ccd6745` and `8029930`;
-all27 prior backend cases/assertions remain unchanged, with23 new journal cases
-and20 parser cases. Component checks and seven defect counterfactuals pass their
-intended gates. S27 final copy recheck and S28 exact root/local-APK/hosted gates
+S25 and S26 frozen components are integrated from `ccd6745` and `8029930`, with
+S25 recovery-copy `4c3d323` and physical-identity `22496a6` follow-ups. All27 prior
+backend cases/assertions remain unchanged, with27 new journal cases and20 parser
+cases. Component checks and ten defect counterfactuals pass their intended gates.
+S27 final copy recheck and S28 exact root/local-APK/hosted gates
 remain pending. Record the final immutable candidate in
 `.artifacts/cp9-validation.json` and draft PR1 before development handoff.

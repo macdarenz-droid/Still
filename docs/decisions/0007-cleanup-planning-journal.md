@@ -62,6 +62,9 @@ and trusted physical aliases. A new plan or different opaque alias cannot erase
 an unresolved outcome. Required surviving-copy/keeper evidence excludes the entire
 selected target set and physical aliases, preventing circular A-preserves-B and
 B-preserves-A reasoning. Opaque distinct IDs alone do not prove independence.
+An unresolved unknown physical identity conservatively blocks that owner's other
+plans. Once known, physical identity cannot be cleared or rebound under the same
+exact source/version/revision, including after resolution or read-generated expiry.
 Reconciliation consults the trusted adapter and can only establish verified
 no-change; caller-provided outcomes and blind destructive retries are absent.
 Clock rollback, failed transactions, concurrent instances and interrupted writes

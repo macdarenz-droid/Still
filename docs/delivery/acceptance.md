@@ -990,3 +990,48 @@ audit and both independent exact-source/artifact and hosted verdicts. Final
 immutable evidence belongs in `.artifacts/cp9-validation.json` and draft PR1;
 the next checkpoint promotes that final outcome here. Native source pinning,
 trash/restore, power loss and provider behavior remain unimplemented/unverified.
+
+The first integrated candidate `d6e70c2` passed70 backend cases and Android159/
+assemble/strict lint, but independent review blocked acceptance on a physical-
+identity continuity defect. After uncertainty and a read-generated expiry revision,
+a malformed current row could clear its known physical source identity; reopen
+accepted it and a different opaque alias of the same physical source became
+reviewable. Reviewer runtime proof:
+`/tmp/still-reviewer-cp9-alias-history-probe.json`. Preserve a historically known
+physical identity under the unchanged exact source/version/revision, reject
+contradictory current evidence and corrupted reopen state, and add the exact
+regression with old-policy failure before another final candidate. Initial full
+logs are `/tmp/still-cp9-preflight-d6e70c2-check.log` and
+`/tmp/still-cp9-preflight-d6e70c2-android.log`; their green tests did not cover this
+defect and do not approve the checkpoint. A separate internal recovery-text
+follow-up also clarifies what to do when all retained uncertainty history is full.
+
+The separate red team reproduced a related case without database tampering:
+record uncertainty while the physical identity is unknown, reopen with a trusted
+adapter, then submit different opaque IDs for the same physical source. The old
+unknown identity was treated as disjoint and the new plan became reviewable.
+`/tmp/still-redteam-cp9-unknown-alias.mjs` and
+`/tmp/still-redteam-cp9-unknown-alias.log` retain the failing evidence. Unresolved
+unknown physical identity must conservatively fence that owner's other plans;
+another owner remains isolated. Both alias findings block `d6e70c2` despite the
+separate APK being unchanged and passing its artifact checks.
+
+S25 follow-ups `4c3d3231497133bfdb96761f27c2f91fc182c1b6` (recovery wording)
+and `22496a6bce60069263b584247981e1a522f3e68d` (physical identity) are integrated.
+Four additional real journal cases preserve all23 earlier cases and cover known
+identity tampering after read-generated revisions, identity-changing revalidation,
+unknown-identity owner fencing through verified reconciliation, and valid first
+null-to-known review. Builder full checks pass54 backend cases; integrated root
+must check all74 including S26's20. Logs:
+`/tmp/still-s25-physical-check.log` and
+`/tmp/still-s25-physical-followup.log`.
+
+All ten final-workflow counterfactuals now detect the old policies: the prior
+seven plus physical-history binding, unknown-identity uncertainty and identity-
+changing revalidation. The summary
+`/tmp/still-s25-counterfactuals.json` binds workflow SHA-256
+`f1fefecbe16ad7a90124185287fee5801b410328aa393983904163fe7675f054`.
+Reproducible script `/tmp/still-s25-run-counterfactuals.py`, exact patches in
+`/tmp/still-s25-counterfactual-patches/` and individual logs are retained.
+These are component evidence; both independent roles must close their alias
+blockers on the new exact integrated candidate and actual local artifact.

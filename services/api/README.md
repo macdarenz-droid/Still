@@ -159,6 +159,9 @@ independent surviving copy with restore evidence. No adapter is installed by
 default. Android catalogue observations and readable-copy matches cannot supply
 these proofs. Evidence changes require another review; expiry and unresolved
 uncertainty block confirmation, including related replacement plans.
+An unresolved item whose physical identity is unknown conservatively blocks that
+owner's other plans. Known physical identities stay bound to their exact source/
+version/revision; changed identity requires a new source revision and review.
 
 Every plan and item has `executionAvailable: false`, including
 `confirmed_nonexecuting`. Confirmation records reviewed intent and grants no file
