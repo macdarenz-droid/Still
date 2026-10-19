@@ -56,6 +56,11 @@ after fresh hashing. Missing/withdrawn content does not garbage-collect choices.
 
 Use a separate strict versioned bounded app-private record with a monotonically
 revisioned snapshot. Mutations compare the expected current revision. Publish and
+serialize the entire durable read/compare/write across ALL store instances in the
+process, including work surviving UI recreation; reject revision exhaustion.
+Check live authority/cancellation before write admission. An already-admitted
+small synchronous annotation transaction may finish after lock, but must never
+publish stale UI completion or authorize media mutation. Then publish and
 directory-sync a pending fence before replacing data, sync replacement file and
 directory, verify readback, then remove the fence last. Malformed/oversized/unknown
 format, read/write/sync/readback or uncertain crash state is UNKNOWN and blocks
