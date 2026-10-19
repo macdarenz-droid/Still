@@ -1222,3 +1222,19 @@ shorter edge64pixels and actual analyzed shorter edge32pixels prevent upscaling
 from manufacturing useful detail. Exact-pair omission needs complete captured-byte
 SHA-256/length, never perceptual identity. A single feature bitmap normalizes EXIF
 through pixel coordinates rather than retaining a second rotated allocation.
+
+S34 dependency `26998ffce4507c3a733972c2993fdb90f476a913` compiles and its three
+calibration tests pass. Before held-out evaluation, the builder froze pipeline
+`phash32-dct8-rgb4-hist4-v1` with pHash10/color0.32/spatial0.12/log-aspect0.12,
+luminance deviation8 and AC energy1. Policy SHA-256
+`192b2c99ddaddf17d4fa97c5d15fac4fb28c52ebf88196b9538cd51f49300752` and calibration
+file SHA-256 `f63b6f28c36b016f14453ef6723ae9c6a53971a75f7a01a107011f8c0546b0ee`
+bind that first freeze. No tuning/held-out observation preceded it. The scanner
+uses one fixed16MiB buffer, without accumulator clones or a separate read scratch.
+S34 is not implementation-ready or checkpoint-approved at this dependency.
+
+S36 source preflight found that the initial production finish contract could
+accept featured photos with zero attempted reads and zero admitted bytes, producing
+contradictory coverage. Require truthful attempted/byte lower bounds and retain a
+regression that fails on this old contract. No retrieval thresholds need to change
+for this contract correction; held-out fixture labels remain frozen.
