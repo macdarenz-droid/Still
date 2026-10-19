@@ -1238,3 +1238,21 @@ accept featured photos with zero attempted reads and zero admitted bytes, produc
 contradictory coverage. Require truthful attempted/byte lower bounds and retain a
 regression that fails on this old contract. No retrieval thresholds need to change
 for this contract correction; held-out fixture labels remain frozen.
+
+Two independent P2 component preflights block initial S34 `26998ff` despite its
+three passing calibration tests. Red team invoked the actual compiled container
+recognizer: a JPEG missing EOI and an APP2 MPF multipicture source were accepted;
+host ImageIO also decoded them. Evidence
+`/tmp/still-redteam-cp11-container-probe.json` and
+`/tmp/StillSimilarityContainerProbe.java`. Require bounded conservative JPEG
+completion/segment checks and known multipicture omission, with ordinary/truncated/
+MPF fixtures and a regression detecting the original recognizer. This is host
+helper/codec proof, not an Android decoder observation.
+
+Reviewer source inspection also found the production session monitor held across
+up to19,900 pair checks and sorting, sharing the monitor with invalidate/currentness/
+resolve calls used by UI withdrawal. Move expensive work outside a narrow atomic
+publication fence, keep invalidation nonblocking and add concurrent old-policy
+failure/fixed-pass evidence. No native timing claim follows from that structural
+finding. These fixes must preserve the frozen retrieval thresholds; builders and
+root cannot self-approve their corrected implementation.
