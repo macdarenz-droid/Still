@@ -101,7 +101,7 @@
     <string name="app_lock_security_settings">Open Android security settings</string>
     <string name="app_lock_settings_body">Require device authentication when opening Still or returning to it.</string>
     <string name="app_lock_leaving">When app lock is on, leaving Still, including sharing or changing phone settings, locks it again.</string>
-    <string name="app_lock_screenshots">When app lock is on, Still asks Android to block screenshots and app previews.</string>
+    <string name="app_lock_screenshots">Still allows screenshots and screen recordings.</string>
     <string name="app_lock_boundary">App lock protects access through Still. Other apps can still open photos in your phone library.</string>
     <string name="app_lock_setup_credential">Set a device screen lock in Android Settings before turning on app lock.</string>
     <string name="app_lock_no_credential">Your phone’s screen lock is unavailable. Set one up in Android security settings.</string>

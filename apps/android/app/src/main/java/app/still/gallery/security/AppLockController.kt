@@ -34,7 +34,6 @@ data class AppLockUiState(
 /** Activity-owned and memory-only. A new Activity always creates a fresh locked session. */
 class AppLockController(
     private val activity: ComponentActivity,
-    private val secureWindow: (Boolean) -> Unit,
 ) {
     private val preferences = AppLockPreferences(activity)
     private var setting = preferences.load()
@@ -224,7 +223,6 @@ class AppLockController(
 
     private fun publish() {
         val current = session.state
-        secureWindow(current.enabled || current.authenticating || current.persistenceFailed || setting.needsRecovery)
         state = AppLockUiState(current, hasCredential(), canUseBiometric(), setting.needsRecovery, notice)
     }
 }

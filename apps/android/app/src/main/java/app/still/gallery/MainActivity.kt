@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
@@ -30,8 +29,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Loads the strict setting and applies window protection before any gallery composition.
-        appLock = AppLockController(this, ::protectWindow)
+        // Loads the strict lock setting before any gallery composition.
+        appLock = AppLockController(this)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(0xFF111315.toInt()),
@@ -77,9 +76,4 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    private fun protectWindow(protected: Boolean) {
-        if (protected) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!protected)
-    }
 }
