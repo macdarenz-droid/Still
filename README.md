@@ -94,7 +94,7 @@ device checks that remain unverified.
 
 Select exactly two photos in Grid and use Compare for linked zoom/pan and paired
 previews. It prepares temporary readable copies, at most32MiB each/64MiB total,
-then clears them when the session closes. Interrupted cleanup is retried before
+then starts cleanup when the session closes. Interrupted cleanup is retried before
 another comparison; a failure blocks new preparation. These copies are not proof
 of original fidelity or backup/removal readiness.
 

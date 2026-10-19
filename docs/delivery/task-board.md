@@ -503,3 +503,10 @@ and hosted passes, draft PR1 and `.artifacts/cp10-validation.json` finish the
 development checkpoint. Native storage/MediaStore/power-loss/UI hardware behavior
 stays unverified until observed. No paid calls, main merge, release signing or
 publication.
+
+CP10 dependency exception: the supervisor approves only pinned
+`androidx.exifinterface:exifinterface:1.4.2` in the root-owned Android app build
+file. Strict lint rejected the platform parser for known older-Android security
+issues; preserve the gate and replace its import with AndroidX. No builder edits
+dependency files or adds another library. Google Maven metadata identifies1.4.2
+as the current release; no lockfile is hand-written.

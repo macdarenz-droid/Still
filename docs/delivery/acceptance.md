@@ -1096,3 +1096,29 @@ binding failure, XML `/tmp/still-cp10-s33-evidence/pre-binding-21.xml`.
 Final exact-source assertions, binding fixes and old-policy counterfactual evidence
 remain required. The adapter's50,000 accessible-metadata-row snapshot limit also
 needs explicit UI mapping; selecting two files does not bypass that scope bound.
+
+S30 candidate `731d636` passed its18 focused cases but source review found that
+an observed lost source/projection could hide the dialog without initiating
+cleanup, leaving invisible READY work and no Close control. Its old test manually
+invalidated afterward and missed the lifecycle gap. A strengthened test must
+require automatic cleanup and recovered availability without a user action;
+this component stays unaccepted until the correction is checked.
+
+Android-specific preflight then found raw `Os.open` descriptors wrapped in public
+`FileInputStream(fd)`/`FileOutputStream(fd)` constructors, whose Android semantics
+do not transfer descriptor ownership. Merely closing those streams leaks the raw
+descriptor and can retain unlinked bytes after quota release. The reviewer kept
+authoritative Android source in
+`/tmp/still-reviewer-android-FileInputStream.java` and
+`/tmp/still-reviewer-android-FileOutputStream.java`. Require explicit owned native
+descriptor closure and retained failure accounting. This is a platform-source
+finding, not an Android runtime observation; host JDK behavior alone is insufficient.
+
+S30 `5f8f784` assembled and passed177 JVM cases but strict lint failed3 errors:
+two platform ExifInterface security findings and an unused BoxWithConstraints.
+Preserve `/tmp/still-cp10-ui-full.log` and its lint report; do not suppress lint.
+The supervisor approved only AndroidX EXIF1.4.2 in the build dependency file,
+verified against Google's Maven release metadata. Frontend must replace the
+platform import and unused layout, then rerun exact final checks. The final APK
+audit must account for this one dependency while preserving permissions and
+backup exclusions.

@@ -101,4 +101,10 @@ filesystem/process-kill/gesture/font/TalkBack/performance evidence remains open
 until run on identified hardware. Roll back with app data retained; comparison
 cache is disposable, while catalogue/protection/CP9 journals are never reset.
 No permission, dependency, schema, paid provider, production signing/publication
-or main merge is included.
+or main merge is included, except the supervisor-approved EXIF dependency below.
+
+Strict lint rejects the platform `android.media.ExifInterface` because of known
+older-Android security issues. Use pinned stable
+`androidx.exifinterface:exifinterface:1.4.2`, verified against Google's Maven
+metadata. This is a narrow supervisor-owned dependency exception, with no guard
+suppression, image-loading library, new permission or broader build change.
