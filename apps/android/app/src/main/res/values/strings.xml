@@ -240,10 +240,10 @@
     <string name="compare_stopping_detail">A photo read may need to finish before temporary copies can be removed.</string>
     <string name="compare_stopped">Comparison stopped.</string>
     <string name="compare_cleaning">Finishing temporary storage cleanup…</string>
-    <string name="compare_cleanup_failed">Temporary copies could not be removed. Another comparison is unavailable until cleanup succeeds.</string>
+    <string name="compare_cleanup_failed">Still couldn’t clear temporary comparison storage. New comparisons are unavailable until cleanup succeeds.</string>
     <string name="compare_retry_cleanup">Retry cleanup</string>
-    <string name="compare_busy">A previous photo read or comparison is still finishing. Try again after it finishes.</string>
-    <string name="compare_size_limit">A photo exceeds the 32 MiB limit for comparison. Neither photo is shown.</string>
+    <string name="compare_busy">Another media read or comparison is still active. Try again after it finishes.</string>
+    <string name="compare_size_limit">A photo’s temporary copy exceeds the 32 MiB limit for comparison. Neither photo is shown.</string>
     <string name="compare_scope_limit">Comparison is unavailable when more than 50,000 library items are accessible. No temporary photo copies were prepared.</string>
     <string name="compare_source_changed">These photos are no longer current. Refresh the library and select them again.</string>
     <string name="compare_invalid_selection">Select two available photos in this view to compare.</string>

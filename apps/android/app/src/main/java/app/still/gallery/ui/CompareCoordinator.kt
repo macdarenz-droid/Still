@@ -64,15 +64,33 @@ class CompareCoordinator<P : AutoCloseable>(
     private var cleaner: Job? = null
     private var cleaning by mutableStateOf(false)
     private var maintenanceIdentity: Any? = null
+    private var withdrawalRequest: CompareRequest? = null
     private var disposed = false
     private var recovered = false
     var actionIdentity: Any by mutableStateOf(Any())
         private set
 
     private fun current(request: CompareRequest?): Boolean {
-        if (disposed || !fence.isCurrent(request) || opening !== request) return false
-        if (sourceCurrent?.invoke() != true) { fence.invalidate(); return false }
+        if (disposed || request == null || opening !== request) return false
+        if (!fence.isCurrent(request) || sourceCurrent?.invoke() != true) {
+            fence.invalidate()
+            withdraw(request)
+            return false
+        }
         return true
+    }
+
+    private fun withdraw(request: CompareRequest) {
+        if (withdrawalRequest === request) return
+        withdrawalRequest = request
+        // The state getter can observe lost authority during composition. Only
+        // enqueue here; main-thread invalidation and worker cleanup run later.
+        cleanupScope.launch {
+            withContext(publicationDispatcher) {
+                if (opening === request) invalidate()
+                if (withdrawalRequest === request) withdrawalRequest = null
+            }
+        }
     }
 
     val canStart: Boolean get() = !disposed && allowed() && recovered && work == null && !cleaning && phase == ComparePhase.IDLE

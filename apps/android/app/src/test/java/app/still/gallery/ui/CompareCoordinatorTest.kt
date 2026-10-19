@@ -190,7 +190,7 @@ class CompareCoordinatorTest {
         } finally { owner.dispose(); scope.cancel() }
     }
 
-    @Test fun sourceLossHidesBothPreviewsAndCannotReviveTheSameOpening() {
+    @Test fun sourceLossHidesBothPreviewsAndCleansWithoutClosingTheVanishedOpening() {
         var sourcesCurrent = true
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val owner = coordinator(scope)
@@ -207,7 +207,6 @@ class CompareCoordinatorTest {
             assertFalse(owner.state.visible)
             owner.change(request, 5f)
             assertEquals(CompareTransform(), owner.state.transform)
-            owner.invalidate()
             assertEquals(1, work.cleaned)
             assertTrue(owner.canStart)
         } finally { owner.dispose(); scope.cancel() }
