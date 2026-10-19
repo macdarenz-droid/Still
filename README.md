@@ -103,6 +103,15 @@ though only the selected pair's bytes are prepared. See
 [the selected-input design](docs/decisions/0008-selected-input-comparison.md) and
 the device matrix for native decoding, storage and lifecycle checks still open.
 
+Select2–200 visible photos in Grid and use Find similar to review appearance
+candidate pairs across dates. The analysis is session-only, with no photo files
+or features saved. It checks bounded readable representations, up to16MiB each
+and256MiB per run, and reports skipped photos and omitted pairs. Meaningful text,
+expression or state differences may still look similar. Compare prepares the
+chosen current pair independently; these results never become keepers or removal
+authority. Full-library incremental similarity indexing remains planned. See
+[the visual-review design](docs/decisions/0009-selected-visual-review.md).
+
 Cleanup can scan for matching readable copies, show its comparison coverage and
 let you choose keepers or explicitly protect matching content on this phone.
 Scans start manually, use fresh Android-authorized media and invalidate when
@@ -128,7 +137,8 @@ or visitor data collection. Domain and brand checks precede publication.
 
 ## Planned next work
 
-Further catalogue hardening, screenshot/similarity review, guarded deletion,
+Further catalogue hardening, screenshot review, incremental full-library similarity,
+guarded deletion,
 selective and automatic backup with verified restoration, search and
 memories, reference-guided try-on, PDF/DOCX/text conversion and AI-directed video
 editing remain in scope. Provider costs, data handling, proposed extensions and

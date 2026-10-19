@@ -340,6 +340,58 @@ app heap/performance. Native provider/filesystem/gesture/TalkBack/large-text/pro
 kill behavior remains in the [manual matrix](DEVICE_CHECKS.md). See
 [ADR0008](../../docs/decisions/0008-selected-input-comparison.md) for full scope.
 
+## Selected-photo appearance review (S34/S35)
+
+In Photos, Favorites or album Grid, select2–200 currently visible photos and use
+Find similar. The selected set may span any dates; it is not silently narrowed
+to recent photos or the first part of a large selection. Analysis is explicitly
+started and session-only, separate from exact Cleanup and its keeper/protection
+rules. This is a bounded dependency toward the planned durable full-library
+incremental similarity index, not completion of that index.
+
+Each selected readable representation is captured once into transient memory,
+with complete nonempty EOF and successfully tracked provider closure before
+EXIF/header/pixel feature extraction. The accepted per-photo limit is16MiB,
+actual per-run read budget256MiB and read chunks64KiB. A photo-limit rejection
+probe is charged to the run; exhaustion without proven EOF omits that input.
+Explicit encoded buffers, growth/copies and scratch stay within32MiB. Feature
+extraction owns at most one software bitmap, edge≤256, pixels≤1million and actual
+allocation≤4MiB. Actual source/analyzed shorter edges must reach64/32pixels;
+upscaling tiny inputs does not establish detail. No file staging, cache, cloud
+request or persisted feature store is introduced by analysis.
+
+Versioned normalized DCT perceptual features with color/spatial/aspect checks
+propose direct pairs, never transitive equivalence. At most200 descriptors,
+19,900 direct pair checks and50 returned pairs; coverage distinguishes skipped
+photos, exhausted scope, matching-readable-byte pairs and result-cap omissions.
+Complete captured SHA-256/length equality only omits those pairs from this visual
+view; it never becomes canonical original fidelity or removal readiness.
+Documents, small text, expressions and before/after states can collide in appearance
+and always require manual review. No accuracy percentage or automatic winner.
+
+Fresh metadata retains the existing50,000-row cap. Selected source observations,
+aliases, access and namespaces are checked before/after reads and for the whole
+selection before publication. Modern generation advances invalidate the result;
+older providers remain best effort. The shared heavy-read lane stays owned through
+actual blocked reads/decoding and uncertain closes; process-retained resources
+must settle before replacement work. A failed close remains visible/retryable.
+Selection/scope/source/access changes, refresh, backgrounding, lock and disposal
+withdraw old results immediately. Nothing resumes from saved state.
+
+Explicit Compare resolves a pair through the exact current review/pair-choice
+origin and current authorized gallery mapping, then uses CP10's independent fresh
+32/64MiB preparation and cleanup. It does not retarget Gallery selection or reuse
+analysis bytes as prepared Compare inputs. Old equal-looking reviews and A→B→A
+pair choices cannot authorize callbacks. Closing the origin withdraws its Compare.
+
+Synthetic production-pixel and host ImageIO fixtures, source/IO faults and JVM
+coordinator tests do not prove native provider/EXIF/codec/rendering or broad
+retrieval quality. Calibration and held-out evaluation are versioned separately;
+reused evaluation cases become regressions after tuning. Actual memory/CPU/thermal,
+large-text/TalkBack, gestures, low-storage and process/power-loss behavior remains
+in the [device matrix](DEVICE_CHECKS.md). See
+[ADR0009](../../docs/decisions/0009-selected-visual-review.md).
+
 ## Verification limits
 
 Unit tests exercise API-specific permission policy, mixed-media sharing,

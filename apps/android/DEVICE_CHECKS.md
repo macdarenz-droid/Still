@@ -152,3 +152,25 @@ Keep synthetic/consented fixtures outside git.
 | All | Inspect app-private comparison cache, backup/transfer and recipient/share behavior during/after comparison | Only explicitly selected temporary representations in owned cache; no preview cache/export/FileProvider/network path; existing backup exclusions hold; no secure-erasure promise | Blocked |
 | All | TalkBack, keyboard/switch, 200% font, RTL, 320dp width, landscape/split-screen and live animator scale zero | Paired content and essential pan/zoom/reset/close/cancel/recovery controls reachable and labelled; source withdrawal has no exit animation | Blocked |
 | Reference device | Repeated maximum-size comparisons plus Cleanup; measure heap/decode/IO/cancel/frame behavior and retention | Record actual bitmap/CPU/disk/latency/thermal values; bounded requests are not measured throughput or heap guarantees | Blocked |
+
+## S34/S35 selected-photo visual review
+
+Every row remains **Blocked** until observed on an identified device/API with
+exact source and APK hash. Host pixel/ImageIO and fault tests do not establish
+Android codec/provider/EXIF behavior, broad retrieval quality or hardware budgets.
+Use synthetic/consented fixtures; keep private evaluation media outside git.
+
+| Environment | Procedure | Expected result | Status |
+| --- | --- | --- | --- |
+| API26–37 | Select2–200 visible photos from Photos/Favorites/album Grid across different months/years, Find similar, review a pair and Compare | Only the explicit selection analyzed; direct appearance pairs, actual names/dates and fresh independently prepared CP10 comparison; no keeper/extras/delete authority | Blocked |
+| All | Select0/1/201 photos, mixed video, duplicate/alias sources, hide selected photos by filtering, or reuse a captured old action | Honest2–200 photo limit; no truncation, broadened scope, stale selection or retargeted action | Blocked |
+| All | Use resized/reencoded/light-adjusted same scenes, all8EXIF transforms and actual64/32pixel source/analyzed boundaries | Versioned bounded appearance evidence; tiny/upscaled/low-information rejected; native orientation and format support recorded without general accuracy claim | Blocked |
+| All | Review similar screenshots with a changed digit, different document pages, expressions/objects, before-after, crops/edits and patterns | Meaningful differences remain independently reviewable; no interchangeable-copy, quality winner or removal suggestion | Blocked |
+| All | Use exact readable copies, different encodings, tiny/flat/alpha images, animation/motion, damaged headers and extreme dimensions | Exact-readable-pair omissions separated from appearance; actual unsupported/low-detail failures reflected in coverage; no video/animation playback or source fallback | Blocked |
+| All | Reach16MiB per-input/256MiB run limits including one-byte overflow/EOF probes; submit more than50 qualifying pairs | Actual read/buffer limits hold; incomplete input/scope and omitted pairs shown distinctly from no match; no hidden full-library or complete-coverage claim | Blocked |
+| All | Change first source during a later read, reset/advance namespace, remove volume or withdraw same-bit selected access | Entire old result/preview/Compare fenced; every selected source and namespace rechecked; no late publication | Blocked |
+| All | Cancel before launch, block read/decoder/close, throw read+suppressed-close errors, recreate; overlap exact Cleanup or CP10 | No replacement heavy reader before actual settlement; uncertain close keeps process ownership; honest busy/stopping/retry after dialog disappearance | Blocked |
+| All | Start equal-looking new review; retain old Open/Compare/Close/Stop/Retry; choose pairA→B→A without intermediate render | Exact current review/choice/origin alone acts; old callbacks cannot retarget or clean a new task | Blocked |
+| All | Refresh, navigate, background, lock/unlock, rotate/recreate or kill process during analysis/review/Compare | Immediate withdrawal, no saved features/tickets/auto-resume, admitted cleanup finishes independently; CP10 cache policy preserved | Blocked |
+| All | TalkBack, keyboard/switch, 200%font, RTL,320dp width/landscape/split-screen and animator scale0 | Reachable selection/Start/Stop/Compare/Open/Close/retry and truthful textual coverage, with current-source previews and no retained exit images | Blocked |
+| Reference device | Repeated200-photo batches, maximal encoded inputs, crowded50-pair results and17k-row metadata mapping; measure actual heap/read/CPU/thermal/cancel/frame behavior | Record identified workload and timings; hard request bounds are not measured heap/throughput/accuracy guarantees | Blocked |

@@ -34,10 +34,16 @@ permission, cloud request, provider account or persistent media/feature store.
 - 2–200 selected photos; inherited50,000 accessible-metadata-row cap.
 - 16MiB actual encoded bytes per photo,256MiB actual encoded bytes per run,
   64KiB read chunks; at most32MiB live explicit encoded buffers for one photo.
+  Count scratch, growth, copies and overflow probes. An over-limit photo may
+  consume one rejection-probe byte beyond its accepted limit, charged to the run;
+  never exceed the run budget to prove EOF. Exhaustion without proven EOF omits
+  that input. Prefer one owned capture without an unnecessary full-size clone.
 - At most one decoded feature bitmap at a time; sampled edge≤256, pixels≤1million,
   actual software allocation≤4MiB. Validate dimensions before decoding and actual
   output before reading pixels. Reject malformed/oversized/nonfinite/unsupported
   media; omit known animated/motion representations when support is uncertain.
+  Actual source shorter edge must be at least64pixels and actual analyzed shorter
+  edge at least32pixels; upscaling a tiny source cannot establish usable detail.
 - At most200 bounded descriptors,19,900 unordered direct pair checks and50 returned
   pairs. Record pairs omitted by the result cap separately. Budget exhaustion
   reports unattempted scope and cannot appear as complete no-match coverage.
@@ -75,6 +81,9 @@ expression/state and before-after changes. Report candidate false positives and
 misses honestly. Appearance collisions remain possible: screenshot text, document
 pages and changed states need direct comparison, never interchangeable-copy claims.
 Host pixel fixtures do not prove native codec/provider or broad retrieval quality.
+Freeze thresholds before observing held-out results. If evaluation feedback changes
+them, retain the failure and treat that fixture set as regression evidence; obtain
+new held-out fixtures. Positive retrieval cases must actually produce candidates.
 
 ## UI and Compare integration
 
