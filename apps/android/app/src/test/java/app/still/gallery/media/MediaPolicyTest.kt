@@ -2,6 +2,7 @@ package app.still.gallery.media
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -52,6 +53,19 @@ class MediaPolicyTest {
         assertTrue(cache.isEmpty())
         assertTrue(epoch.commitIfCurrent(epoch.snapshot()) { cache += "permitted-photo" })
         assertEquals(listOf("permitted-photo"), cache)
+    }
+
+    @Test fun editedMediaWithTheSameUriMustNotReuseItsPreviousPreview() {
+        val original = item("content://media/external/images/media/7").copy(
+            modifiedAt = 1_000L, width = 1200, height = 800, bytes = 1234,
+        )
+        val key = previewFingerprint(original, 360)
+        assertNotEquals(key, previewFingerprint(original.copy(modifiedAt = 2_000L), 360))
+        assertNotEquals(key, previewFingerprint(original.copy(orientationDegrees = 90), 360))
+        assertNotEquals(key, previewFingerprint(original.copy(width = 800, height = 1200), 360))
+        assertNotEquals(key, previewFingerprint(original.copy(bytes = 4321), 360))
+        assertNotEquals(key, previewFingerprint(original, 1600))
+        assertEquals(key, previewFingerprint(original.copy(), 360))
     }
 
     private fun item(id: String, video: Boolean = false) = MediaItem(

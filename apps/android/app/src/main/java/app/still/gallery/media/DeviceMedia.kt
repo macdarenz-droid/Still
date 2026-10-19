@@ -67,6 +67,7 @@ class DeviceMedia(private val context: Context) {
             MediaStore.MediaColumns.DISPLAY_NAME,
             MediaStore.MediaColumns.MIME_TYPE,
             MediaStore.MediaColumns.DATE_ADDED,
+            MediaStore.MediaColumns.DATE_MODIFIED,
             MediaStore.Images.ImageColumns.DATE_TAKEN,
             MediaStore.MediaColumns.WIDTH,
             MediaStore.MediaColumns.HEIGHT,
@@ -104,6 +105,7 @@ class DeviceMedia(private val context: Context) {
                     albumId = text(MediaStore.Images.ImageColumns.BUCKET_ID),
                     albumName = text(MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME),
                     orientationDegrees = if (video) 0 else number(MediaStore.Images.ImageColumns.ORIENTATION).toInt(),
+                    modifiedAt = number(MediaStore.MediaColumns.DATE_MODIFIED) * 1000L,
                 )
             }
         }
@@ -112,7 +114,7 @@ class DeviceMedia(private val context: Context) {
 
     suspend fun thumbnail(item: MediaItem, edge: Int): Bitmap? = withContext(Dispatchers.IO) {
         val token = epoch.snapshot()
-        val key = "${item.id}:$edge"
+        val key = previewFingerprint(item, edge)
         cache.get(key)?.let { return@withContext it }
         val uri = item.id.toUri()
         try {

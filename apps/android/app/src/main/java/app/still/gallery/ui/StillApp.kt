@@ -98,6 +98,7 @@ import app.still.gallery.media.mediaAccess
 import app.still.gallery.media.mediaPermissions
 import app.still.gallery.media.shareMimeType
 import app.still.gallery.media.visibleSelection
+import app.still.gallery.media.previewFingerprint
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -421,8 +422,9 @@ private fun AlbumGrid(items: List<MediaItem>, device: DeviceMedia, generation: I
 
 @Composable
 fun LibraryImage(item: MediaItem, device: DeviceMedia, generation: Int, modifier: Modifier = Modifier, edge: Int = 360, contentScale: ContentScale = ContentScale.Crop, backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant) {
-    key(item.id, edge, generation) {
-    val preview by produceState(ThumbnailPreview(), item.id, edge, generation) {
+    val fingerprint = previewFingerprint(item, edge)
+    key(fingerprint, generation) {
+    val preview by produceState(ThumbnailPreview(), fingerprint, generation) {
         value = ThumbnailPreview(bitmap = device.thumbnail(item, edge), loading = false)
     }
     val description = stringResource(R.string.media_description, stringResource(if (item.isVideo) R.string.video else R.string.photo), item.name)

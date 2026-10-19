@@ -34,6 +34,7 @@ data class MediaItem(
     val albumId: String,
     val albumName: String,
     val orientationDegrees: Int = 0,
+    val modifiedAt: Long = 0,
 )
 
 fun shareMimeType(items: List<MediaItem>): String = when {
@@ -44,6 +45,10 @@ fun shareMimeType(items: List<MediaItem>): String = when {
 
 fun visibleSelection(selected: Set<String>, accessible: List<MediaItem>): Set<String> =
     selected.intersect(accessible.mapTo(mutableSetOf()) { it.id })
+
+/** Local preview cache key only, never a content hash or canonical immutable AssetVersion ID. */
+fun previewFingerprint(item: MediaItem, edge: Int): String =
+    "${item.id}:${item.modifiedAt}:${item.orientationDegrees}:${item.width}x${item.height}:${item.bytes}:$edge"
 
 /** Serializes invalidation and a late thumbnail completion across worker/UI threads. */
 class AccessEpoch {

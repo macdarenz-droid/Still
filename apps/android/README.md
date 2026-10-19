@@ -35,6 +35,12 @@ before querying again. Cached thumbnails are memory-only; generation fencing
 rejects late decoding from an invalidated access epoch. Revocation changes
 visibility, never the recorded existence of an original.
 
+Both the memory cache and Compose image state use a local preview fingerprint
+including the source URI, MediaStore modification time, orientation, dimensions,
+byte length and requested preview size. Reconciled edits and rotations therefore
+replace a same-URI preview. This metadata key is not a content hash, proof of
+equality or canonical immutable asset-version identity.
+
 `MediaItem.id` is an Android content URI used only as this client's transient
 source/UI key. It is not the architecture's canonical opaque asset or version ID.
 A later persistent catalogue will map source handles to those IDs; these URIs
