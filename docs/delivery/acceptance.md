@@ -368,6 +368,15 @@ access or imply that a missing source was deleted.
   remain unchanged. Playback start must consult that current eligibility for
   both native and visible controls. These are source-level callback traces,
   not a claim of reproduced Android event delivery or native exploitability.
+- Frozen lifetime source `4ce5380cc1f9a65017646f1beeb931da9a964067` passed
+  assemble and all72 JVM tests. An isolated missing-lifetime counterfactual
+  failed exactly the2 new authority/disposal cases among35 selected media tests,
+  with the older33 passing. Strict lint then rejected the custom VideoView's
+  missing tools-compatible Context constructor (`ViewConstructor`); this
+  candidate was not accepted. The bounded correction adds a deny-start tools
+  constructor while production still supplies required live eligibility.
+  The genuine failure remains in `/tmp/still-gallery-lifetime-final-build.log`;
+  final corrected source requires fresh full checks and both independent gates.
 - Backend owns the catalogue/schema contract; frontend owns live media queries,
   controls, playback and compatibility. Its helper
   `/root/frontend/android_tooling` owned only LibraryControls and then the new
