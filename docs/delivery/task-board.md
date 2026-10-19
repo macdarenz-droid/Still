@@ -32,10 +32,12 @@ remain. A draft PR/debug artifact is a development handoff, not publication.
 
 ## Approved bootstrap choices
 
-- Android native is confirmed. Kotlin/Compose, min SDK 26, compile/target SDK 35.
-- Android dependency allowance: AGP 8.9.2, Gradle 8.11.1, Kotlin/Compose plugin
-  2.1.20, Compose BOM 2025.04.01, AndroidX core 1.16.0, activity 1.10.1,
-  lifecycle 2.8.7, and JUnit 4.13.2 for meaningful local unit tests.
+- Android native is confirmed. Kotlin/Compose, min SDK 26, compile/target SDK 37.
+- Current Android dependency allowance (ADR0002): AGP 9.4.1, Gradle 9.6.0,
+  built-in Kotlin with Kotlin/Compose 2.4.21, Compose BOM 2026.09.00,
+  AndroidX core 1.19.1, activity 1.13.0, lifecycle 2.11.0 and JUnit 4.13.2.
+  SDK platform 37/build-tools 36.0.0, JDK 21 and minSdk 26. The initial pins were
+  superseded after strict lint identified current versions; no lint gate waived.
   Builder can choose Material3 and foundation within the approved Compose BOM.
 - Backend development runtime Node 24 with built-in node:sqlite, TypeScript 5.9
   and @types/node 24; no third-party runtime dependencies. Use native type stripping
@@ -77,6 +79,16 @@ Store exact final SHA, commands, environment, results and debug APK SHA-256 in
 docs/delivery/acceptance.md. Native device checks must be marked blocked if no
 device is attached. Implemented, independently reviewed, candidate accepted and
 published are separate statuses. No publication is part of this task.
+
+## Current checkpoint state
+
+CP0 scaffold/workflow: accepted with independent reviewer and red-team passes.
+S01 backend and S03 discovery components: both roles passed exact source commits;
+the original S03 reflow failure and regression fix remain in acceptance evidence.
+S02 Android: initial APK compiled and 7 unit tests passed. Strict lint prompted
+source fixes and a researched current dependency/toolchain update; final checks
+are in progress.
+Combined CP1 and final CP2 are pending. Nothing is published.
 
 ## Remaining product sequence
 

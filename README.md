@@ -39,7 +39,7 @@ production login is included. Do not expose the API to the Internet.
 
 ## Android
 
-Use JDK 21, Android SDK platform 35 and build-tools 35.0.0. Android Studio can
+Use JDK 21, Android SDK platform 37 and build-tools 36.0.0. Android Studio can
 install these and open `apps/android` directly. Alternatively configure
 `ANDROID_HOME` to an existing SDK installation or use an untracked
 `apps/android/local.properties` containing `sdk.dir=/absolute/path/to/sdk`.
