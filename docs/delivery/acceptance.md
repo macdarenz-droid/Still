@@ -1035,3 +1035,39 @@ Reproducible script `/tmp/still-s25-run-counterfactuals.py`, exact patches in
 `/tmp/still-s25-counterfactual-patches/` and individual logs are retained.
 These are component evidence; both independent roles must close their alias
 blockers on the new exact integrated candidate and actual local artifact.
+
+## CP9 final development outcome (recorded by the next checkpoint)
+
+Source `1f475586d8b7802e33142f290e620be4d4beb5ba` passed separate reviewer and
+red-team exact source/actual local-APK gates, then each hosted confirmation.
+[PR run39224244184](https://github.com/macdarenz-droid/Still/actions/runs/39224244184)
+and [push run39224236344](https://github.com/macdarenz-droid/Still/actions/runs/39224236344)
+succeeded with all four checks green.74 backend cases (27 preserved,27 journal,
+20 contracts),159 Android cases, TypeScript,11 discovery,18 SQL probes, assemble
+and strict lint passed. Ten final-source counterfactuals detect unsafe removed
+guards; prior candidate `d6e70c2` remains rejected as recorded above.
+
+Actual local APK is12,599,181 bytes, SHA-256
+`e9b776f50172f9886a9316116b22650c0e655b9250e9caa3d42d6cecb31cdd34`,
+byte-identical to CP8; delivery `.artifacts/deliveries/still-cp9-1f47558.apk`.
+Full record `.artifacts/cp9-validation.json` and updated draft PR1 were verified
+against clean source/latest-main ancestry before continuation. No hosted binary
+was downloaded. CP9 is internal, default-deny and nonexecuting; native pinning,
+trash/restore/providers and hardware/power-loss acceptance remain outside it.
+
+## CP10 — Selected inputs and photo comparison
+
+ADR0008 and S29–S32 add explicit two-photo, bounded temporary task preparation
+and useful native comparison under architecture7.2/19.1. Task-representation IDs
+describe captured readable bytes only, never original fidelity or CP9 readiness.
+The owner's Continue instruction applies the architecture's selected-task staging
+option; no automatic/full-library copy or new provider transmission is authorized.
+
+Preserve all74 backend/159 Android assertions and existing policies; add meaningful
+production stream/file/source/coordinator/transform tests and fault evidence.
+Both independent roles must approve the exact final source/local APK and each
+hosted gate. Record real failures/fixes here and immutable candidate/hash/verdicts
+in `.artifacts/cp10-validation.json` plus draft PR1. Device/provider/filesystem/
+process-kill/power-loss/gesture/large-text/accessibility behavior is blocked until
+actually observed; host proofs cannot replace those checks. No cleanup execution,
+backup capability, production signing, main merge or publication is included.

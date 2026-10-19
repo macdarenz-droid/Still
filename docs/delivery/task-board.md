@@ -471,3 +471,34 @@ cases. Component checks and ten defect counterfactuals pass their intended gates
 S27 final copy recheck and S28 exact root/local-APK/hosted gates
 remain pending. Record the final immutable candidate in
 `.artifacts/cp9-validation.json` and draft PR1 before development handoff.
+
+## CP10 selected-input preparation and native comparison (Stage1/2 / R02)
+
+Continue the architecture from accepted CP9 with ADR0008. Its selected-task staging
+option authorizes bounded temporary readable-copy bytes only after Compare on two
+current selected photos; no original fidelity, canonical version, backup, removal
+or CP9 execution capability is implied. Preparation and visual review are one
+end-to-end checkpoint, followed by both independent gates.
+
+| Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S29 Selected-input preparation | backend; new `inputs/SelectedInputPolicy.kt`, `inputs/SelectedInputStore.kt`, `inputs/SelectedInputPreparation.kt`, `inputs/AndroidSelectedInputs.kt` under Android main package and matching new `inputs/*Test.kt` only | Exactly2 current photos, bounded32MiB each/64MiB pair/64KiB buffer, complete close/sync/readback, opaque task representation identity with honest fidelity, whole-pair source fencing, shared Cleanup heavy-read admission, session ownership/quota, safe own-cache cleanup/orphans/failure. Production stream/filesystem/source seam and real fault tests; no originals/IO outside own namespace | New named branch from this card. Publish interface promptly. Existing media/catalogue/security/player/backend/schema/dependency files unchanged; no helper delegation |
+| S30 Native comparison | frontend; new `ui/Compare*.kt` and matching new `ui/Compare*Test.kt`; existing `StillApp.kt` only comparison initialization, selection action, rendering/back/lifecycle/source/scope invalidation wiring; `res/values/strings.xml` only new comparison strings | Select2 photos→prepare→responsive read-only pair, linked bounded zoom/pan with essential buttons, Reset/Close, direct progress/failure/cleanup states, finite/reduced motion and bounded file-only decode with caches disabled. Immediate invalidation and stale-callback rejection; no saved tickets/paths, removed media lingering, mutation/export actions or auto video | S29 interface first; stateless UI can proceed in parallel. No helper, theme/security/player/media/old test edits. Root integrates S29 before S30 |
+| S31 Copy/claims audit | seo; read only | Honest temporary storage/retention/size errors, readable-representation vs originals, selection and current-source scope; no quality/backup/pinning/removal/secure-erasure claims. Existing full roadmap retained | Published interface/design and final source/docs; no edits/publication |
+| S32 CP10 gates | reviewer and red_team; read only | Separate design/source/test-effectiveness and exact integrated source/local-APK verdicts, quota/IO/admission/orphan/cache/revocation/whole-pair/stale-action probes, all baseline assertions, each hosted confirmation | Root full checks/audit, fixes/rechecks and new exact head as needed; no production publication |
+
+Root owns ADR/task board/acceptance/root and Android README/device matrix, all
+shared build/dependency/CI/PR decisions and integration. All74
+backend and159 Android cases/assertions must remain intact. No old schema, Android
+permission, MainActivity/lock/capture policy, MediaViewer/player, cleanup source
+semantics, API/bootstrap/provider, catalogue or CP9 contract/journal changes.
+
+Risks, staging/retention bounds and rollback follow ADR0008. Source metadata and
+readable snapshots are not pinned originals; never silently broaden selected scope
+or resume across recreation. A closing/blocked worker retains actual admission;
+failed cleanup blocks new staging. Root npm check, full159+new JVM/assemble/strict
+lint, actual APK/signature/permissions/backup/8SQL audit, both independent local
+and hosted passes, draft PR1 and `.artifacts/cp10-validation.json` finish the
+development checkpoint. Native storage/MediaStore/power-loss/UI hardware behavior
+stays unverified until observed. No paid calls, main merge, release signing or
+publication.
