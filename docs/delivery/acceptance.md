@@ -500,6 +500,11 @@ canonical pinned version or server authority is included; see ADR0005.
   though its scan uses the full authorized scope. That subtitle must be hidden
   or correctly scoped before the final candidate; scan controls do not silently
   apply a current Photos/type/search filter.
+- Red-team callback review also found the protection dialog could dispatch a
+  retained confirmation after dismissal or consume a newly opened identical-value
+  request. Hold for an active-request reference-identity guard before clearing or
+  invoking the mutation, plus cancel/reopen regression. Expected review/revision
+  checks remain required but cannot represent dialog dismissal on their own.
 
 ### Exact candidate and remaining gates
 
