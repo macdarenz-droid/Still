@@ -490,6 +490,16 @@ canonical pinned version or server authority is included; see ADR0005.
 - S15 read-only copy audit at that frozen source found no blocking claim issue
   after early scope/keeper/invalidation wording fixes. Native accessibility and
   component source/artifact acceptance remain separate from that copy audit.
+- Red-team preflight found a deterministic Stop-before-dispatch race: a DEFAULT
+  coroutine canceled before its body starts never enters the body's catch, so
+  the screen could remain STOPPING without a reader. The candidate is held for
+  completion-based terminal acknowledgement and a queued-dispatcher regression;
+  real reader admission must still remain held until native work exits. This
+  is source/coroutine evidence, not a claimed Android runtime reproduction.
+- Reviewer also found Cleanup inherited a filtered gallery-count subtitle even
+  though its scan uses the full authorized scope. That subtitle must be hidden
+  or correctly scoped before the final candidate; scan controls do not silently
+  apply a current Photos/type/search filter.
 
 ### Exact candidate and remaining gates
 
