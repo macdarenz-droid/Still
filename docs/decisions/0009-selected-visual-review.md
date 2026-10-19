@@ -28,6 +28,10 @@ perceptual descriptor and pair evidence never establish original fidelity,
 canonical AssetVersion, exact-copy equality, CP5 protection or CP9 readiness.
 Android may transform/redact/fetch the selected readable source. No new network
 permission, cloud request, provider account or persistent media/feature store.
+Initial native analysis supports static JPEG/PNG and omits other formats, known
+animation/motion variants and transparency. An omitted input is unassessed, never
+proven unique or redundant. Progress separates provider-open attempts from photos
+that actually yielded usable features and from unattempted or incomplete scope.
 
 ## Resource and lifecycle bounds
 

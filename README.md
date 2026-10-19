@@ -105,7 +105,9 @@ the device matrix for native decoding, storage and lifecycle checks still open.
 
 Select2–200 visible photos in Grid and use Find similar to review appearance
 candidate pairs across dates. The analysis is session-only, with no photo files
-or features saved. It checks bounded readable representations, up to16MiB each
+or features saved. Initial analysis supports static JPEG/PNG photos; other formats,
+known animation/motion variants and transparency are omitted. It checks bounded
+readable representations, up to16MiB each
 and256MiB per run, and reports skipped photos and omitted pairs. Meaningful text,
 expression or state differences may still look similar. Compare prepares the
 chosen current pair independently; these results never become keepers or removal

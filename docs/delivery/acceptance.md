@@ -1295,3 +1295,20 @@ it with bounded current-source resolution and one display projection, preserving
 all live selection/source/access/refresh/identity fences, and require a meaningful
 counted-list regression that fails on the old path. No old media/CP10 helper or
 baseline assertion change is authorized by that fix.
+
+First fresh independent v2 evaluation on `af205333` passes all16 cases, zero
+failures/errors/skips. The new23-pair set returns three semantically different
+candidate pairs (document digit/page, eyelid expression) and misses one explicitly
+unsupported alpha case; all clear light/resize/JPEG/EXIF positives retrieve, with
+before-after meter now rejected. The exposed v1 light/cross-year regressions pass;
+four document/state collisions and unsupported alpha remain reported. Preserve
+`/tmp/still-cp11-s36-evidence/v2-first-16.xml`; no labels/assertions or numeric
+thresholds were weakened after these observations.
+
+S37 found additional draft wording issues at S35 `e89ba051`: native static JPEG/PNG
+support was undisclosed, “Checked” counted attempted opens (including failures),
+and READY's “Photos checked” overstated incomplete scope. S35's string-only
+follow-up `242159a` corrects support, attempts, actual analysis and finished-search
+wording. Root docs add the same support/unsupported qualification. The obsolete
+frontend47e89e7 full run was stopped with exit143 before final tests/lint finished;
+its log is retained without a pass claim. Exact final source checks remain needed.

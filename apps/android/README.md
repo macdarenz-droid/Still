@@ -349,7 +349,10 @@ started and session-only, separate from exact Cleanup and its keeper/protection
 rules. This is a bounded dependency toward the planned durable full-library
 incremental similarity index, not completion of that index.
 
-Each selected readable representation is captured once into transient memory,
+Initial native analysis supports static JPEG and PNG. Other formats and known
+animation/motion/transparent representations are unsupported and omitted; this
+never establishes that omitted photos are unique or safe to remove.
+Each attempted supported readable representation is captured once into transient memory,
 with complete nonempty EOF and successfully tracked provider closure before
 EXIF/header/pixel feature extraction. The accepted per-photo limit is16MiB,
 actual per-run read budget256MiB and read chunks64KiB. A photo-limit rejection
