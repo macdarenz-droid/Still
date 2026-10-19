@@ -426,3 +426,20 @@ data, or uninstall the development app, which clears Still-local settings,
 Favorites and catalogue but preserves phone originals. No automatic database
 drop/repair, main merge, release signing, publication, provider account or spending
 forms part of this checkpoint.
+
+### CP4 final development outcome (recorded by the next checkpoint)
+
+Final source `1b4932b28d2afe9835cccd4f1d35783a713b5b6a` passed both independent
+reviewer and separate red-team source/build/local-APK gates. Each independently
+confirmed both hosted runs and all four checks green at that exact head:
+[PR run39201559516](https://github.com/macdarenz-droid/Still/actions/runs/39201559516)
+and [push run39201555444](https://github.com/macdarenz-droid/Still/actions/runs/39201555444).
+Root assemble, all72 JVM tests (zero failures/errors/skips), strict lint,27 backend
+tests,18 real host-SQL probes and TypeScript/site checks passed. Audited local APK:
+`dc65fdb22e7072478220cf70681175a29538303a9bb2693a59484c3cdbd4532d`,12,229,446 bytes.
+Signature, manifest/backup exclusions and all8 packaged SQL assets were checked
+independently. This result is also retained in `.artifacts/cp4-validation.json`.
+The versioned local delivery remains `.artifacts/deliveries/still-cp4-1b4932b.apk`.
+Hosted binaries were not downloaded/inspected or presumed identical. Native
+runtime/security/accessibility/performance, main merge and production publication
+were excluded; the existing device limits remain open.

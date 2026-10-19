@@ -230,3 +230,72 @@ validate real SQL behavior but do not prove Android/OEM SQLite, MediaStore, code
 accessibility or performance. Expand the manual device matrix and mark all unrun
 rows unverified. Hosted CI and draft PR updates follow local gates; no main merge,
 release signing, publication, provider spending or deletion is authorized here.
+
+## CP5 exact-match review and protected content (R02 / F03)
+
+The owner requested continued feature work after CP4. CP4 development acceptance
+passed at `1b4932b28d2afe9835cccd4f1d35783a713b5b6a`; its native/device gates remain
+open. CP5 completes matching-copy review and protected-content choices. Native
+trash/deletion, deletion journals, backup and canonical pinned versions follow
+in later checkpoints; this checkpoint exposes no destructive command or pretend
+storage savings. ADR0005 records the read/protection contracts.
+
+| Card | Builder / allowed files | Complete deliverable and evidence | Dependencies / order |
+| --- | --- | --- | --- |
+| S13 Review/protection | backend; new Android `cleanup/` source and matching new `cleanup/` JVM tests only | Pure scan-bound exact-content grouping/review contract; current Favorite/NotFavorite/Unknown status, multiple reversible keeper choices, READY/UNKNOWN revisioned content-protection snapshot. Strict bounded durable on-phone content-key store with expected-revision writes, pending-write/directory-sync/readback fencing, no silent repair; fault/reopen/durability tests. Publish contract promptly | New named branch from CP5 card commit; no catalogue/schema/security implementation edits. Integrate before S14 |
+| S14 Native cleanup | frontend; new `media/Cleanup*.kt` and focused new media tests; new `ui/Cleanup*.kt`; delegated `StillApp.kt`, minimal `DeviceMedia.kt` snapshot/probe bridge, `MarkIcon.kt` cleanup icon region, `strings.xml`, Android README/device matrix | User-started sequential exact-readable-byte scanning with progress/cancel/coverage; fresh authorized scope, complete EOF hashing, bounded worker/streaming resources, provenance/namespace/lifetime fences. Group UI with open member, manual keepers and explicit protect/unprotect-all-matching-content through S13. No auto scan, native mutation, bytes persistence or claim of originals/space freed. Preserve all existing gallery/lock/favorites/share/playback behavior | S13 contract first; scan/UI can develop in parallel with storage. Supervisor owns integration; no new dependencies, permissions or build configuration approved |
+| S15 Copy audit | seo; read only | Audit scan coverage, readable representation, protection scope/failure, keeper and cancellation wording/accessibility. No duplicate-quality guesses, whole-library claim, guaranteed cancellation/identity/recovery or destructive action | Design and then frozen S13/S14 source; no private media reuse or publication |
+| S16 CP5 gates | reviewer and red_team; read only | Separate exact integrated SHA/local APK verdicts, meaningful streaming/source-reuse/cancellation/protection tests and rechecks of findings; independently confirm hosted runs after local gates | Final root full checks and artifact audit; no production release/main merge |
+
+Supervisor owns task/evidence/ADR/root README/PR/CI and dependencies. Builders use
+separate existing worktrees with new named branches. Frontend may delegate only
+new `ui/CleanupScreen.kt` to `/root/frontend/android_tooling`; parent owns models,
+native IO, all shared wiring/tests/strings/docs and commits. Any further ownership
+change must be approved before editing. Preserve all72 prior JVM tests and their
+assertions, all27 backend tests,18 host-SQL probes and existing lint/CI guards.
+
+Acceptance: exact matches require SHA-256/version + actual complete-read byte
+count; type/reported-size prefilter is explicitly incomplete coverage. Reject
+partial/failed/changed/canceled hashes and duplicate source aliases. All scanning
+is user-initiated, IO-only, sequential with bounded buffers/counts; a shared scan
+lane must remain bounded across Cancel→Start, lock and UI recreation while an old
+provider read blocks. Cancellation fences output immediately but does not promise
+instant provider return. No bytes, previews or hashes are logged or transmitted.
+
+Final source checks cover the entire scan: normal provider-generation advance,
+reset, rollback, volume/access changes and current live authority. An early-hashed
+file changing before the final file cannot yield a current result. Where Android
+lacks generation evidence, final per-member provenance rechecks are best effort;
+these are observed readable-byte matches, never pinned immutable originals.
+Refresh/revocation/lock/disposal invalidates progress/results/actions. Current
+favorites, protection revision and keeper choices must recompute eligibility;
+unknown protection blocks all extras and unknown favorite evidence blocks its
+group. No extras without an explicit/favorite/protected keeper; preserve all such
+keepers. "Extra" means a review choice, never authorization to remove a source.
+
+Protection persists algorithm/version + digest + actual length only, applies to
+all matching readable copies and survives missing sources/resets. Different fresh
+bytes at a reused URI cannot inherit it; a new URI can match only after hashing.
+Unprotect explicitly affects all matching content and requires known current
+revision. Failed/uncertain/corrupt/newer-format storage is UNKNOWN, never an empty
+set or successful removal. Retain raw records and unmatched protections; no auto
+repair, reset, pruning or lost-data migration. Retry may reread a valid store;
+uncertain/corrupt records may remain blocked pending later explicit recovery.
+
+Tests must exercise complete/zero/short/error/canceled/close-failure reads, actual
+length and overflow, late source change, alias deduplication, blocked-reader
+admission, old/new scan and lifetime rejection, fresh-byte protection binding,
+current favorites/unknown state, reversible multiple keepers, and store fault/
+corruption/reopen/revision/directory ordering. Required final commands remain
+`npm run check` and Android assemble/all JVM/strict lint with the established
+JDK21/SDK37 toolchain. Native provider transformations, cancellation latency,
+AtomicFile/filesystem durability, auth/lifecycle/accessibility and large-library/
+video performance stay explicitly unverified until measured on actual devices.
+
+Risk/rollback: this adds only architecture-authorized local content digests and
+protection annotations, under existing backup exclusions, with no network or media
+mutation. Stop scans and revert CP5 while retaining a copy of app data; uninstall
+clears Still-local annotations/settings/catalogue but preserves phone originals.
+Finish requires owned source committed, acceptance-to-test mapping, exact root
+head/APK hash, both independent passes, hosted CI and updated draft PR/development
+APK. Production signing, main merge, spending and publication remain excluded.
