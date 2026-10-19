@@ -181,6 +181,10 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
             { granted -> AndroidCleanupSourceReader(context.applicationContext, device, granted) },
             { AndroidContentProtections(context.applicationContext) })
     }
+    val comparison = remember(device, actionLifetime) {
+        CompareCoordinator<ComparePreview>(scope, { actionLifetime.isActive }, { recoverCompareStorage(context.applicationContext, device) })
+    }
+    LaunchedEffect(comparison) { comparison.initialize() }
     val shareLabel = stringResource(R.string.share_media)
     val shareFailure = stringResource(R.string.share_failed)
     val favoriteConfirmation = stringResource(R.string.favorites_saved)
@@ -193,6 +197,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     val albumPhotosPosition = rememberLazyGridState()
 
     fun invalidateSnapshot() {
+        comparison.invalidate()
         cleanup.invalidate()
         options.invalidate(); menu.invalidate()
         optionsRequest = null; menuRequest = null
@@ -224,6 +229,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     fun changeBrowseScope(expectedOptions: DriftOverlayRequest? = null, change: () -> Unit) {
         if (!actionLifetime.isActive || expectedOptions != null && !options.isCurrent(expectedOptions)) return
+        comparison.invalidate()
         if (expectedOptions == null) { options.invalidate(); optionsRequest = null }
         menu.invalidate(); menuRequest = null
         focusMemory.capture(driftInteraction.focusedToken)
@@ -258,6 +264,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     }
 
     fun saveFavorites(next: Set<String>) {
+        comparison.invalidate()
         if (destination == Destination.FAVORITES) {
             drift.invalidate()
             driftInteraction.invalidate()
@@ -298,6 +305,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     DisposableEffect(actionLifetime, device) {
         onDispose {
+            comparison.dispose()
             drift.invalidate()
             driftInteraction.invalidate()
             viewers.invalidate()
@@ -311,6 +319,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     DisposableEffect(lifecycle, device, access) {
         val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) comparison.invalidate()
             if (event == Lifecycle.Event.ON_START || event == Lifecycle.Event.ON_RESUME) invalidateSnapshot()
         }
         lifecycle.addObserver(observer)
@@ -437,6 +446,8 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     val sortLabel = stringResource(when (mediaSort) { MediaSort.NEWEST -> R.string.sort_newest; MediaSort.OLDEST -> R.string.sort_oldest; MediaSort.NAME -> R.string.sort_name })
 
     val compactChrome = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() < 480.dp } || LocalDensity.current.fontScale > 1.5f
+    val capturedComparePair = selectedInView.toList()
+    val compareAction = comparison.actionIdentity
 
     Scaffold(
         modifier = Modifier.imePadding(),
@@ -472,6 +483,23 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                             scope.launch { snackbar.showSnackbar(favoriteConfirmation) }
                         }
                     }, enabled = !loading && !loadFailed && selectedInView.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp)) { MarkIcon(Mark.HEART, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.favorites)) }
+                    if (capturedComparePair.size == 2 && capturedComparePair.none { it.isVideo }) {
+                        TextButton(onClick = {
+                            val startRefresh = refresh
+                            val startView = viewRevision
+                            val granted = access
+                            fun currentPair(): Boolean = actionLifetime.isActive && refresh == startRefresh && viewRevision == startView &&
+                                drift.isCurrent(driftSnapshot) && !loading && !loadFailed &&
+                                compareSelectedPhotos(capturedComparePair, selected.toSet(), filtered).size == 2 &&
+                                galleryActionItems(capturedComparePair, media, loading, loadFailed, actionLifetime).size == 2
+                            if (currentPair()) {
+                                viewers.invalidate(); viewerRevision++
+                                comparison.start(compareAction, capturedComparePair.map { it.name }, ::currentPair) {
+                                    ComparePreparedWork(context.applicationContext, device, capturedComparePair, granted, favorites.toSet(), ::currentPair)
+                                }
+                            }
+                        }, enabled = comparison.canStart && !loading && !loadFailed, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.compare_title)) }
+                    }
                 }
             } else if (compactChrome) {
                 TextButton(onClick = { openMenu() }, modifier = Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 48.dp)) { Text(stringResource(R.string.drift_navigate)) }
@@ -482,6 +510,8 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
+            val storageAction = comparison.actionIdentity
+            CompareStorageNotice(comparison.state, onRetry = { comparison.retryCleanup(storageAction) })
             if (destination == Destination.CLEANUP) {
                 val expectedReview = cleanup.currentReview
                 val expectedScan = cleanup.currentScan
@@ -604,7 +634,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     else -> PhotoGrid(filtered, device, refresh, selectedInView.mapTo(mutableSetOf()) { it.id }, selecting, groupByMonth = mediaSort != MediaSort.NAME,
                         position = if (albumId != null) albumPhotosPosition else if (destination == Destination.FAVORITES) favoritesPosition else photosPosition,
                         onOpen = { item -> if (drift.isCurrent(driftSnapshot)) openViewer(item, driftSnapshot) },
-                        onToggle = { item -> if (drift.isCurrent(driftSnapshot)) galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current -> val token = sourceUiToken(current); selected = if (token in selected) selected - token else selected + token } },
+                        onToggle = { item -> if (drift.isCurrent(driftSnapshot)) galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current -> comparison.invalidate(); val token = sourceUiToken(current); selected = if (token in selected) selected - token else selected + token } },
                         onStartSelection = { item -> if (drift.isCurrent(driftSnapshot)) galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current ->
                             changeBrowseScope { selecting = true; viewMode = "GRID"; val token = sourceUiToken(current); if (token !in selected) selected = selected + token }
                         } },
@@ -676,6 +706,16 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                 canPlay = { viewers.isCurrent(viewerEntry) && galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).isNotEmpty() },
             )
         }
+    }
+    val compareState = comparison.state
+    if (compareState.visible) {
+        val request = compareState.request
+        CompareScreen(compareState,
+            onClose = { comparison.close(request) },
+            onStop = { comparison.stop(request) },
+            onChange = { zoom, x, y -> comparison.change(request, zoom, x, y) },
+            onReset = { comparison.reset(request) },
+        )
     }
 }
 
