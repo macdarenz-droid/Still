@@ -2,7 +2,7 @@
 
 Status: CP5 development design; native/device acceptance pending.
 
-Architecture R02/F03 and sections7–9 call for matching-copy review, keepers and
+Architecture R02/F03 and sections 7–9 call for matching-copy review, keepers and
 protection before destructive cleanup. CP5 adds that complete review stage. It
 does not add deletion/trash, a deletion journal, verified backup, near-duplicate
 models, quality ranking or immutable canonical AssetVersions. Future native
@@ -40,8 +40,8 @@ after cancellation. Close/cancel handles best effort and show honest stopping
 state; a process-wide bounded admission lane prevents overlapping/recreated runs
 from accumulating readers. Do not silently queue or automatically resume scans.
 The initial bounds are one nonqueueing process-wide slot held until actual
-close/finally, a64KiB buffer,50,000 fresh snapshot rows (larger scope aborts with
-an explicit limit), and16GiB per readable stream (excess is counted without
+close/finally, a 64 KiB buffer, 50,000 fresh snapshot rows (larger scope aborts with
+an explicit limit), and 16 GiB per readable stream (excess is counted without
 partial evidence). These are scan coverage bounds, not limits on gallery browsing.
 
 Review uses current favorite evidence and current protection revision, never a
