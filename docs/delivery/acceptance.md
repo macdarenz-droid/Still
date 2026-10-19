@@ -480,6 +480,16 @@ canonical pinned version or server authority is included; see ADR0005.
   was corrected to model a unique exact-row query, retaining the alias assertions.
   The real failure remains in `/tmp/still-cleanup-scanner-tests.log`. This is
   component evidence, not final UI/build/checkpoint acceptance.
+- Frozen full S14 source `00a68868b56b52bc633273443508a40689cb5a2b` built
+  successfully and passed all 122 JVM tests (99 existing/S13 plus 23 S14 cases).
+  Strict lint then rejected six count-bearing strings with `PluralsCandidate`;
+  this candidate was not accepted. The correction uses actual quantity resources
+  and localized file-size formatting, without suppressing lint or changing tests.
+  Preserve `/tmp/still-cleanup-first-full.log` and rerun the full command on the
+  corrected frozen source before integration/acceptance.
+- S15 read-only copy audit at that frozen source found no blocking claim issue
+  after early scope/keeper/invalidation wording fixes. Native accessibility and
+  component source/artifact acceptance remain separate from that copy audit.
 
 ### Exact candidate and remaining gates
 
