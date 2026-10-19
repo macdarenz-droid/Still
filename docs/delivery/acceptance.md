@@ -922,3 +922,40 @@ candidate/hash/verdicts in `.artifacts/cp9-validation.json` and draft PR1. No
 source/component result is final checkpoint acceptance. Native mutation and
 power-loss behavior remain unverified; production PostgreSQL is not implemented
 by a separate development SQLite journal. Keep all canonical architecture bytes.
+
+Source preflight identified a clock interleaving gap between the separately
+committed time observation and the following plan transaction. The builder now
+reads the persisted high-watermark again inside the actual plan transaction;
+the separate observation still survives rejected commands. A controlled
+two-instance regression and a counterfactual without that reread are required
+before this finding can be closed. This is host SQLite evidence, not phone
+power-loss or native removal evidence.
+
+Independent preflight also found that an initialized foreign SQLite database
+could look empty after its tables were dropped, even after VACUUM. Such files
+must be rejected unchanged rather than initialized as a journal. The separate
+red team identified a semantic history rollback: a shape-valid current row could
+lose cancellation or uncertainty retained in an older operation result. Require
+command/result binding and monotonic recovery history, with real tamper/reopen
+regressions, before closing these findings. Component fixes remain pending the
+frozen-source and final artifact gates.
+
+Reviewer runtime fault evidence also showed a failed current-plan update could
+roll back a later observed clock value, then reopen as reviewable after host
+clock rollback. `/tmp/still-reviewer-cp9-read-clock-probe.json` records the
+failure; the same diagnostic in
+`/tmp/still-reviewer-cp9-read-clock-fixed.json` now preserves the high-watermark
+and returns expired. The reusable probe is
+`/tmp/still-reviewer-cp9-read-clock-probe.mjs`. Builder regression and frozen-head
+checks remain required; this source fix is not final checkpoint approval.
+
+The red team also reproduced a current row claiming `confirmed_nonexecuting`
+without a retained confirmation command. Evidence:
+`/tmp/still-redteam-cp9-confirmation.mjs` and
+`/tmp/still-redteam-cp9-confirmation.log`. Require matching confirmation provenance
+and a tamper/reopen regression; execution is false even in the malformed record.
+Other independent probes reject missing creation/uncertainty history and
+no-change evidence that expires during an adapter callback. Their logs are
+`/tmp/still-redteam-cp9-semantic.log` and
+`/tmp/still-redteam-cp9-reconcile-expiry.log`. Final frozen-head checks must cover
+all corrections together.

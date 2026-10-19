@@ -39,8 +39,9 @@ honest blocker codes and scoped metadata; clients own human action labels later.
 Use a separate explicitly supplied development database path, schema1 and a distinct
 application identity. Do not upgrade or reuse the existing control-plane schema1.
 Check identity/version/expected schema before writable PRAGMAs or schema changes;
-initialize only a genuinely empty database. Foreign, corrupt, uncertain, unsupported
-or malformed records fail closed without drop, repair, reset, pruning or mutation.
+initialize only a genuinely empty database. Foreign, corrupt, unsupported or
+malformed journals fail closed without drop, repair, reset, pruning or mutation.
+Valid uncertainty records stay retained and change only through guarded commands.
 Reject foreign triggers/views/indexes and shape-valid but impossible stored states;
 an application ID and parseable JSON alone do not establish a supported journal.
 The existing ControlPlane gets only a nonzero foreign-application-ID rejection

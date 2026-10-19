@@ -123,3 +123,48 @@ Errors use `{ "error": { "code", "message", "retryable", "scope",
 "recoveryAction" } }`. The HTTP adapter does not return internal exception text.
 Contracts are in `packages/contracts/src/index.ts`; native Android currently uses
 its local media access independently of this optional backend.
+
+## Internal cleanup planning
+
+`services/workflows/src/cleanup-plans.ts` is a separate development module with
+contracts in `packages/contracts/src/cleanup.ts`. Normal API startup does not load
+it or create its database. There is no cleanup HTTP route, worker, provider or
+Android bridge. Production PostgreSQL and native trash/restore remain future work.
+
+Construct `CleanupPlans` with an explicit, separate SQLite path. The cleanup
+journal has its own application identity and schema1 in
+`db/cleanup/001_journal.sql`; it must never share `STILL_DB_PATH`. Both modules
+reject the other's identified database before writable setup. The cleanup module
+rejects unsupported schemas and invalid records without resetting or repairing
+them. Stop journal users and preserve the database and any WAL files before
+rollback; recovery history must not be discarded to open an older build.
+
+The module supports creating, reading, listing, revalidating, confirming and
+cancelling plans, recording item uncertainty and reconciling verified no-change.
+Commands contain strict opaque asset/version/source references, expected source
+and plan/item revisions, bounded selections and owner-scoped idempotency keys.
+The trusted caller supplies the owner outside the command body. Replayed commands
+return their original result with `replayed: true`; read the current plan before
+making a new decision.
+
+The journal retains at most 1,000 plans, 10,000 command results and 20 uncertainty
+entries per item; reaching a limit rejects additions instead of trimming history.
+Reading current plans can persist expiry and advance revisions. Time observations
+use a durable high-watermark so rolling back the host clock cannot renew an old
+review. Use the revisions returned by the latest read for subsequent commands.
+
+A constructor-only trusted evidence adapter must prove exact source binding,
+original pinning, current access, protection/Favorites/dependencies and an
+independent surviving copy with restore evidence. No adapter is installed by
+default. Android catalogue observations and readable-copy matches cannot supply
+these proofs. Evidence changes require another review; expiry and unresolved
+uncertainty block confirmation, including related replacement plans.
+
+Every plan and item has `executionAvailable: false`, including
+`confirmed_nonexecuting`. Confirmation records reviewed intent and grants no file
+operation. `reconciled_no_change` records trusted evidence of no change; it does
+not mean bytes were restored. Review and evidence deadlines are not OS restore
+windows. This metadata journal stores no media bytes, filenames, paths or URLs
+and makes no storage-savings claim. See
+[ADR0007](../../docs/decisions/0007-cleanup-planning-journal.md) for the recovery
+and acceptance boundaries.

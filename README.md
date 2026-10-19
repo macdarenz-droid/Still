@@ -16,9 +16,11 @@ backend and SEO builders, with an independent reviewer and separate red team at
   phone; no account or API connection is needed for this milestone.
 - `services/api`, `services/workflows`: TypeScript development API and durable task
   orchestration; see its README for exact authentication and command contracts.
-- `packages/contracts`: versioned job, consent and policy DTOs.
+- `packages/contracts`: versioned job, consent, policy and cleanup-review contracts.
 - `db/migrations`: SQLite schema for local development. PostgreSQL remains the
   production architecture choice, not implemented by this foundation.
+- `db/cleanup`: separate development cleanup journal; never reuse the control-plane
+  database path.
 - `apps/site`: unpublished static product preview; intentionally `noindex`.
 - `docs/discovery`: draft store copy and publication checks.
 
@@ -97,6 +99,12 @@ their source/access evidence changes. Protection applies to matching readable
 content, rather than a filename or URI. This stage has no delete/trash command
 or storage-savings claim. See [the review design](docs/decisions/0005-cleanup-review.md)
 and [native checks](apps/android/DEVICE_CHECKS.md) for scope and remaining limits.
+
+The internal development cleanup planner adds exact source/version review and
+durable uncertainty records. It requires trusted current evidence before a review
+can be confirmed, and every plan keeps execution disabled. It has no HTTP route
+or Android connection. See [the journal design](docs/decisions/0007-cleanup-planning-journal.md)
+and [development contracts](services/api/README.md) for the implementation boundary.
 
 ## Discovery preview
 
