@@ -1,6 +1,7 @@
 package app.still.gallery.security
 
 import android.content.Context
+import android.os.Build
 import android.system.Os
 import android.system.OsConstants
 import android.util.AtomicFile
@@ -67,10 +68,9 @@ private class AtomicLockSettingStorage(private val directory: File) : LockSettin
     override fun syncDirectory() {
         // O_DIRECTORY is not exposed by the public Android SDK. Validate the
         // opened descriptor instead; never follow a substituted final symlink.
-        val descriptor = Os.open(directory.absolutePath, OsConstants.O_RDONLY or OsConstants.O_NOFOLLOW, 0)
+        val closeOnExec = if (Build.VERSION.SDK_INT >= 27) OsConstants.O_CLOEXEC else 0
+        val descriptor = Os.open(directory.absolutePath, OsConstants.O_RDONLY or OsConstants.O_NOFOLLOW or closeOnExec, 0)
         try {
-            // The O_CLOEXEC constant is only public on API 27+. fcntl works on 26.
-            Os.fcntlInt(descriptor, OsConstants.F_SETFD, OsConstants.FD_CLOEXEC)
             if (!OsConstants.S_ISDIR(Os.fstat(descriptor).st_mode)) throw IOException("Invalid lock setting directory")
             Os.fsync(descriptor)
         } finally { Os.close(descriptor) }

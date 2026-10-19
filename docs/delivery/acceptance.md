@@ -242,10 +242,18 @@ ordinary phone photos from other apps. See ADR0003 and the Android README.
 - The first directory-sync candidate built and passed all33 JVM tests but strict
   lint rejected `O_CLOEXEC` on minSdk26 (the public constant requires27). That
   failed integration run at `5a475e8` is retained in
-  `/tmp/still-cp3-android-initial.log`. Builder source `b8f1838` uses the public
-  API26-compatible `fcntl(F_SETFD, FD_CLOEXEC)` after opening the descriptor,
-  keeping validation/fsync/closure and all lint guards. The integration applies
-  only that small compatibility delta; final full checks use the corrected head.
+  `/tmp/still-cp3-android-initial.log`. An intermediate builder attempt `b8f1838`
+  used `fcntlInt`, which strict lint also rejected because that public method
+  requires30. Neither failed candidate is accepted. The final correction keeps
+  optional close-on-exec behind its API27 guard; API26 retains read-only/no-follow
+  open, directory validation, fsync and guaranteed closure. Final checks and
+  independent verdicts apply only to the corrected source, with every guard kept.
+  Final builder source `b60dd772e7987443e3ba6ece06a7f86f35612031` passed assemble,
+  all33 JVM tests and strict lint in37s. The root Android source tree matches it
+  exactly. Session evidence: `/tmp/still-lock-durability-final.log`, four passing
+  regression results `/tmp/still-lock-durability-after.xml`, and preserved initial
+  API27/API30 error excerpts `/tmp/still-lock-api27-cloexec-failure.log` and
+  `/tmp/still-lock-api30-fcntl-failure.log`.
 
 ### Device observations and remaining gates
 
