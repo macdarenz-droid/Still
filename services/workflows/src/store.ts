@@ -52,6 +52,11 @@ export class ControlPlane {
 
   constructor(databasePath: string, options: StoreOptions = {}) {
     this.db = new DatabaseSync(databasePath);
+    const application = this.db.prepare("PRAGMA application_id").get() as { application_id: number };
+    if (application.application_id !== 0) {
+      this.db.close();
+      throw new Error("This database belongs to a different application.");
+    }
     this.db.exec("PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL;");
     const version = this.db.prepare("PRAGMA user_version").get() as { user_version: number };
     if (version.user_version > 1) {
