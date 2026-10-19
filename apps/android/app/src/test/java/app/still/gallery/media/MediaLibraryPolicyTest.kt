@@ -78,6 +78,15 @@ class MediaLibraryPolicyTest {
         assertTrue(reconcileMediaTokens(setOf(sourceUiToken(legacy)), listOf(legacy)).isEmpty())
     }
 
+    @Test fun reusedUriWithIdenticalLegacyMetadataStillInvalidatesThePreview() {
+        val prior = strong()
+        val reused = prior.copy(generationAdded = 91, dateAddedSeconds = 20)
+        fun legacyKey(item: MediaItem) = "${item.id}:${item.modifiedAt}:${item.orientationDegrees}:${item.width}x${item.height}:${item.bytes}:360"
+        assertEquals(legacyKey(prior), legacyKey(reused))
+        assertNotEquals(previewFingerprint(prior, 360), previewFingerprint(reused, 360))
+        assertNotEquals(previewFingerprint(prior, 360), previewFingerprint(prior.copy(providerVersion = "reset"), 360))
+    }
+
     @Test fun sameBucketAndRowNumbersInDifferentVolumesDoNotCollide() {
         val primary = strong()
         val removable = primary.copy(volumeName = "1234-ABCD", id = "content://media/1234-ABCD/images/media/7")
