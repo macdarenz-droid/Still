@@ -8,7 +8,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/contracts/*.test.ts tests/faults/*.test.ts",
+    "test": "node scripts/test-backend.mjs",
     "dev:api": "node --watch services/api/src/server.ts",
     "start:api": "node services/api/src/server.ts",
     "check:site": "python3 scripts/check-site.py",

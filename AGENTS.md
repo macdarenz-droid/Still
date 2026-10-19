@@ -97,6 +97,11 @@ convenient. The supervisor resolves ownership conflicts before work continues.
 
 ## Review and integration
 
+- Owner requirement: every checkpoint requires both an independent reviewer and a
+  separate red-team pass before acceptance or shipping. Record each exact SHA,
+  outcome, finding and recheck in docs/delivery/acceptance.md. Neither builder nor
+  supervisor self-approves. Production publication remains separately authorized.
+
 - The fresh reviewer examines both implementation and test effectiveness against
   the spec. Builders never approve their own changes.
 - Fix review failures and re-review affected behavior. Do not treat an old approval
