@@ -1,0 +1,23 @@
+{
+  "name": "still",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/contracts/*.test.ts tests/faults/*.test.ts",
+    "dev:api": "node --watch services/api/src/server.ts",
+    "start:api": "node services/api/src/server.ts",
+    "check:site": "python3 scripts/check-site.py",
+    "build:android": "cd apps/android && ./gradlew --no-daemon :app:assembleDebug",
+    "test:android": "cd apps/android && ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug",
+    "check": "npm run typecheck && npm test && npm run check:site"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.3"
+  }
+}
