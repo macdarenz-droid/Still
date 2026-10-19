@@ -633,6 +633,28 @@ new focus, animations retaining withdrawn media, live animation-scale changes an
 old viewer callbacks acting on a new viewer instance. Require actual source/view/
 snapshot/instance checks in production seams and meaningful regressions for fixes.
 
+Initial S18 implementation `ddd3e54f1fe48c1f39930e5f0d402d60e3588899`
+compiled and passed five focused interaction cases. A separate copy follow-up
+split malformed date input from a valid date with no result and tightened labels.
+These are component results, not a completed full native regression or acceptance.
+
+Both independent source reviews then held S18 for two concrete callback traces:
+
+- Token-only focus checking admits a retained old A action after deliberate
+  A→B→A navigation in the same projection. Require an opaque identity for each
+  accepted focus, captured in all actions and gesture/effect keys.
+- A date picker keyed only by the projection allows a dismissed picker callback
+  to navigate, or its late dismiss to close a newly reopened picker at the same
+  focus. Require exact active per-opening identity plus current focus/projection,
+  with guarded consume/dismiss and invalidation.
+
+These are deterministic production-seam/source findings, not claimed native event
+delivery or exploits. The candidate/full run was superseded before fixes; retain
+genuine logs and meaningful original-fail/fixed-pass regression evidence. Final
+source checks and both gates remain pending. The architecture reread also raised
+retaining a separately reconciled UI focus intent across unchanged refresh/mode
+changes; clearing action authority must not unnecessarily discard browsing position.
+
 ADR0006 and cards S17–S20 define the native implementation. Record owned source,
 meaningful current-view/date/identity tests and all actual review findings here.
 After final source/docs are committed, run full root/native checks and audit the
