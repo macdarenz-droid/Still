@@ -20,19 +20,25 @@ class SimilarityCalibrationTest {
         val reencoded = decoded.getRGB(0, 0, 128, 128, null, 0, 128)
         assertNotNull("Declared JPEG positive", similarityDistance(base, feature(128, reencoded)))
         assertNotNull("Declared resized positive", similarityDistance(base, feature(192, scene(192, 0))))
-        val lighter = original.map { value ->
-            val r = (((value ushr 16) and 255) + 7).coerceAtMost(255)
-            val g = (((value ushr 8) and 255) + 7).coerceAtMost(255)
-            val b = ((value and 255) + 7).coerceAtMost(255)
-            (255 shl 24) or (r shl 16) or (g shl 8) or b
-        }.toIntArray()
-        assertNotNull("Declared mild-light positive", similarityDistance(base, feature(128, lighter)))
+        // Declared v2 neutral-exposure positives, independent of S36's unseen fixtures.
+        for (exposure in listOf(-15, 13, 28)) {
+            val adjusted = original.map { value ->
+                val r = (((value ushr 16) and 255) + exposure).coerceIn(0, 255)
+                val g = (((value ushr 8) and 255) + exposure).coerceIn(0, 255)
+                val b = ((value and 255) + exposure).coerceIn(0, 255)
+                (255 shl 24) or (r shl 16) or (g shl 8) or b
+            }.toIntArray()
+            assertNotNull("Declared neutral exposure $exposure positive", similarityDistance(base, feature(128, adjusted)))
+        }
     }
     @Test fun declaredDifferentLayoutAndDifferentColorAreNotRetrieved() {
         val base = feature(128, scene(128, 0))
         assertNull(similarityDistance(base, feature(128, scene(128, 1))))
         val recolored = scene(128, 0).map { value -> (value and -0x1000000) or ((value and 255) shl 16) or (value and 0xff00) or ((value ushr 16) and 255) }.toIntArray()
         assertNull(similarityDistance(base, feature(128, recolored)))
+        val original = scene(128, 0)
+        val narrow = (similarityFeature(64, 128, IntArray(64 * 128) { original[it] }) as SimilarityPixelResult.Accepted).feature
+        assertNull("Declared aspect negative", similarityDistance(base, narrow))
     }
     @Test fun declaredFlatPlaneIsNotAnAppearanceDescriptor() {
         val rejected = similarityFeature(128, 128, IntArray(128 * 128) { -0x777778 })
