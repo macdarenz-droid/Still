@@ -111,7 +111,40 @@ class DeviceMedia(private val context: Context) {
         }
     }
 
-    private suspend fun read(access: MediaAccess, favoriteReferences: Set<String>): DeviceMediaSnapshot = withContext(Dispatchers.IO) {
+    /** Fresh cleanup-only scope; no catalogue fallback and no gallery-default change. */
+    suspend fun cleanupSnapshot(access: MediaAccess, favoriteReferences: Set<String>): CleanupSourceSnapshot = withContext(Dispatchers.IO) {
+        if (access.level == AccessLevel.NONE || context.mediaAccess() != access) throw CleanupSourceChangedException()
+        val snapshot = read(access, favoriteReferences, CleanupBounds.MAX_SOURCES, true)
+        if (context.mediaAccess() != access) throw CleanupSourceChangedException()
+        CleanupSourceSnapshot(snapshot.items, snapshot.namespaces, snapshot.legacyFavoriteMatches, access)
+    }
+
+    /** Exact metadata probe of a fresh authorized source, never a cached observation. */
+    suspend fun cleanupProbe(item: MediaItem): MediaItem? = withContext(Dispatchers.IO) {
+        val handle = item.externalHandle.toLongOrNull() ?: return@withContext null
+        if (item.providerAuthority != MediaStore.AUTHORITY) return@withContext null
+        val collection = if (item.isVideo) {
+            if (Build.VERSION.SDK_INT >= 29) MediaStore.Video.Media.getContentUri(item.volumeName) else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        } else {
+            if (Build.VERSION.SDK_INT >= 29) MediaStore.Images.Media.getContentUri(item.volumeName) else MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+        if (ContentUris.withAppendedId(collection, handle).toString() != item.id) return@withContext null
+        query(collection, item.isVideo, namespace(item.volumeName), 1, handle).singleOrNull()
+    }
+
+    suspend fun cleanupValidateScope(snapshot: CleanupSourceSnapshot) = withContext(Dispatchers.IO) {
+        currentCoroutineContext().ensureActive()
+        if (context.mediaAccess() != snapshot.access) throw CleanupSourceChangedException()
+        val volumes = if (Build.VERSION.SDK_INT >= 29) MediaStore.getExternalVolumeNames(context).sorted() else listOf("external")
+        if (volumes != snapshot.namespaces.map { it.volumeName }) throw CleanupSourceChangedException()
+        for (before in snapshot.namespaces) {
+            currentCoroutineContext().ensureActive()
+            val now = namespace(before.volumeName)
+            if (!cleanupNamespaceUnchanged(before.providerVersion, before.providerGeneration, now.providerVersion, now.providerGeneration)) throw CleanupSourceChangedException()
+        }
+    }
+
+    private suspend fun read(access: MediaAccess, favoriteReferences: Set<String>, maxItems: Int = Int.MAX_VALUE, strictGeneration: Boolean = false): DeviceMediaSnapshot = withContext(Dispatchers.IO) {
         val result = mutableListOf<MediaItem>()
         val volumes = if (Build.VERSION.SDK_INT >= 29) MediaStore.getExternalVolumeNames(context).sorted() else listOf("external")
         val before = volumes.map { currentCoroutineContext().ensureActive(); namespace(it) }
@@ -120,8 +153,8 @@ class DeviceMedia(private val context: Context) {
             val volume = provider.volumeName
             val images = if (Build.VERSION.SDK_INT >= 29) MediaStore.Images.Media.getContentUri(volume) else MediaStore.Images.Media.EXTERNAL_CONTENT_URI
             val videos = if (Build.VERSION.SDK_INT >= 29) MediaStore.Video.Media.getContentUri(volume) else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-            if (access.canReadImages) result += query(images, false, provider)
-            if (access.canReadVideos) result += query(videos, true, provider)
+            if (access.canReadImages) result += query(images, false, provider, maxItems - result.size)
+            if (access.canReadVideos) result += query(videos, true, provider, maxItems - result.size)
         }
         // Exact legacy-URI proofs stay within the same reset/cancellation envelope.
         val aliases = resolveLegacyFavorites(favoriteReferences, result)
@@ -129,7 +162,8 @@ class DeviceMedia(private val context: Context) {
         // volumes. A reset of the first volume during the last query is fenced.
         val namespaces = volumes.map { currentCoroutineContext().ensureActive(); namespace(it) }
         before.zip(namespaces).forEach { (first, last) ->
-            if (!providerReadRemainedCurrent(first.providerVersion, first.providerGeneration, last.providerVersion, last.providerGeneration)) {
+            if (!(if (strictGeneration) cleanupNamespaceUnchanged(first.providerVersion, first.providerGeneration, last.providerVersion, last.providerGeneration)
+                else providerReadRemainedCurrent(first.providerVersion, first.providerGeneration, last.providerVersion, last.providerGeneration))) {
                 throw IllegalStateException("Media provider changed during the read")
             }
         }
@@ -199,7 +233,7 @@ class DeviceMedia(private val context: Context) {
         return CatalogueNamespace(MediaStore.AUTHORITY, volume, version, generation)
     }
 
-    private suspend fun query(collection: Uri, video: Boolean, namespace: CatalogueNamespace): List<MediaItem> {
+    private suspend fun query(collection: Uri, video: Boolean, namespace: CatalogueNamespace, maxItems: Int = Int.MAX_VALUE, rowId: Long? = null): List<MediaItem> {
         currentCoroutineContext().ensureActive()
         val projection = mutableListOf(
             MediaStore.MediaColumns._ID,
@@ -221,7 +255,7 @@ class DeviceMedia(private val context: Context) {
             projection += MediaStore.MediaColumns.GENERATION_MODIFIED
         }
         val items = mutableListOf<MediaItem>()
-        val queried = resolver.query(collection, projection.toTypedArray(), null, null, "${MediaStore.MediaColumns.DATE_ADDED} DESC")
+        val queried = resolver.query(collection, projection.toTypedArray(), if (rowId == null) null else "${MediaStore.MediaColumns._ID} = ?", rowId?.let { arrayOf(it.toString()) }, "${MediaStore.MediaColumns.DATE_ADDED} DESC")
             ?: throw IllegalStateException("Media provider returned no cursor")
         queried.use { cursor ->
             fun number(column: String): Long {
@@ -238,6 +272,7 @@ class DeviceMedia(private val context: Context) {
             }
             while (cursor.moveToNext()) {
                 currentCoroutineContext().ensureActive()
+                if (items.size >= maxItems) throw CleanupScopeLimitException()
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
                 if (cursor.isNull(idColumn)) throw IllegalStateException("Media provider returned no source handle")
                 val id = cursor.getLong(idColumn)
