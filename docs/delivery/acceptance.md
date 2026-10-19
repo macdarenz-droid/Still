@@ -177,7 +177,7 @@ branch, uninstall `app.still.gallery.dev`, and stop the loopback API. Phone orig
 were not modified. Preserve a copied development SQLite database before changing
 its schema. No cloud copies, provider accounts or production deployment exist.
 
-## Outstanding feature and release evidence
+## CP2 outstanding feature and release evidence (historical)
 
 - No attached Android device or accelerated emulator: x86_64 worker has no
   /dev/kvm or KVM module. Manual runtime checks are blocked here.
@@ -191,8 +191,8 @@ its schema. No cloud copies, provider accounts or production deployment exist.
 
 ## CP3 — Whole-app lock development continuation
 
-The owner clarified that development should continue without waiting for release
-device verification. R14 / F04 now has an optional whole-app access gate using
+Development continues under the owner's original implementation request while
+release-device verification remains open. R14 / F04 has an optional access gate using
 platform biometric/device credentials, fresh authenticated enable/disable,
 foreground-loss relock and screen-off/new-entry invalidation. Only a local lock
 setting and uncertain-write marker are durable; unlocked sessions and challenge
@@ -239,6 +239,13 @@ ordinary phone photos from other apps. See ADR0003 and the Android README.
   checks include these4 cases (33 Android tests total). These simulations do not
   establish actual filesystem/power-loss results. Marker deletion stays last; a
   crash can conservatively restore that marker and require authentication again.
+- The first directory-sync candidate built and passed all33 JVM tests but strict
+  lint rejected `O_CLOEXEC` on minSdk26 (the public constant requires27). That
+  failed integration run at `5a475e8` is retained in
+  `/tmp/still-cp3-android-initial.log`. Builder source `b8f1838` uses the public
+  API26-compatible `fcntl(F_SETFD, FD_CLOEXEC)` after opening the descriptor,
+  keeping validation/fsync/closure and all lint guards. The integration applies
+  only that small compatibility delta; final full checks use the corrected head.
 
 ### Device observations and remaining gates
 
