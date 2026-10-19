@@ -67,8 +67,10 @@ private class AtomicLockSettingStorage(private val directory: File) : LockSettin
     override fun syncDirectory() {
         // O_DIRECTORY is not exposed by the public Android SDK. Validate the
         // opened descriptor instead; never follow a substituted final symlink.
-        val descriptor = Os.open(directory.absolutePath, OsConstants.O_RDONLY or OsConstants.O_CLOEXEC or OsConstants.O_NOFOLLOW, 0)
+        val descriptor = Os.open(directory.absolutePath, OsConstants.O_RDONLY or OsConstants.O_NOFOLLOW, 0)
         try {
+            // The O_CLOEXEC constant is only public on API 27+. fcntl works on 26.
+            Os.fcntlInt(descriptor, OsConstants.F_SETFD, OsConstants.FD_CLOEXEC)
             if (!OsConstants.S_ISDIR(Os.fstat(descriptor).st_mode)) throw IOException("Invalid lock setting directory")
             Os.fsync(descriptor)
         } finally { Os.close(descriptor) }
