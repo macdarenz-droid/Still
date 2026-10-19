@@ -1,5 +1,6 @@
 package app.still.gallery.ui
 
+import android.content.Context
 import android.text.format.Formatter
 import android.widget.MediaController
 import android.widget.VideoView
@@ -12,9 +13,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +38,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -47,6 +54,7 @@ import androidx.core.net.toUri
 import app.still.gallery.R
 import app.still.gallery.media.DeviceMedia
 import app.still.gallery.media.MediaItem
+import app.still.gallery.media.sourceUiIdentity
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -114,20 +122,95 @@ fun MediaViewer(item: MediaItem, device: DeviceMedia, generation: Int, favorite:
 private fun VideoPlayer(item: MediaItem) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    var failed by remember(item.id) { mutableStateOf(false) }
-    val video = remember(item.id) { VideoView(context) }
+    val playbackKey = sourceUiIdentity(item)
+    var failed by remember(playbackKey) { mutableStateOf(false) }
+    var prepared by remember(playbackKey) { mutableStateOf(false) }
+    var playing by remember(playbackKey) { mutableStateOf(false) }
+    var completed by remember(playbackKey) { mutableStateOf(false) }
+    val video = remember(playbackKey) { PlaybackVideoView(context) }
     DisposableEffect(video, lifecycle) {
         val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_PAUSE) video.pause() }
         lifecycle.addObserver(observer)
-        onDispose { lifecycle.removeObserver(observer); video.stopPlayback() }
+        onDispose { lifecycle.removeObserver(observer); video.releasePlayback() }
     }
-    if (failed) Text(stringResource(R.string.video_error), color = Color.White, modifier = Modifier.padding(32.dp))
-    else AndroidView(factory = {
-        video.apply {
-            setMediaController(MediaController(context).also { it.setAnchorView(this) })
-            setOnErrorListener { _, _, _ -> failed = true; true }
-            setOnPreparedListener { player -> player.isLooping = false; seekTo(1) }
-            try { setVideoURI(item.id.toUri()) } catch (_: RuntimeException) { failed = true }
+    if (failed) Text(stringResource(R.string.video_error), color = Color.White, modifier = Modifier.padding(32.dp).semantics { liveRegion = LiveRegionMode.Polite })
+    else Column(Modifier.fillMaxSize()) {
+        AndroidView(factory = {
+            video.apply {
+                playbackChanged = { playing = it; if (it) completed = false }
+                playbackSeeked = { completed = false }
+                playbackError = { prepared = false; playing = false; failed = true; releasePlayback() }
+                setMediaController(MediaController(context).also { it.setAnchorView(this) })
+                setOnErrorListener { _, _, _ -> playbackError?.invoke(); true }
+                setOnCompletionListener { playing = false; completed = true }
+                setOnPreparedListener { player ->
+                    if (!released) {
+                        try {
+                            player.isLooping = false
+                            if (player.isPlaying) pause() // Never autoplay or restore a prior play intent.
+                            seekTo(1)
+                            if (!released) { prepared = true; playing = false }
+                        } catch (_: RuntimeException) { playbackError?.invoke() }
+                    }
+                }
+                try { setVideoURI(item.id.toUri()) } catch (_: RuntimeException) { playbackError?.invoke() }
+            }
+        }, modifier = Modifier.fillMaxWidth().weight(1f))
+        val action = stringResource(if (playing) R.string.pause_video else R.string.play_video)
+        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(when { !prepared -> R.string.video_loading; playing -> R.string.video_playing; completed -> R.string.video_finished; else -> R.string.video_paused }),
+                color = Color.White, style = MaterialTheme.typography.bodySmall, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+            Button(
+                onClick = {
+                    if (playing) video.pause()
+                    else {
+                        if (completed) { video.seekTo(0); completed = false }
+                        video.start()
+                    }
+                },
+                enabled = prepared && !video.released,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics { contentDescription = action },
+            ) { Text(stringResource(if (playing) R.string.pause else R.string.play)) }
         }
-    }, modifier = Modifier.fillMaxSize())
+    }
+}
+
+/** Observe BOTH explicit and platform-controller play/pause actions without polling. */
+private class PlaybackVideoView(context: Context) : VideoView(context) {
+    var playbackChanged: ((Boolean) -> Unit)? = null
+    var playbackSeeked: (() -> Unit)? = null
+    var playbackError: (() -> Unit)? = null
+    var released = false
+        private set
+
+    override fun start() {
+        if (released) return
+        try { super.start(); playbackChanged?.invoke(isPlaying) }
+        catch (_: RuntimeException) { playbackError?.invoke() }
+    }
+
+    override fun pause() {
+        if (released) return
+        try { super.pause(); playbackChanged?.invoke(false) }
+        catch (_: RuntimeException) { playbackError?.invoke() }
+    }
+
+    override fun seekTo(msec: Int) {
+        if (released) return
+        try { super.seekTo(msec); playbackSeeked?.invoke() } catch (_: RuntimeException) { playbackError?.invoke() }
+    }
+
+    fun releasePlayback() {
+        if (released) return
+        released = true
+        playbackChanged = null
+        playbackSeeked = null
+        playbackError = null
+        setOnPreparedListener(null)
+        setOnCompletionListener(null)
+        setOnErrorListener(null)
+        try { stopPlayback() } catch (_: RuntimeException) {
+            try { suspend() } catch (_: RuntimeException) { /* A failed player is never reused. */ }
+        }
+    }
 }

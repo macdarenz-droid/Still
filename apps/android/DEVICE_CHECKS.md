@@ -50,3 +50,22 @@ count as lock acceptance.
 
 Cleanup, backup/restore, AI, OCR and editing remain future tasks. No runtime or
 production security acceptance is claimed by the native implementation alone.
+
+## S09/S10 local catalogue and gallery controls
+
+Every row is **Blocked** until actually run with recorded device/API, source SHA
+and APK hash. Host SQLite/pure JVM probes validate the tested rules and SQL only.
+
+| Environment | Procedure | Expected result | Status |
+| --- | --- | --- | --- |
+| API 26–29, 30–37 | Browse a populated/empty library, force-stop/reopen, change metadata then refresh | Live permitted rows appear before index persistence; metadata index survives restart; old-platform continuity remains best effort | Blocked |
+| API 29–37 with removable media | Use identical bucket/row IDs across primary and removable volumes; mount/unmount during load | Distinct albums/source provenance; mixed or reset enumeration is rejected without cached fallback | Blocked |
+| API 30–37 | Reset provider/version or simulate generation rollback and source-handle reuse, including an empty volume; select/open an item before replacement | New source/observation identity; old viewer and pending selection clear; originals/Favorites preferences are not migrated or deleted | Blocked |
+| All | Revoke/limit access with same-bit selected-set changes during query/index; refresh repeatedly; lock/background while indexing | Invalidation fences live/status publication; no withdrawn thumbnails/selection/viewer or index-based browsing; late metadata never claims access/deletion | Blocked |
+| All | Inject read/null-cursor/query error; separately inject SQL open/corruption/version/write/close errors | Provider failure clears visible results; index failure keeps valid live browsing with Retry and no success claim; no destructive DB repair | Blocked |
+| All | Combine All/Photos/Videos, filename search, album and Favorites views with new/old/name sort, ties and unknown dates | Correct filtered counts, stable order, global filename order without month regrouping; filter-empty wording distinguishes the view from the whole library | Blocked |
+| All | Select mixed media, change type/search/album scope and sort, then Share/batch Favorites | Hidden items excluded; sorting alone preserves unchanged selection; recipients receive only selected visible URIs | Blocked |
+| All | Open video; use visible and native Play/Pause, seek, complete then seek/replay, trigger bad/unsupported media | No autoplay; consistent action/state labels; native seek works; post-completion chosen position retained; honest playback error | Blocked |
+| All | Play then Home/share/settings, screen-off, new entry, rotation/recreation, close and same-URI source edit | Pause/stop/release as appropriate; lock gate retained; no automatic resume or stale player after return/source change | Blocked |
+| All | Filters, dropdown, errors and playback with TalkBack, keyboard/switch, 200% font, RTL and narrow/landscape window | Selected choice/action announced, visible 48dp controls, text/actions reachable without clipping; native controls accessible | Blocked |
+| Reference device | Cold browse/index at least 17,000 synthetic/consented items; repeat filtering/sorting/search and cancellation | Record actual memory/startup/frame/SQL timings; no responsiveness or scalability claim without measurements | Blocked |

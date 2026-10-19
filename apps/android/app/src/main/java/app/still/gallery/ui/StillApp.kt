@@ -79,6 +79,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -97,8 +99,13 @@ import app.still.gallery.media.MediaItem
 import app.still.gallery.media.mediaAccess
 import app.still.gallery.media.mediaPermissions
 import app.still.gallery.media.shareMimeType
-import app.still.gallery.media.visibleSelection
 import app.still.gallery.media.previewFingerprint
+import app.still.gallery.media.MediaFilter
+import app.still.gallery.media.MediaSort
+import app.still.gallery.media.libraryOrder
+import app.still.gallery.media.reconcileMediaTokens
+import app.still.gallery.media.selectedMediaInView
+import app.still.gallery.media.sourceUiToken
 import app.still.gallery.security.AppLockUiState
 import app.still.gallery.security.LockAction
 import java.time.Instant
@@ -123,9 +130,13 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     var media by remember { mutableStateOf(emptyList<MediaItem>()) }
     var loading by remember { mutableStateOf(true) }
     var loadFailed by remember { mutableStateOf(false) }
+    var indexFailed by remember { mutableStateOf(false) }
+    var indexing by remember { mutableStateOf(false) }
     var refresh by remember { mutableIntStateOf(0) }
     var destinationName by rememberSaveable { mutableStateOf(Destination.PHOTOS.name) }
     var query by rememberSaveable { mutableStateOf("") }
+    var filterName by rememberSaveable { mutableStateOf(MediaFilter.ALL.name) }
+    var sortName by rememberSaveable { mutableStateOf(MediaSort.NEWEST.name) }
     var albumId by rememberSaveable { mutableStateOf<String?>(null) }
     var selected by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var selecting by rememberSaveable { mutableStateOf(false) }
@@ -137,6 +148,8 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     val shareFailure = stringResource(R.string.share_failed)
     val favoriteConfirmation = stringResource(R.string.favorites_saved)
     val destination = Destination.valueOf(destinationName)
+    val mediaFilter = MediaFilter.entries.firstOrNull { it.name == filterName } ?: MediaFilter.ALL
+    val mediaSort = MediaSort.entries.firstOrNull { it.name == sortName } ?: MediaSort.NEWEST
     val photosPosition = rememberLazyGridState()
     val favoritesPosition = rememberLazyGridState()
     val albumsPosition = rememberLazyGridState()
@@ -153,6 +166,9 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         access = fresh
         loading = fresh.level != AccessLevel.NONE
         loadFailed = false
+        indexFailed = false
+        indexing = false
+        device.invalidateScans()
         device.clearThumbnails()
         refresh++
     }
@@ -207,11 +223,13 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         onDispose {
             lifecycle.removeObserver(observer)
             if (observing) context.contentResolver.unregisterContentObserver(contentObserver)
+            device.invalidateScans()
             device.clearThumbnails()
         }
     }
 
     LaunchedEffect(refresh) {
+        val refreshAtStart = refresh
         loading = access.level != AccessLevel.NONE
         loadFailed = false
         if (access.level == AccessLevel.NONE) {
@@ -221,10 +239,14 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
             return@LaunchedEffect
         }
         try {
-            val loaded = device.read(access)
-            media = loaded
-            selected = visibleSelection(selected.toSet(), loaded).toList()
-            if (openedId != null && loaded.none { it.id == openedId }) openedId = null
+            val saved = device.readAndIndex(access) { loaded ->
+                media = loaded
+                selected = reconcileMediaTokens(selected.toSet(), loaded).toList()
+                openedId = openedId?.let { reconcileMediaTokens(setOf(it), loaded).singleOrNull() }
+                loading = false
+                indexing = true
+            }
+            if (refreshAtStart == refresh) indexFailed = !saved
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: RuntimeException) {
@@ -234,7 +256,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
             loadFailed = true
             access = context.mediaAccess()
         } finally {
-            loading = false
+            if (refreshAtStart == refresh) { loading = false; indexing = false }
         }
     }
 
@@ -243,16 +265,17 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         else albumId = null
     }
 
-    val filtered = remember(media, query, albumId, destination, favorites) {
-        media.filter { item ->
+    val filtered = remember(media, query, albumId, destination, favorites, mediaFilter, mediaSort) {
+        libraryOrder(media.filter { item ->
             (albumId == null || item.albumId == albumId) &&
                 (destination != Destination.FAVORITES || item.id in favorites) &&
                 (query.isBlank() || item.name.contains(query.trim(), ignoreCase = true))
-        }
+        }, mediaFilter, mediaSort)
     }
+    val selectedInView = remember(selected, filtered) { selectedMediaInView(selected.toSet(), filtered) }
     val albumTitle = media.firstOrNull { it.albumId == albumId }?.albumName.orEmpty()
     val title = when {
-        selecting -> pluralStringResource(R.plurals.selected_count, selected.size, selected.size)
+        selecting -> pluralStringResource(R.plurals.selected_count, selectedInView.size, selectedInView.size)
         albumId != null -> albumTitle.ifBlank { stringResource(R.string.unknown_album) }
         destination == Destination.PHOTOS -> stringResource(R.string.app_name)
         else -> stringResource(destination.label)
@@ -284,13 +307,18 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                 if (destination != Destination.SETTINGS && access.level != AccessLevel.NONE) {
                     OutlinedTextField(
                         value = query,
-                        onValueChange = { query = it },
+                        onValueChange = { query = it; selected = emptyList() },
                         placeholder = { Text(stringResource(R.string.search_media)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        trailingIcon = if (query.isNotEmpty()) ({ IconButton(onClick = { query = "" }) { MarkIcon(Mark.CLOSE, stringResource(R.string.clear_search)) } }) else null,
+                        trailingIcon = if (query.isNotEmpty()) ({ IconButton(onClick = { query = ""; selected = emptyList() }) { MarkIcon(Mark.CLOSE, stringResource(R.string.clear_search)) } }) else null,
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                    )
+                    LibraryControls(mediaFilter, mediaSort,
+                        onFilter = { if (it != mediaFilter) { filterName = it.name; selected = emptyList() } },
+                        onSort = { sortName = it.name },
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                     )
                 }
             }
@@ -298,17 +326,17 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         bottomBar = {
             if (selecting) {
                 Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    TextButton(onClick = { share(media.filter { it.id in selected }) }, enabled = selected.isNotEmpty()) { MarkIcon(Mark.SHARE, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.share)) }
+                    TextButton(onClick = { share(selectedMediaInView(selected.toSet(), filtered)) }, enabled = selectedInView.isNotEmpty()) { MarkIcon(Mark.SHARE, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.share)) }
                     TextButton(onClick = {
-                        saveFavorites(favorites + selected)
+                        saveFavorites(favorites + selectedMediaInView(selected.toSet(), filtered).map { it.id })
                         scope.launch { snackbar.showSnackbar(favoriteConfirmation) }
-                    }, enabled = selected.isNotEmpty()) { MarkIcon(Mark.HEART, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.favorites)) }
+                    }, enabled = selectedInView.isNotEmpty()) { MarkIcon(Mark.HEART, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.favorites)) }
                 }
             } else NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 Destination.entries.forEach { entry ->
                     NavigationBarItem(
                         selected = destination == entry,
-                        onClick = { destinationName = entry.name; albumId = null; query = "" },
+                        onClick = { destinationName = entry.name; albumId = null; query = ""; selected = emptyList() },
                         icon = { MarkIcon(entry.mark, null) },
                         label = { Text(stringResource(entry.label)) },
                     )
@@ -325,6 +353,16 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     TextButton(onClick = ::settings) { Text(stringResource(R.string.open_settings)) }
                 }
             } else {
+                if (indexFailed && !loadFailed) {
+                    Card(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(stringResource(R.string.catalogue_failed), style = MaterialTheme.typography.bodySmall, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+                            TextButton(onClick = ::reload) { Text(stringResource(R.string.retry)) }
+                        }
+                    }
+                } else if (indexing) {
+                    Text(stringResource(R.string.catalogue_updating), Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 if (access.level == AccessLevel.PARTIAL) {
                     Card(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                         Column(Modifier.padding(16.dp)) {
@@ -345,25 +383,26 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                         Button(onClick = ::reload) { Text(stringResource(R.string.retry)) }
                     }
                     filtered.isEmpty() -> {
-                        val emptyTitle = when { query.isNotBlank() -> R.string.no_results_title; destination == Destination.FAVORITES -> R.string.no_favorites_title; else -> R.string.empty_title }
-                        val emptyBody = when { query.isNotBlank() -> R.string.no_results_body; destination == Destination.FAVORITES -> R.string.no_favorites_body; else -> R.string.empty_body }
+                        val emptyTitle = when { query.isNotBlank() -> R.string.no_results_title; mediaFilter == MediaFilter.VIDEOS -> R.string.no_videos_title; mediaFilter == MediaFilter.PHOTOS -> R.string.no_photos_title; destination == Destination.FAVORITES -> R.string.no_favorites_title; else -> R.string.empty_title }
+                        val emptyBody = when { query.isNotBlank() -> R.string.no_results_body; mediaFilter != MediaFilter.ALL -> R.string.filter_empty_body; destination == Destination.FAVORITES -> R.string.no_favorites_body; else -> R.string.empty_body }
                         MessagePanel(emptyTitle, emptyBody) {
-                            if (query.isBlank() && destination != Destination.FAVORITES) TextButton(onClick = { permissions.launch(mediaPermissions()) }) { Text(stringResource(R.string.change_access)) }
+                            if (mediaFilter != MediaFilter.ALL) TextButton(onClick = { filterName = MediaFilter.ALL.name; selected = emptyList() }) { Text(stringResource(R.string.show_all_media)) }
+                            else if (query.isBlank() && destination != Destination.FAVORITES) TextButton(onClick = { permissions.launch(mediaPermissions()) }) { Text(stringResource(R.string.change_access)) }
                         }
                     }
                     destination == Destination.ALBUMS && albumId == null -> AlbumGrid(filtered, device, refresh, albumsPosition) { id -> albumId = id }
-                    else -> PhotoGrid(filtered, device, refresh, selected.toSet(), selecting,
+                    else -> PhotoGrid(filtered, device, refresh, selectedInView.mapTo(mutableSetOf()) { it.id }, selecting, groupByMonth = mediaSort != MediaSort.NAME,
                         position = if (albumId != null) albumPhotosPosition else if (destination == Destination.FAVORITES) favoritesPosition else photosPosition,
-                        onOpen = { openedId = it.id },
-                        onToggle = { item -> selected = if (item.id in selected) selected - item.id else selected + item.id },
-                        onStartSelection = { item -> selecting = true; if (item.id !in selected) selected = selected + item.id },
+                        onOpen = { openedId = sourceUiToken(it) },
+                        onToggle = { item -> val token = sourceUiToken(item); selected = if (token in selected) selected - token else selected + token },
+                        onStartSelection = { item -> selecting = true; val token = sourceUiToken(item); if (token !in selected) selected = selected + token },
                     )
                 }
             }
         }
     }
 
-    media.firstOrNull { it.id == openedId }?.let { item ->
+    if (openedId != null) media.firstOrNull { sourceUiToken(it) == openedId }?.let { item ->
         MediaViewer(item, device, refresh, item.id in favorites,
             onClose = { openedId = null },
             onShare = { share(listOf(item)) },
@@ -382,11 +421,11 @@ private fun MessagePanel(title: Int, body: Int, actions: @Composable () -> Unit 
 }
 
 @Composable
-private fun PhotoGrid(items: List<MediaItem>, device: DeviceMedia, generation: Int, selected: Set<String>, selecting: Boolean, position: LazyGridState, onOpen: (MediaItem) -> Unit, onToggle: (MediaItem) -> Unit, onStartSelection: (MediaItem) -> Unit) {
-    val groups = remember(items) { items.groupBy { monthKey(it.capturedAt) } }
+private fun PhotoGrid(items: List<MediaItem>, device: DeviceMedia, generation: Int, selected: Set<String>, selecting: Boolean, groupByMonth: Boolean, position: LazyGridState, onOpen: (MediaItem) -> Unit, onToggle: (MediaItem) -> Unit, onStartSelection: (MediaItem) -> Unit) {
+    val groups = remember(items, groupByMonth) { if (groupByMonth) items.groupBy { monthKey(it.capturedAt) } else linkedMapOf("" to items) }
     LazyVerticalGrid(columns = GridCells.Adaptive(108.dp), state = position, contentPadding = PaddingValues(start = 3.dp, end = 3.dp, bottom = 24.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
         groups.forEach { (month, media) ->
-            item(key = "month:$month", span = { GridItemSpan(maxLineSpan) }) {
+            if (groupByMonth) item(key = "month:$month", span = { GridItemSpan(maxLineSpan) }) {
                 Text(month.ifBlank { stringResource(R.string.unknown_date) }, Modifier.padding(start = 17.dp, top = 24.dp, bottom = 12.dp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
             }
             items(media, key = { it.id }) { item ->
@@ -459,6 +498,7 @@ private fun SettingsContent(access: MediaAccess, changeAccess: () -> Unit, setti
         HorizontalDivider(Modifier.padding(vertical = 12.dp))
         Text(stringResource(R.string.privacy_title), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(R.string.privacy_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.catalogue_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(12.dp))
         Text(stringResource(R.string.favorites_title), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(R.string.favorites_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

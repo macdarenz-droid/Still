@@ -3,7 +3,7 @@
 Native Kotlin/Compose phone gallery, Android 8.0 (API 26) and later. This is the
 development foundation, not a production release. It reads real permitted MediaStore
 photos/videos, groups them by month and album, searches filenames, opens images
-with zoom and videos with platform controls, and shares selected media through
+with zoom and videos with explicit Play/Pause and platform seek controls, and shares selected media through
 Android. Favorites are app-private metadata persisted on this phone, not system
 favorites. Original media is never written or deleted.
 
@@ -37,20 +37,65 @@ visibility, never the recorded existence of an original.
 
 Both the memory cache and Compose image state use a local preview fingerprint
 including the source URI, MediaStore modification time, orientation, dimensions,
-byte length and requested preview size. Reconciled edits and rotations therefore
+byte length, provider/volume/birth/revision provenance and requested preview size. Reconciled edits and rotations therefore
 replace a same-URI preview. This metadata key is not a content hash, proof of
 equality or canonical immutable asset-version identity.
 
 `MediaItem.id` is an Android content URI used only as this client's transient
 source/UI key. It is not the architecture's canonical opaque asset or version ID.
-A later persistent catalogue will map source handles to those IDs; these URIs
-must never be submitted as backend job asset references.
+The local catalogue has opaque source/observation IDs and metadata revisions;
+these also are not pinned immutable AssetVersions. Canonical asset integration
+remains future work. Neither URIs nor these observations may authorize backend
+jobs, deletion or verified backup.
 
 This build declares no internet or write/delete permission. There are no cloud
 transfers, AI providers, analytics, deletion, verified backup or generated
 outputs. Those remain in the product plan and are described as future work in
 Settings. Favorites and search do not infer anything about inaccessible media.
 Android auto-backup is off so local preference data is not silently backed up.
+
+## Gallery controls and local catalogue (S09/S10)
+
+All, Photos and Videos apply to the current library, album, filename search or
+Favorites view. Date sorting offers newest/oldest with unknown dates last;
+Filename A–Z uses case-insensitive filename order, then original case and source
+URI for deterministic ties. Filename order is global, with month headers omitted.
+At the album root it orders cards by their first matching filename, rather than
+sorting album titles. Changing type/search clears selection, and both sharing
+and batch Favorites use only items in the visible view. Sorting retains selection.
+
+Android 29+ reads concrete external volumes; bucket IDs include provider and
+volume so identical album IDs cannot merge removable storage with the primary
+volume. Android 30+ supplies per-volume provider version/generation and row
+added/modified generations. Versions and generation rollback are checked around
+the entire enumeration, including successfully queried empty volumes. Android
+26–28 uses the legacy external namespace; Android 29 has no row birth generation.
+Older-provider continuity is explicitly best effort.
+
+Selection/viewer UI tokens include observed source identity, metadata revision
+and a provider generation watermark. A reset, reused handle, edited row or
+generation rollback clears the old pending action. Unchanged strongly evidenced
+rows can retain it while advancing their watermark; unknown legacy continuity
+is cleared on refresh. These local keys do not prove byte identity. Existing
+URI-based Favorites preferences remain unchanged; no migration is attempted.
+
+The versioned platform SQLite index stores permitted browsing metadata only,
+never thumbnails or media bytes. It opens and reconciles on IO inside the
+unlocked gallery. A scan token starts before querying MediaStore; refresh,
+permission changes and lock disposal invalidate it without waiting for SQLite.
+Live authorized rows publish before database persistence, and the index has no
+browsing/read fallback. A failed/null provider read clears the live result; an
+index failure instead shows an honest Retry notice alongside live browsing.
+Retained rows establish neither present access nor existence/deletion. A tiny
+commit-window race can retain stale metadata, but cannot report index success or
+publish it as visible media. Schema mismatch/corruption is surfaced without
+automatic deletion or destructive repair.
+
+Video opens paused with a visible labelled Play/Pause button and native seek
+controls. Button state follows both its own and the platform controller's actions,
+completion and errors. Seeking after completion retains the user's position.
+Background pauses, disposal stops/releases, source revision changes replace the
+player, and returning/recreating never automatically resumes playback.
 
 ## Optional app lock (S06)
 
@@ -100,7 +145,9 @@ No custom PIN, credential storage, vault or encryption is implemented.
 
 Unit tests exercise API-specific permission policy, mixed-media sharing,
 selection visibility, late-thumbnail invalidation, lock-policy transitions and
-setting-write failures. They do not prove Android authentication prompts,
+setting-write failures, filter/sort order and provenance/UI continuity. The
+host SQLite probe runs the real schema/statement files for rollback and reopen
+checks; it does not prove Android SQLite. These checks do not prove authentication prompts,
 permission dialogs, URI grants, image formats, lifecycle, codecs or accessibility
 on hardware. Run the [manual device matrix](DEVICE_CHECKS.md) before accepting this
 as a release candidate. Large-library indexing and performance remain unmeasured;
