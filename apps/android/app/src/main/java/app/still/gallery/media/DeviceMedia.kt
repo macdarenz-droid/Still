@@ -114,7 +114,7 @@ class DeviceMedia(private val context: Context) {
     private suspend fun read(access: MediaAccess, favoriteReferences: Set<String>): DeviceMediaSnapshot = withContext(Dispatchers.IO) {
         val result = mutableListOf<MediaItem>()
         val volumes = if (Build.VERSION.SDK_INT >= 29) MediaStore.getExternalVolumeNames(context).sorted() else listOf("external")
-        val before = volumes.map(::namespace)
+        val before = volumes.map { currentCoroutineContext().ensureActive(); namespace(it) }
         for (provider in before) {
             currentCoroutineContext().ensureActive()
             val volume = provider.volumeName
@@ -127,12 +127,13 @@ class DeviceMedia(private val context: Context) {
         val aliases = resolveLegacyFavorites(favoriteReferences, result)
         // Recheck every namespace AFTER the whole enumeration, including empty
         // volumes. A reset of the first volume during the last query is fenced.
-        val namespaces = volumes.map(::namespace)
+        val namespaces = volumes.map { currentCoroutineContext().ensureActive(); namespace(it) }
         before.zip(namespaces).forEach { (first, last) ->
             if (!providerReadRemainedCurrent(first.providerVersion, first.providerGeneration, last.providerVersion, last.providerGeneration)) {
                 throw IllegalStateException("Media provider changed during the read")
             }
         }
+        currentCoroutineContext().ensureActive()
         if (Build.VERSION.SDK_INT >= 29 && MediaStore.getExternalVolumeNames(context).sorted() != volumes) {
             throw IllegalStateException("Media volumes changed during the read")
         }
@@ -199,6 +200,7 @@ class DeviceMedia(private val context: Context) {
     }
 
     private suspend fun query(collection: Uri, video: Boolean, namespace: CatalogueNamespace): List<MediaItem> {
+        currentCoroutineContext().ensureActive()
         val projection = mutableListOf(
             MediaStore.MediaColumns._ID,
             MediaStore.MediaColumns.DISPLAY_NAME,

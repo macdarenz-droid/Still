@@ -262,12 +262,14 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: RuntimeException) {
-            media = emptyList()
-            legacyFavoriteMatches = emptyMap()
-            selected = emptyList()
-            openedId = null
-            loadFailed = true
-            access = context.mediaAccess()
+            if (refreshAtStart == refresh) {
+                media = emptyList()
+                legacyFavoriteMatches = emptyMap()
+                selected = emptyList()
+                openedId = null
+                loadFailed = true
+                access = context.mediaAccess()
+            }
         } finally {
             if (refreshAtStart == refresh) { loading = false; indexing = false }
         }
