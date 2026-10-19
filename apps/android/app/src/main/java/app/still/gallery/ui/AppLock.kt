@@ -48,7 +48,8 @@ fun AppLockRoot(controller: AppLockController) {
     val galleryUi = rememberSaveableStateHolder()
     if (state.showGallery) {
         galleryUi.SaveableStateProvider("gallery") {
-            StillApp(state, { controller.authenticate(it) }, controller::openSecuritySettings)
+            StillApp(state, { controller.authenticate(it) }, controller::openSecuritySettings,
+                canAccessGallery = { controller.state.showGallery })
         }
     } else {
         BackHandler(state.lock.authenticating) { controller.cancelAuthentication() }

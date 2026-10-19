@@ -111,6 +111,7 @@ import app.still.gallery.media.visibleFavoriteSourceIds
 import app.still.gallery.media.unresolvedFavoriteKeys
 import app.still.gallery.media.galleryVisibleMedia
 import app.still.gallery.media.galleryActionItems
+import app.still.gallery.media.GalleryActionLifetime
 import app.still.gallery.security.AppLockUiState
 import app.still.gallery.security.LockAction
 import java.time.Instant
@@ -126,10 +127,11 @@ private enum class Destination(val label: Int, val mark: Mark) {
 }
 
 @Composable
-fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, securitySettings: () -> Unit) {
+fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, securitySettings: () -> Unit, canAccessGallery: () -> Boolean) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val device = remember { DeviceMedia(context.applicationContext) }
+    val actionLifetime = remember { GalleryActionLifetime(canAccessGallery) }
     val preferences = remember { context.getSharedPreferences("still-local", Context.MODE_PRIVATE) }
     var access by remember { mutableStateOf(context.mediaAccess()) }
     var media by remember { mutableStateOf(emptyList<MediaItem>()) }
@@ -161,7 +163,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     val albumsPosition = rememberLazyGridState()
     val albumPhotosPosition = rememberLazyGridState()
 
-    fun reload() {
+    fun invalidateSnapshot() {
         val fresh = context.mediaAccess()
         if (fresh != access || fresh.level == AccessLevel.PARTIAL) {
             // Never keep an already-open item visible while reduced permissions are reconciled.
@@ -182,13 +184,15 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         refresh++
     }
 
+    fun reload() { if (actionLifetime.isActive) invalidateSnapshot() }
+
     fun saveFavorites(next: Set<String>) {
         preferences.edit { putStringSet("favorites", next) }
         favorites = next
     }
 
     fun share(items: List<MediaItem>) {
-        val eligible = galleryActionItems(items, media, loading, loadFailed)
+        val eligible = galleryActionItems(items, media, loading, loadFailed, actionLifetime)
         if (eligible.isEmpty()) return
         try {
             val uris = ArrayList(eligible.map { it.id.toUri() })
@@ -208,10 +212,23 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     }
 
     val permissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { reload() }
-    fun settings() { context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri())) }
+    fun changeAccess() { if (actionLifetime.isActive) permissions.launch(mediaPermissions()) }
+    fun settings() {
+        if (actionLifetime.isActive) context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri()))
+    }
+
+    DisposableEffect(actionLifetime, device) {
+        onDispose {
+            actionLifetime.invalidate()
+            device.invalidateScans()
+            device.clearThumbnails()
+        }
+    }
 
     DisposableEffect(lifecycle, device, access) {
-        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_START) reload() }
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START || event == Lifecycle.Event.ON_RESUME) invalidateSnapshot()
+        }
         lifecycle.addObserver(observer)
         val contentObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean) { reload() }
@@ -239,6 +256,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     }
 
     LaunchedEffect(refresh) {
+        if (!actionLifetime.isActive) return@LaunchedEffect
         val refreshAtStart = refresh
         loading = access.level != AccessLevel.NONE
         loadFailed = false
@@ -251,6 +269,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         }
         try {
             val saved = device.readAndIndex(access, favorites) { loaded, aliases ->
+                if (!actionLifetime.isActive) throw CancellationException("Gallery access ended")
                 media = loaded
                 legacyFavoriteMatches = aliases
                 selected = reconcileMediaTokens(selected.toSet(), loaded).toList()
@@ -258,11 +277,11 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                 loading = false
                 indexing = true
             }
-            if (refreshAtStart == refresh) indexFailed = !saved
+            if (refreshAtStart == refresh && actionLifetime.isActive) indexFailed = !saved
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: RuntimeException) {
-            if (refreshAtStart == refresh) {
+            if (refreshAtStart == refresh && actionLifetime.isActive) {
                 media = emptyList()
                 legacyFavoriteMatches = emptyMap()
                 selected = emptyList()
@@ -271,7 +290,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                 access = context.mediaAccess()
             }
         } finally {
-            if (refreshAtStart == refresh) { loading = false; indexing = false }
+            if (refreshAtStart == refresh && actionLifetime.isActive) { loading = false; indexing = false }
         }
     }
 
@@ -280,7 +299,8 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         else albumId = null
     }
 
-    val visibleMedia = remember(media, loading, loadFailed) { galleryVisibleMedia(media, loading, loadFailed) }
+    val currentlyAuthorized = actionLifetime.isActive
+    val visibleMedia = remember(media, loading, loadFailed, currentlyAuthorized) { galleryVisibleMedia(media, loading || !currentlyAuthorized, loadFailed) }
     val favoriteIds = remember(visibleMedia, favorites, legacyFavoriteMatches) { visibleFavoriteSourceIds(favorites, legacyFavoriteMatches, visibleMedia) }
     val unresolvedFavorites = remember(visibleMedia, favorites, legacyFavoriteMatches) { unresolvedFavoriteKeys(favorites, legacyFavoriteMatches, visibleMedia) }
     val filtered = remember(visibleMedia, query, albumId, destination, favoriteIds, mediaFilter, mediaSort) {
@@ -319,7 +339,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     }
                     if (selecting) TextButton(onClick = { selecting = false; selected = emptyList() }) { Text(stringResource(R.string.cancel)) }
                     else if (destination != Destination.SETTINGS && destination != Destination.ALBUMS && visibleMedia.isNotEmpty()) {
-                        TextButton(onClick = { if (!loading && !loadFailed) selecting = true }) { Text(stringResource(R.string.select)) }
+                        TextButton(onClick = { if (actionLifetime.isActive && !loading && !loadFailed) selecting = true }) { Text(stringResource(R.string.select)) }
                     }
                 }
                 if (destination != Destination.SETTINGS && access.level != AccessLevel.NONE) {
@@ -346,7 +366,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                 Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                     TextButton(onClick = { if (!loading && !loadFailed) share(selectedMediaInView(selected.toSet(), filtered)) }, enabled = !loading && !loadFailed && selectedInView.isNotEmpty()) { MarkIcon(Mark.SHARE, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.share)) }
                     TextButton(onClick = {
-                        val chosen = galleryActionItems(selectedMediaInView(selected.toSet(), filtered), media, loading, loadFailed)
+                        val chosen = galleryActionItems(selectedMediaInView(selected.toSet(), filtered), media, loading, loadFailed, actionLifetime)
                         if (chosen.isNotEmpty()) {
                             saveFavorites(favorites + chosen.map { it.id })
                             scope.launch { snackbar.showSnackbar(favoriteConfirmation) }
@@ -367,10 +387,12 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (destination == Destination.SETTINGS) {
-                SettingsContent(access, { permissions.launch(mediaPermissions()) }, ::settings, ::reload, lockState, authenticateLock, securitySettings)
+                SettingsContent(access, ::changeAccess, ::settings, ::reload, lockState,
+                    { if (actionLifetime.isActive) authenticateLock(it) },
+                    { if (actionLifetime.isActive) securitySettings() })
             } else if (access.level == AccessLevel.NONE) {
                 MessagePanel(R.string.access_title, R.string.access_body) {
-                    Button(onClick = { permissions.launch(mediaPermissions()) }) { Text(stringResource(R.string.choose_access)) }
+                    Button(onClick = ::changeAccess) { Text(stringResource(R.string.choose_access)) }
                     TextButton(onClick = ::settings) { Text(stringResource(R.string.open_settings)) }
                 }
             } else {
@@ -392,7 +414,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                         Column(Modifier.padding(16.dp)) {
                             Text(stringResource(R.string.limited_title), style = MaterialTheme.typography.titleSmall)
                             Text(stringResource(R.string.limited_body), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
-                            TextButton(onClick = { permissions.launch(mediaPermissions()) }) { Text(stringResource(R.string.change_access)) }
+                            TextButton(onClick = ::changeAccess) { Text(stringResource(R.string.change_access)) }
                         }
                     }
                 }
@@ -413,15 +435,15 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                         MessagePanel(emptyTitle, emptyBody) {
                             if (mediaFilter != MediaFilter.ALL) TextButton(onClick = { filterName = MediaFilter.ALL.name; selected = emptyList() }) { Text(stringResource(R.string.show_all_media)) }
                             else if (unmatchedFavorites) TextButton(onClick = ::reload) { Text(stringResource(R.string.refresh)) }
-                            else if (query.isBlank() && destination != Destination.FAVORITES) TextButton(onClick = { permissions.launch(mediaPermissions()) }) { Text(stringResource(R.string.change_access)) }
+                            else if (query.isBlank() && destination != Destination.FAVORITES) TextButton(onClick = ::changeAccess) { Text(stringResource(R.string.change_access)) }
                         }
                     }
                     destination == Destination.ALBUMS && albumId == null -> AlbumGrid(filtered, device, refresh, albumsPosition) { id -> albumId = id }
                     else -> PhotoGrid(filtered, device, refresh, selectedInView.mapTo(mutableSetOf()) { it.id }, selecting, groupByMonth = mediaSort != MediaSort.NAME,
                         position = if (albumId != null) albumPhotosPosition else if (destination == Destination.FAVORITES) favoritesPosition else photosPosition,
-                        onOpen = { item -> galleryActionItems(listOf(item), media, loading, loadFailed).singleOrNull()?.let { openedId = sourceUiToken(it) } },
-                        onToggle = { item -> galleryActionItems(listOf(item), media, loading, loadFailed).singleOrNull()?.let { current -> val token = sourceUiToken(current); selected = if (token in selected) selected - token else selected + token } },
-                        onStartSelection = { item -> galleryActionItems(listOf(item), media, loading, loadFailed).singleOrNull()?.let { current -> selecting = true; val token = sourceUiToken(current); if (token !in selected) selected = selected + token } },
+                        onOpen = { item -> galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { openedId = sourceUiToken(it) } },
+                        onToggle = { item -> galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current -> val token = sourceUiToken(current); selected = if (token in selected) selected - token else selected + token } },
+                        onStartSelection = { item -> galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current -> selecting = true; val token = sourceUiToken(current); if (token !in selected) selected = selected + token } },
                     )
                 }
             }
@@ -433,11 +455,12 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
             onClose = { openedId = null },
             onShare = { share(listOf(item)) },
             onFavorite = {
-                galleryActionItems(listOf(item), media, loading, loadFailed).singleOrNull()?.let { current ->
+                galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current ->
                     val matched = favoriteKeysForSource(current.id, favorites, legacyFavoriteMatches)
                     saveFavorites(if (matched.isEmpty()) favorites + current.id else favorites - matched)
                 }
             },
+            canPlay = { galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).isNotEmpty() },
         )
     }
 }

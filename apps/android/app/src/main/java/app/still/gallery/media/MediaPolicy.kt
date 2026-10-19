@@ -1,6 +1,7 @@
 package app.still.gallery.media
 
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** Permission loss is a visibility change, never evidence that an original was deleted. */
 enum class AccessLevel { NONE, PARTIAL, FULL }
@@ -117,14 +118,21 @@ fun galleryVisibleMedia(snapshot: List<MediaItem>, loading: Boolean, failed: Boo
     if (loading || failed) emptyList() else snapshot
 
 /** Queued callbacks must recheck current eligibility, not a captured row/alias map. */
-fun galleryActionItems(requested: List<MediaItem>, current: List<MediaItem>, loading: Boolean, failed: Boolean): List<MediaItem> {
-    if (loading || failed || requested.isEmpty()) return emptyList()
+fun galleryActionItems(requested: List<MediaItem>, current: List<MediaItem>, loading: Boolean, failed: Boolean, lifetime: GalleryActionLifetime): List<MediaItem> {
+    if (!lifetime.isActive || loading || failed || requested.isEmpty()) return emptyList()
     val requestedUris = requested.mapTo(mutableSetOf()) { it.id }
     val candidates = current.filter { it.id in requestedUris }.groupBy { it.id }
     val matched = requested.mapNotNull { old ->
         candidates[old.id]?.singleOrNull()?.takeIf { sourceUiToken(it) == sourceUiToken(old) }
     }
     return if (matched.size == requested.size) matched else emptyList()
+}
+
+/** Memory-only one-way UI lifetime; never save/restore it or reactivate a disposed scope. */
+class GalleryActionLifetime(private val stillAuthorized: () -> Boolean) {
+    private val alive = AtomicBoolean(true)
+    val isActive: Boolean get() = alive.get() && stillAuthorized()
+    fun invalidate() { alive.set(false) }
 }
 
 data class LegacyFavoriteReference(val key: String, val isVideo: Boolean, val externalHandle: String)

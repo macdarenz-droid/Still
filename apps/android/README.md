@@ -40,6 +40,13 @@ FULL grants. Only pending source UI tokens may survive for fresh reconciliation.
 Grid/viewer rendering and queued open/select/share/favorite callbacks also check
 current loading/failure and source-token eligibility, so old callbacks cannot act
 on a reused URI during or after a refresh.
+Every action also reads the controller's current gallery authority through a
+required callback and a one-way, memory-only gallery lifetime. Permission/settings
+launches and async result/error publication use the same gate. Disposal ends the
+old lifetime permanently; later authentication creates a fresh gallery scope.
+Both visible and native player starts independently require current row/loading
+eligibility, current gallery authority and a RESUMED lifecycle, rather than a
+captured unlocked state. Native callback scheduling remains a device check.
 
 Both the memory cache and Compose image state use a local preview fingerprint
 including the source URI, MediaStore modification time, orientation, dimensions,

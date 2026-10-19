@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,7 +62,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 @Composable
-fun MediaViewer(item: MediaItem, device: DeviceMedia, generation: Int, favorite: Boolean, onClose: () -> Unit, onShare: () -> Unit, onFavorite: () -> Unit) {
+fun MediaViewer(item: MediaItem, device: DeviceMedia, generation: Int, favorite: Boolean, onClose: () -> Unit, onShare: () -> Unit, onFavorite: () -> Unit, canPlay: () -> Boolean) {
     var details by remember(item.id) { mutableStateOf(false) }
     var scale by remember(item.id) { mutableFloatStateOf(1f) }
     var panX by remember(item.id) { mutableFloatStateOf(0f) }
@@ -76,7 +77,7 @@ fun MediaViewer(item: MediaItem, device: DeviceMedia, generation: Int, favorite:
                 IconButton(onClick = { details = true }) { MarkIcon(Mark.INFO, stringResource(R.string.information), color = white) }
             }
             Box(Modifier.fillMaxWidth().weight(1f).clipToBounds(), contentAlignment = Alignment.Center) {
-                if (item.isVideo) VideoPlayer(item)
+                if (item.isVideo) VideoPlayer(item, canPlay)
                 else LibraryImage(item, device, generation,
                     Modifier.fillMaxSize().pointerInput(item.id) {
                         detectTransformGestures { _, pan, zoom, _ ->
@@ -119,7 +120,7 @@ fun MediaViewer(item: MediaItem, device: DeviceMedia, generation: Int, favorite:
 }
 
 @Composable
-private fun VideoPlayer(item: MediaItem) {
+private fun VideoPlayer(item: MediaItem, canPlay: () -> Boolean) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val playbackKey = sourceUiIdentity(item)
@@ -127,7 +128,12 @@ private fun VideoPlayer(item: MediaItem) {
     var prepared by remember(playbackKey) { mutableStateOf(false) }
     var playing by remember(playbackKey) { mutableStateOf(false) }
     var completed by remember(playbackKey) { mutableStateOf(false) }
-    val video = remember(playbackKey) { PlaybackVideoView(context) }
+    val currentPlaybackPermission = rememberUpdatedState(canPlay)
+    val video = remember(playbackKey, lifecycle) {
+        PlaybackVideoView(context) {
+            lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) && currentPlaybackPermission.value()
+        }
+    }
     DisposableEffect(video, lifecycle) {
         val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_PAUSE) video.pause() }
         lifecycle.addObserver(observer)
@@ -176,7 +182,7 @@ private fun VideoPlayer(item: MediaItem) {
 }
 
 /** Observe BOTH explicit and platform-controller play/pause actions without polling. */
-private class PlaybackVideoView(context: Context) : VideoView(context) {
+private class PlaybackVideoView(context: Context, private val canStart: () -> Boolean) : VideoView(context) {
     var playbackChanged: ((Boolean) -> Unit)? = null
     var playbackSeeked: (() -> Unit)? = null
     var playbackError: (() -> Unit)? = null
@@ -184,7 +190,7 @@ private class PlaybackVideoView(context: Context) : VideoView(context) {
         private set
 
     override fun start() {
-        if (released) return
+        if (released || !canStart()) return
         try { super.start(); playbackChanged?.invoke(isPlaying) }
         catch (_: RuntimeException) { playbackError?.invoke() }
     }
@@ -196,7 +202,7 @@ private class PlaybackVideoView(context: Context) : VideoView(context) {
     }
 
     override fun seekTo(msec: Int) {
-        if (released) return
+        if (released || !canStart()) return
         try { super.seekTo(msec); playbackSeeked?.invoke() } catch (_: RuntimeException) { playbackError?.invoke() }
     }
 
