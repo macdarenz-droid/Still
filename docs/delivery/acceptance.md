@@ -655,6 +655,17 @@ source checks and both gates remain pending. The architecture reread also raised
 retaining a separately reconciled UI focus intent across unchanged refresh/mode
 changes; clearing action authority must not unnecessarily discard browsing position.
 
+The next source review held `9d05174` for additional production wiring cases:
+batch Share/Favorites must reject a callback from a replaced view even when the
+new selection overlaps it; old date-page callbacks must not undo later paging;
+opening a nonfirst Grid item must update the position intent before refresh or
+switching to Ribbon. The separate red team also found that new Boolean-only
+navigation/options overlays could accept callbacks after dismissal/reopening.
+Require exact per-opening overlay identity without preventing intentional edits
+inside a still-open options request. These findings concern newly introduced UI
+intents, not a demonstrated permission bypass. Keep fixes bounded to those seams
+and verify meaningful old-fail/fixed-pass cases before a new full freeze.
+
 ADR0006 and cards S17–S20 define the native implementation. Record owned source,
 meaningful current-view/date/identity tests and all actual review findings here.
 After final source/docs are committed, run full root/native checks and audit the

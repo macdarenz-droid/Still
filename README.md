@@ -79,6 +79,16 @@ are matched only when fresh provider evidence is unambiguous. See
 evidence for acceptance status. Native playback, upgrade and performance checks
 remain in the device matrix.
 
+The selected photo design adds an ink-and-coral ribbon with up to five preview
+cards, explicit Previous/Next buttons and a date rail over the current view.
+Use View options to switch to Grid, search filenames, filter or sort. Photos,
+Favorites and album contents share these controls; Settings stays labelled.
+Photo opening and ribbon movement use finite Compose animations. Plain labels,
+real filenames and observed dates replace the design sample's captions.
+See [the selected design](docs/decisions/0006-drift-gallery.md) for source fences
+and [native checks](apps/android/DEVICE_CHECKS.md) for motion, accessibility and
+device checks that remain unverified.
+
 Cleanup can scan for matching readable copies, show its comparison coverage and
 let you choose keepers or explicitly protect matching content on this phone.
 Scans start manually, use fresh Android-authorized media and invalidate when
