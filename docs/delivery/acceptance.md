@@ -1204,3 +1204,21 @@ identities; delayed same-shaped actions cannot enter Compare for a new review.
 Thumbnail equality and perceptual features never establish interchangeable copies
 or fidelity. Host pixel fixtures cannot prove native codec/provider/accuracy or
 hardware resource behavior. No component/design clearance is checkpoint approval.
+
+S36 froze independent synthetic generation/labels before observing features or
+thresholds: SHA-256 `f8ae3855786f3bde8ed84100486e106f50bf5a3ae0ed7a79549e62ea0b5ce882`,
+`/tmp/still-cp11-s36-evidence/fixture-freeze.json` and
+`frozen-fixtures-v1.kt`. Six calibration pairs are separate from21 held-out pairs
+(13 same-scene,8 semantically different), plus four tiny/flat/near-flat/alpha
+rejection fixtures. No held-out result has informed the first threshold freeze;
+retain later observations and explicitly reclassify reused cases after tuning.
+These host synthetic pixels cannot establish native EXIF decoding or broad
+real-library retrieval accuracy.
+
+Reviewer/red-team design clarifications are incorporated in ADR0009:32MiB counts
+all explicit encoded backing arrays, growth/copies and scratch; overflow probes
+are charged to the run and exhaustion without proven EOF omits the input. Source
+shorter edge64pixels and actual analyzed shorter edge32pixels prevent upscaling
+from manufacturing useful detail. Exact-pair omission needs complete captured-byte
+SHA-256/length, never perceptual identity. A single feature bitmap normalizes EXIF
+through pixel coordinates rather than retaining a second rotated allocation.
