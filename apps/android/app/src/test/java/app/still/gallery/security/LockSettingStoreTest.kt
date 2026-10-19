@@ -109,5 +109,6 @@ class LockSettingStoreTest {
             if (failClear) throw IOException("marker removal failure")
             pending = false
         }
+        override fun syncDirectory() = Unit
     }
 }

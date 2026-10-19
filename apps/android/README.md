@@ -77,11 +77,18 @@ If the phone screen lock is unavailable, an enabled Still stays locked and offer
 Android security settings.
 
 The only new durable data is a strict, versioned local on/off setting and a
-pending-write marker. The adapter syncs and verifies AtomicFile writes. A failed
+pending-write marker. The adapter syncs marker file bytes and its parent directory
+before touching the setting. It then syncs the AtomicFile record and replacement
+directory entry before verification and marker removal. Directory descriptors
+are opened through public Android APIs and checked with `fstat`. No fallible
+operation follows marker removal; a crash that restores an unsynced deletion can
+conservatively restore the marker and require authentication again. A failed
 or interrupted update, malformed record or read error is treated as locked; a
 marker remains until an authenticated setting update succeeds. A failed enable
 is explicitly reported as unsaved, never as enabled. This protocol has JVM fault
-coverage; power-loss durability and platform/OEM behavior remain device checks.
+coverage, including a model separating volatile file visibility from durable
+directory entries. Actual power-loss durability and platform/OEM behavior remain
+device checks.
 
 Still requests Android screenshot/recents protection with `FLAG_SECURE` while
 enabled, authenticating or recovering a failed setting. Viewer and information

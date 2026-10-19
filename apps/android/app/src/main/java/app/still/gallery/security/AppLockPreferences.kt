@@ -1,6 +1,8 @@
 package app.still.gallery.security
 
 import android.content.Context
+import android.system.Os
+import android.system.OsConstants
 import android.util.AtomicFile
 import java.io.File
 import java.io.FileOutputStream
@@ -17,7 +19,7 @@ class AppLockPreferences(context: Context) {
     fun persist(enabled: Boolean): Boolean = store.persist(enabled)
 }
 
-private class AtomicLockSettingStorage(directory: File) : LockSettingStorage {
+private class AtomicLockSettingStorage(private val directory: File) : LockSettingStorage {
     private val recordFile = File(directory, "app-lock.setting")
     private val backupFile = File(directory, "app-lock.setting.bak")
     private val markerFile = File(directory, "app-lock.pending")
@@ -60,6 +62,16 @@ private class AtomicLockSettingStorage(directory: File) : LockSettingStorage {
 
     override fun clearPendingWrite() {
         if (!markerFile.delete()) throw IOException("Lock setting fence was not removed")
+    }
+
+    override fun syncDirectory() {
+        // O_DIRECTORY is not exposed by the public Android SDK. Validate the
+        // opened descriptor instead; never follow a substituted final symlink.
+        val descriptor = Os.open(directory.absolutePath, OsConstants.O_RDONLY or OsConstants.O_CLOEXEC or OsConstants.O_NOFOLLOW, 0)
+        try {
+            if (!OsConstants.S_ISDIR(Os.fstat(descriptor).st_mode)) throw IOException("Invalid lock setting directory")
+            Os.fsync(descriptor)
+        } finally { Os.close(descriptor) }
     }
 
     private fun existsStrict(file: File): Boolean = try {

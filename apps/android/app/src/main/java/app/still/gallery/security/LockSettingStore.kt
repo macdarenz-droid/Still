@@ -8,6 +8,7 @@ internal interface LockSettingStorage {
     fun read(): ByteArray?
     fun markPendingWrite()
     fun write(record: ByteArray)
+    fun syncDirectory()
     fun clearPendingWrite()
 }
 
@@ -32,12 +33,16 @@ internal class LockSettingStore(private val storage: LockSettingStorage) {
         try {
             // Publish a durable locked-on fence before touching the enabled record.
             storage.markPendingWrite()
+            storage.syncDirectory()
         } catch (_: Exception) {
             return false
         }
         return try {
             val record = if (enabled) ON else OFF
             storage.write(record)
+            // File bytes alone do not make AtomicFile's replacement durable.
+            // Keep the published fence until the directory entry is synced too.
+            storage.syncDirectory()
             if (storage.read()?.contentEquals(record) != true) throw IllegalStateException("Lock setting verification failed")
             // No fallible operation may follow removal of this transaction fence.
             storage.clearPendingWrite()
