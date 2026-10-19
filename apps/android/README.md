@@ -317,7 +317,9 @@ readback and before/after/whole-pair source/access checks precede publication.
 MediaStore.SIZE is not a promise about a transformed readable stream. IDs refer
 only to captured task representations; redaction/conversion/cloud sourcing can
 prevent original-fidelity claims. Existing catalogue observations and CP9's
-default-deny development journal receive no new authority.
+default-deny development journal receive no new authority. Metadata checks reuse
+Cleanup's 50,000-row accessible-library cap even when only two inputs are selected;
+larger scopes fail with an explicit limit. Large-library latency is unmeasured.
 
 The app-private cache is excluded from backup. No media, file paths, tickets or
 hashes enter logs, saved UI state, the catalogue, export or network. One heavy-read

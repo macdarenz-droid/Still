@@ -1071,3 +1071,28 @@ in `.artifacts/cp10-validation.json` plus draft PR1. Device/provider/filesystem/
 process-kill/power-loss/gesture/large-text/accessibility behavior is blocked until
 actually observed; host proofs cannot replace those checks. No cleanup execution,
 backup capability, production signing, main merge or publication is included.
+
+Early independent source preflight identified a raw-path decoder draft bypassing
+the proposed ticket-owned read boundary; S30 is converting all reads to owned
+staged streams. It also found initialization completion could leave CLEANING
+after intervening invalidation, and a retained unscoped Retry could clean a newer
+comparison. Focused production coordinator regressions/counterfactuals are required,
+including a worker cancelled before its body starts.
+
+S29 preflight identified filesystem pathname checks that do not alone anchor
+subsequent operations against root replacement, and source/output close failures
+that could release admission/quota despite an unverified live handle. S33's
+independent test builder also identified cross-ticket pair publication lacking a
+pair-ticket identity check. These are open component findings until fixes and
+meaningful fault/regression evidence are reviewed on the frozen source. No
+component or design clearance is checkpoint acceptance.
+
+Initial actual focused runs preserved two genuine failures: S30's linked zoom
+returned signed negative-zero pan at1x instead of the reset transform; S33's
+production owner accepted a foreign pair ticket. UI initial14 cases had13 passes
+and1 failure in `/tmp/still-cp10-ui-focused.log`; fixed v2 has14 passes in
+`/tmp/still-cp10-ui-focused-v2.log`. S33's initial21 cases had20 passes and1
+binding failure, XML `/tmp/still-cp10-s33-evidence/pre-binding-21.xml`.
+Final exact-source assertions, binding fixes and old-policy counterfactual evidence
+remain required. The adapter's50,000 accessible-metadata-row snapshot limit also
+needs explicit UI mapping; selecting two files does not bypass that scope bound.

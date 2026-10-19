@@ -33,6 +33,9 @@ oversized, short/failed/close-failed reads and any sync/readback/source failure.
 An exact declared readable-representation length, when available, or the staged
 readback establishes a short read; MediaStore's reported original size does not.
 Unknown readable length stays unknown while actual reads still enforce quotas.
+The current source adapter also enumerates permitted metadata through Cleanup's
+50,000-row snapshot cap. Selecting two inputs does not remove that scope limit;
+surface it honestly and do not claim measured large-library latency.
 All-or-nothing publication: if the second input fails, publish neither and clear
 both temporary inputs. One nonqueueing heavy-reader admission is shared with
 Cleanup, held through actual provider closure even after cancellation. Staging
