@@ -102,3 +102,47 @@ intelligence and meaningful memories; try-on with bounded review; PDF/DOCX/text;
 AI-directed video plans/rendering; approved extensions and release hardening.
 Provider/budget/account/vault/share decisions remain owner decisions before those
 services are enabled. Proposed features remain proposals; no silent approval.
+
+## Next checkpoint — CP3 app lock (R14 / F04)
+
+Development continues from CP2 `42432e6`; physical-device release checks are a
+separate gate. The owner supplied five phone screenshots on 19 October 2026.
+They show gallery navigation, populated albums, an album grid, empty Favorites
+and Settings, with about 17,000 visible-library items. They are visual observations,
+not proof of playback, sharing, permissions, performance or this next checkpoint.
+Device model, Android version and installed APK identity are unverified. Private
+screenshots/media must not be committed or reused in discovery assets.
+
+| Card | Owner / allowed files | Deliverable / acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S05 Lock policy | backend; `apps/android/app/src/main/java/app/still/gallery/security/LockSession.kt`, matching `security/LockSessionTest.kt` in test tree | Pure Kotlin session state machine with default-locked startup when enabled, authenticated enable/disable/unlock, immediate background relock, fresh attempt fencing, explicit credential round-trip handling, canceled/late/failed results denied, persistence failure surfaced. Meaningful JVM tests for unauthorized transitions, restarts and lifecycle races | Base CP2; send interface to frontend before integration; no Android UI/dependency edits |
+| S06 Native lock | frontend; other new files under Android `security/`, `ui/AppLock*.kt`, plus explicitly delegated `MainActivity.kt`, `StillApp.kt`, `strings.xml`, source manifest, Android README and device matrix | Platform biometric/device credential authentication (device credential fallback on API26+); Settings opt-in and authenticated removal; relock on leaving foreground; secure recents/screenshots while enabled; no gallery composition/media access behind lock; process/recreation starts locked. Build, all policy tests and strict lint; expanded manual matrix remains unverified until actually run | S05 interface; no new dependency approved/required: use platform facilities. Supervisor owns integration of delegated entry-point/manifest/settings changes |
+| S07 Discovery audit | seo; review only for this checkpoint | Review supplied UI evidence and proposed lock wording for truthful capability/privacy/accessibility claims; return recommendations, no private media copies and no publication | Current code and task card; supervisor/frontend integrate applicable copy |
+| S08 CP3 gates | reviewer and red_team; review only | Independent exact-SHA implementation/test/artifact review and adversarial authentication/lifecycle checks. Fix and recheck material findings before CP3 acceptance | S05/S06 integrated and full checks; no production release |
+
+Supervisor owns this board, acceptance records, PR, build/dependency configuration,
+and shared integration. Builders use new named branches in their existing separate
+worktrees from CP2; latest origin/main is incorporated before final review.
+Merge order S05 then S06, then CP3 review. No builder self-approves.
+
+Scope: a whole-app access gate only. No custom PIN, vault, encryption, account,
+cloud transfer, new media metadata collection, deletion or production signing.
+Only the local lock-enabled preference is durable; authentication/session results
+are memory-only and must never be restored from saved UI state. Existing backup
+exclusions remain. An ordinary phone gallery can still access ordinary photos.
+If device credentials become unavailable while enabled, remain locked and offer
+Android security settings; do not silently disable protection. Backgrounding
+includes leaving for sharing or system settings; reauthentication on return is
+intentional. Screen-off and external entry must invalidate stale authorization.
+
+Risk focus: biometric/device-credential callback races, background/rotation/process
+restart, disable bypass, stale prompts, chooser return and app-switcher leakage.
+Tests must exercise the state transitions, not duplicate their implementation.
+No main merge, release claim or device-security guarantee follows from JVM checks.
+Rollback: revert the CP3 development commits or uninstall the development build;
+uninstall clears the app's settings, not the phone's media. No data schema changes.
+
+Commands: `npm run check`; `npm run build:android -- --max-workers=4`;
+`npm run test:android -- --max-workers=4`, with the established JDK21/SDK37
+environment. Record results, exact source head and local APK SHA-256, separate
+reviewer/red-team verdicts, and all blocked device checks before handing off CP3.
