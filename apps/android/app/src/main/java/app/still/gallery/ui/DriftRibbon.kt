@@ -83,7 +83,8 @@ fun DriftRibbon(
     val item = items.getOrNull(focused.index) ?: return
     if (sourceUiToken(item) != focused.sourceUiToken) return
     val openLabel = stringResource(if (item.isVideo) R.string.drift_open_video else R.string.drift_open_photo)
-    val currentPermission by rememberUpdatedState(canInteract)
+    val currentPermission = remember(snapshot) { DriftRibbonGate(canInteract) }
+    currentPermission.update(canInteract)
     val currentInteraction by rememberUpdatedState(interactionKey)
     val picker = remember(snapshot) { DriftDatePicker { if (currentPermission()) currentInteraction else null } }
     var jumpRequest by remember(snapshot, interactionKey) { mutableStateOf<DriftDateRequest?>(null) }
