@@ -146,4 +146,29 @@ class ExactReviewPolicyTest {
         val scan = third.beginScan()
         assertThrows(IllegalArgumentException::class.java) { third.finish(scan, listOf(ExactReadEvidence(first.members[0], content))) }
     }
+
+    @Test fun manyMatchingGroupsRetainTheirOwnKeepersAndRejectAnEqualLookingForeignGroup() {
+        val session = ExactReviewSession()
+        val scan = session.beginScan()
+        val evidence = (1..2000).flatMap { index ->
+            val key = ReadableContentKey(index.toString(16).padStart(64, '0'), 100)
+            (1..2).map { copy ->
+                ExactReadEvidence(session.candidate(scan, "source-$index-$copy", ReadableMediaKind.IMAGE), key)
+            }
+        }
+        val snapshot = session.finish(scan, evidence)
+        assertEquals(2000, snapshot.groups.size)
+        for (group in snapshot.groups) {
+            val keeper = group.members.first()
+            val review = session.review(snapshot, group, setOf(keeper), group.members.associateWith { FavoriteState.NOT_FAVORITE }, ready)
+            assertEquals(ExactReviewReason.READY, review.reason)
+            assertEquals(setOf(keeper), review.keepers)
+            assertEquals(setOf(group.members.last()), review.extras)
+        }
+        val original = snapshot.groups.last()
+        val foreign = ExactMatchGroup(original.content, original.kind, original.members)
+        assertThrows(IllegalArgumentException::class.java) {
+            session.review(snapshot, foreign, setOf(original.members.first()), original.members.associateWith { FavoriteState.NOT_FAVORITE }, ready)
+        }
+    }
 }

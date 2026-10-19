@@ -1,6 +1,7 @@
 package app.still.gallery.cleanup
 
 import java.util.Collections
+import java.util.IdentityHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 /** Evidence about one complete readable stream, never an original or pinned AssetVersion. */
@@ -42,6 +43,10 @@ class ExactMatchGroup internal constructor(
 
 class ExactReviewSnapshot internal constructor(internal val scan: ExactScanToken, groups: List<ExactMatchGroup>) {
     val groups: List<ExactMatchGroup> = Collections.unmodifiableList(groups.toList())
+    private val groupIdentities = Collections.newSetFromMap(IdentityHashMap<ExactMatchGroup, Boolean>()).apply {
+        addAll(this@ExactReviewSnapshot.groups)
+    }
+    internal fun containsGroup(group: ExactMatchGroup): Boolean = groupIdentities.contains(group)
 }
 
 data class ExactGroupReview(
@@ -115,7 +120,7 @@ class ExactReviewSession {
         protections: ProtectionSnapshot,
     ): ExactGroupReview {
         requireCurrent(snapshot.scan)
-        require(completed === snapshot && snapshot.groups.any { it === group }) { "The group does not belong to this current review" }
+        require(completed === snapshot && snapshot.containsGroup(group)) { "The group does not belong to this current review" }
         val members = group.members.toSet()
         require(manualKeepers.all { it in members }) { "A keeper belongs to another matching group" }
         val keepers = manualKeepers.toMutableSet()
