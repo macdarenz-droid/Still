@@ -137,7 +137,7 @@ class SelectedInputOwnership {
     @Synchronized internal fun failedResources(ticket: SelectedInputTicket): List<SelectedInputResource> =
         holder?.takeIf { it.ticket === ticket }?.resources?.toList().orEmpty()
     private fun releaseLane(current: Holder) {
-        if (current.workers == 0 && current.resources.isEmpty()) {
+        if (current.workers == 0 && current.resources.isEmpty() && current.files?.hasUnsettledHandles != true) {
             current.lane?.close()
             current.lane = null
         }

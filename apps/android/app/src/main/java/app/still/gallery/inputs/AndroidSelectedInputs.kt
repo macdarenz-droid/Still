@@ -40,20 +40,33 @@ internal class AndroidSelectedInputFileSystem(private val root: java.nio.file.Pa
     private var directory: java.io.FileDescriptor? = null
     private var anchor: android.os.ParcelFileDescriptor? = null
     private var directoryInode: Inode? = null
+    private var parentDirectory: java.io.FileDescriptor? = null
+    private var parentAnchor: android.os.ParcelFileDescriptor? = null
     private val unsettled = mutableListOf<java.io.FileDescriptor>()
+    private var closing = false
+    private fun closeDescriptor(descriptor: java.io.FileDescriptor) { if (descriptor.valid()) android.system.Os.close(descriptor) }
     private fun identity(stat: android.system.StructStat) = Inode(stat.st_dev, stat.st_ino)
     private fun flags(value: Int): Int = value or android.system.OsConstants.O_NOFOLLOW or
         (if (android.os.Build.VERSION.SDK_INT >= 27) android.system.OsConstants.O_CLOEXEC else 0)
     override fun initialize() {
-        if (anchor != null) return
         settle()
-        if (directory != null) throw java.io.IOException("Comparison directory handle is unsettled")
-        try { android.system.Os.mkdir(root.toString(), 448) } catch (failure: android.system.ErrnoException) {
+        if (anchor != null) return
+        if (directory != null || parentDirectory != null || parentAnchor != null) { closing = true; settle() }
+        val parent = root.parent ?: throw java.io.IOException("Invalid comparison cache root")
+        val parentBefore = android.system.Os.lstat(parent.toString())
+        if (!android.system.OsConstants.S_ISDIR(parentBefore.st_mode)) throw java.io.IOException("Unsupported comparison cache parent")
+        val parentOpened = android.system.Os.open(parent.toString(), flags(android.system.OsConstants.O_RDONLY), 0)
+        parentDirectory = parentOpened
+        val parentActual = android.system.Os.fstat(parentOpened)
+        if (!android.system.OsConstants.S_ISDIR(parentActual.st_mode) || identity(parentActual) != identity(parentBefore)) throw java.io.IOException("Comparison cache parent changed")
+        parentAnchor = android.os.ParcelFileDescriptor.dup(parentOpened)
+        val rootPath = "/proc/self/fd/${parentAnchor!!.fd}/${root.fileName}"
+        try { android.system.Os.mkdir(rootPath, 448) } catch (failure: android.system.ErrnoException) {
             if (failure.errno != android.system.OsConstants.EEXIST) throw failure
         }
-        val before = android.system.Os.lstat(root.toString())
+        val before = android.system.Os.lstat(rootPath)
         if (!android.system.OsConstants.S_ISDIR(before.st_mode)) throw java.io.IOException("Unsupported comparison cache root")
-        val opened = android.system.Os.open(root.toString(), flags(android.system.OsConstants.O_RDONLY), 0)
+        val opened = android.system.Os.open(rootPath, flags(android.system.OsConstants.O_RDONLY), 0)
         directory = opened // retain even if a subsequent check/dup fails
         val actual = android.system.Os.fstat(opened)
         if (!android.system.OsConstants.S_ISDIR(actual.st_mode) || identity(actual) != identity(before) ||
@@ -85,7 +98,7 @@ internal class AndroidSelectedInputFileSystem(private val root: java.nio.file.Pa
             return object : SelectedInputSink {
                 override val stream: java.io.OutputStream = output
                 override fun sync() { android.system.Os.fsync(descriptor) }
-                override fun close() { output.close() }
+                override fun close() { closeDescriptor(descriptor) }
             }
         } catch (failure: Exception) { unsettled += descriptor; throw failure }
     }
@@ -94,7 +107,9 @@ internal class AndroidSelectedInputFileSystem(private val root: java.nio.file.Pa
         try {
             val actual = checked(android.system.Os.fstat(descriptor))
             if (expected != null && actual != expected) throw java.io.IOException("Comparison cache entry changed")
-            return java.io.FileInputStream(descriptor)
+            return object : java.io.FilterInputStream(java.io.FileInputStream(descriptor)) {
+                override fun close() { closeDescriptor(descriptor) }
+            }
         } catch (failure: Exception) { unsettled += descriptor; throw failure }
     }
     override fun remove(name: String) {
@@ -103,13 +118,20 @@ internal class AndroidSelectedInputFileSystem(private val root: java.nio.file.Pa
         }
     }
     override fun syncDirectory() { android.system.Os.fsync(directory ?: throw java.io.IOException("Comparison cache is not open")) }
+    override val hasUnsettledHandles: Boolean get() = unsettled.isNotEmpty() || ((directory != null || parentDirectory != null) && anchor == null) || closing
     override fun settle() {
         val pending = unsettled.toList()
-        for (descriptor in pending) { android.system.Os.close(descriptor); unsettled.remove(descriptor) }
+        for (descriptor in pending) { closeDescriptor(descriptor); unsettled.remove(descriptor) }
+        if (closing) {
+            anchor?.let { if (it.fileDescriptor.valid()) it.close() }; anchor = null
+            directory?.let(::closeDescriptor); directory = null
+            parentAnchor?.let { if (it.fileDescriptor.valid()) it.close() }; parentAnchor = null
+            parentDirectory?.let(::closeDescriptor); parentDirectory = null
+            closing = false
+        }
     }
     override fun close() {
+        closing = true
         settle()
-        anchor?.close(); anchor = null
-        directory?.let { android.system.Os.close(it) }; directory = null
     }
 }

@@ -34,6 +34,7 @@ data class SelectedInputFileInfo(val size: Long, val key: Any)
 interface SelectedInputFileSystem : AutoCloseable {
     override fun close() {}
     fun settle() {}
+    val hasUnsettledHandles: Boolean get() = false
     fun initialize()
     fun names(): List<String>
     fun create(name: String): SelectedInputSink
@@ -48,20 +49,30 @@ class NioSelectedInputFileSystem(root: Path) : SelectedInputFileSystem {
     private val root = root.toAbsolutePath().normalize()
     private var directory: SecureDirectoryStream<Path>? = null
     private var directoryKey: Any? = null
+    private var pendingDirectory: java.nio.file.DirectoryStream<Path>? = null
+    private val pendingHandles = mutableListOf<AutoCloseable>()
+    private var closing = false
+    private fun <T : AutoCloseable, R> useOwned(handle: T, body: (T) -> R): R {
+        pendingHandles += handle
+        try { return body(handle) } finally { handle.close(); pendingHandles.remove(handle) }
+    }
     private fun directory(): SecureDirectoryStream<Path> = directory ?: throw IOException("Comparison cache is not open")
     @Synchronized override fun initialize() {
+        settle()
         if (directory != null) return
-        if (!Files.exists(root, NOFOLLOW_LINKS)) Files.createDirectory(root)
+        // Host seam requires a caller-created private directory; Android creates via a held parent FD.
         val before = Files.readAttributes(root, BasicFileAttributes::class.java, NOFOLLOW_LINKS)
         if (!before.isDirectory || before.isSymbolicLink || before.fileKey() == null) throw IOException("Unsupported comparison cache root")
         val opened = Files.newDirectoryStream(root)
-        if (opened !is SecureDirectoryStream<Path>) { opened.close(); throw IOException("Directory anchoring unavailable") }
+        pendingDirectory = opened
+        if (opened !is SecureDirectoryStream<Path>) throw IOException("Directory anchoring unavailable")
         val attributes = opened.getFileAttributeView(BasicFileAttributeView::class.java).readAttributes()
         if (attributes.fileKey() != before.fileKey() || (directoryKey != null && directoryKey != attributes.fileKey())) {
-            opened.close(); throw IOException("Comparison cache root changed")
+            throw IOException("Comparison cache root changed")
         }
         directoryKey = attributes.fileKey()
         directory = opened
+        pendingDirectory = null
     }
     private fun child(name: String): Path {
         if (!ownedName(name)) throw IOException("Unexpected comparison cache entry")
@@ -69,7 +80,7 @@ class NioSelectedInputFileSystem(root: Path) : SelectedInputFileSystem {
     }
     override fun names(): List<String> {
         val names = mutableListOf<String>()
-        directory().newDirectoryStream(root.fileSystem.getPath("."), NOFOLLOW_LINKS).use { entries ->
+        useOwned(directory().newDirectoryStream(root.fileSystem.getPath("."), NOFOLLOW_LINKS)) { entries ->
             for (entry in entries) {
                 if (names.size >= 256) throw IOException("Unexpected comparison cache entries")
                 names += entry.fileName.toString()
@@ -81,12 +92,18 @@ class NioSelectedInputFileSystem(root: Path) : SelectedInputFileSystem {
     override fun info(name: String): SelectedInputFileInfo {
         val attributes = directory().getFileAttributeView(child(name), BasicFileAttributeView::class.java, NOFOLLOW_LINKS).readAttributes()
         if (!attributes.isRegularFile || attributes.isSymbolicLink || attributes.fileKey() == null) throw IOException("Unsupported comparison cache entry")
-        // SecureDirectoryStream has no Unix attribute view; Android additionally fstats nlink.
+        // Host-only Unix probe; mutations remain relative to the pinned directory.
+        if (Files.readAttributes(root, BasicFileAttributes::class.java, NOFOLLOW_LINKS).fileKey() != directoryKey ||
+            Files.readAttributes(root.resolve(name), BasicFileAttributes::class.java, NOFOLLOW_LINKS).fileKey() != attributes.fileKey() ||
+            (Files.getAttribute(root.resolve(name), "unix:nlink", NOFOLLOW_LINKS) as? Number)?.toLong() != 1L
+        ) throw IOException("Unsupported comparison cache entry")
         return SelectedInputFileInfo(attributes.size(), attributes.fileKey())
     }
     override fun create(name: String): SelectedInputSink {
-        val channel = directory().newByteChannel(child(name), setOf(CREATE_NEW, WRITE, NOFOLLOW_LINKS)) as? FileChannel
-            ?: throw IOException("File sync unavailable")
+        val opened = directory().newByteChannel(child(name), setOf(CREATE_NEW, WRITE, NOFOLLOW_LINKS))
+        val channel = opened as? FileChannel ?: run {
+            useOwned(opened) { throw IOException("File sync unavailable") }
+        }
         return object : SelectedInputSink {
             override val stream: OutputStream = Channels.newOutputStream(channel)
             override fun sync() { channel.force(true) }
@@ -100,7 +117,7 @@ class NioSelectedInputFileSystem(root: Path) : SelectedInputFileSystem {
         try {
             if (info(name) != before || channel.size() != before.size) throw IOException("Comparison cache entry changed")
             return Channels.newInputStream(channel)
-        } catch (failure: Exception) { channel.close(); throw failure }
+        } catch (failure: Exception) { useOwned(channel) { throw failure } }
     }
     override fun remove(name: String) {
         try { info(name); directory().deleteFile(child(name)) } catch (_: NoSuchFileException) { /* Cache may be evicted. */ }
@@ -109,12 +126,18 @@ class NioSelectedInputFileSystem(root: Path) : SelectedInputFileSystem {
         // The pinned stream anchors mutations. The sync handle must match that pinned inode.
         val before = Files.readAttributes(root, BasicFileAttributes::class.java, NOFOLLOW_LINKS)
         if (before.fileKey() != directoryKey || before.isSymbolicLink) throw IOException("Comparison cache root changed")
-        FileChannel.open(root, READ, NOFOLLOW_LINKS).use { channel ->
+        useOwned(FileChannel.open(root, READ, NOFOLLOW_LINKS)) { channel ->
             if (Files.readAttributes(root, BasicFileAttributes::class.java, NOFOLLOW_LINKS).fileKey() != directoryKey) throw IOException("Comparison cache root changed")
             channel.force(true)
         }
     }
-    @Synchronized override fun close() { directory?.close(); directory = null }
+    override val hasUnsettledHandles: Boolean get() = pendingDirectory != null || pendingHandles.isNotEmpty() || closing
+    override fun settle() {
+        for (handle in pendingHandles.toList()) { handle.close(); pendingHandles.remove(handle) }
+        pendingDirectory?.close(); pendingDirectory = null
+        if (closing) { directory?.close(); directory = null; closing = false }
+    }
+    @Synchronized override fun close() { closing = true; settle() }
     companion object {
         private val namePattern = Regex("rep-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.bin")
         internal fun ownedName(name: String): Boolean = namePattern.matches(name)
@@ -199,11 +222,11 @@ class SelectedInputStore(
             ticket.requireCurrent()
             return object : FilterInputStream(opened) {
                 private fun check() { ticket.requireCurrent() }
-                override fun read(): Int { check(); val result = super.read(); check(); return result }
-                override fun read(buffer: ByteArray, offset: Int, length: Int): Int { check(); val result = `in`.read(buffer, offset, length); check(); return result }
-                override fun skip(count: Long): Long { check(); val result = super.skip(count); check(); return result }
-                override fun available(): Int { check(); return super.available() }
-                override fun close() {
+                @Synchronized override fun read(): Int { check(); val result = super.read(); check(); return result }
+                @Synchronized override fun read(buffer: ByteArray, offset: Int, length: Int): Int { check(); val result = `in`.read(buffer, offset, length); check(); return result }
+                @Synchronized override fun skip(count: Long): Long { check(); val result = super.skip(count); check(); return result }
+                @Synchronized override fun available(): Int { check(); return super.available() }
+                @Synchronized override fun close() {
                     try { resource.close() } catch (failure: Exception) { ticket.invalidate(); throw failure }
                 }
             }
