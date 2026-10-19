@@ -102,3 +102,23 @@ Use synthetic or explicitly consented media outside git; never commit private me
 | All | Stop/background during annotation admission; delay store coordinator; lock/recreate | New mutation denied after invalidation; admitted tiny replacement may finish but cannot publish to old/new gallery; new gallery reloads durable state | Blocked |
 | All | TalkBack, switch/keyboard, 200% font, RTL, narrow/landscape; one very large matching group | Reachable Stop/Refresh/keeper/protection confirmation; textual unknown/saved/error states and lazy members; no clipped essential action | Blocked |
 | Reference device | Measure 17,000-item scans, large videos, many legacy references and 50,000-member synthetic group | Record actual read/CPU/memory/battery/thermal/cancellation/frame timings; no throughput, responsiveness or durability guarantee before measurement | Blocked |
+
+
+## S17/S18 Drift native presentation
+
+Every row remains **Blocked** until run on an identified Android device/API with
+exact source and APK hash. Browser prototype checks and JVM navigation tests do not
+establish native rendering, gestures, motion, focus, accessibility or performance.
+
+| Environment | Procedure | Expected result | Status |
+| --- | --- | --- | --- |
+| API 26–37 | Browse Photos, Favorites and album contents; drag and use Previous/Next/Open; reach both ends | At most five ribbon previews; no wrap; same current ordered row from buttons and gestures; real filename/date/count | Blocked |
+| All | Start a drag, then use a date/button or change query/type/sort/album/destination/Ribbon/Grid/selection before release | Old completion cannot override later focus or act on another view; replacement at the same URI cannot inherit gesture/viewer state | Blocked |
+| All | Refresh to identical-looking rows; reset provider/reuse URI; withdraw same-bit partial access; lock before composition disposal | Immediate old-card/viewer removal and stale-action rejection; no retained exit frame or old thumbnail publication | Blocked |
+| All | Open, close and immediately reopen the same source; retain old close/share/Favorite callbacks | Distinct opening identity denies every old viewer action; current viewer continues normally | Blocked |
+| All | Browse dates across midnight/year/DST/timezone, unknown dates and NAME order; page rail and exact jump, enter malformed/absent dates | At most seven actual rail dates; full spoken date/year; Date unavailable reachable; first exact match without reordering; distinct input/no-match errors | Blocked |
+| All | While ribbon/photo opening moves, change Android animator scale to zero; navigate again and repeatedly close/reopen | Running and future decoration settles without delaying action or retaining media; no perpetual motion or stuck viewer | Blocked |
+| All | Use Search/View options/Grid/Select/share/Favorites/Settings/app lock/Cleanup from new chrome | Existing actual source, selection, Favorites alias, permission, annotation and lock guards remain intact; no hidden essential action | Blocked |
+| All | Use TalkBack, keyboard/switch, 200% font, RTL, 320dp width, landscape and split-screen | Focused photo only among decorative cards; settled-position announcements; selected states and 48dp actions; all content/menu/dialog actions reachable without clipping | Blocked |
+| All | Open videos from ribbon/grid/Cleanup; Play/Pause/seek, background, lock, rotate and edit source | Existing explicit/no-autoplay/native-seek behavior and current-source/lifecycle start checks preserved | Blocked |
+| Reference device | Browse 17,000 synthetic/consented rows, large albums and legacy Favorites; measure ribbon/Grid/date/search transitions | Record actual thumbnail requests, heap, startup and frame timings; bounded composition is not a measured performance guarantee | Blocked |

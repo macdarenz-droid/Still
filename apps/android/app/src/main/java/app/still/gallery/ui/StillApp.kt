@@ -656,7 +656,7 @@ private fun PhotoGrid(items: List<MediaItem>, device: DeviceMedia, generation: I
                     LibraryImage(item, device, generation, Modifier.fillMaxSize())
                     if (item.isVideo) Text(durationLabel(item.durationMs), color = Color.White, style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.BottomEnd).padding(5.dp).background(Color.Black.copy(alpha = .6f), RoundedCornerShape(4.dp)).padding(horizontal = 5.dp, vertical = 2.dp))
                     if (selecting) Box(Modifier.align(Alignment.TopEnd).padding(7.dp).size(26.dp).background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = .35f), RoundedCornerShape(13.dp)).border(1.dp, Color.White, RoundedCornerShape(13.dp)), contentAlignment = Alignment.Center) {
-                        if (isSelected) MarkIcon(Mark.SELECT, null, Modifier.size(19.dp), Color.White)
+                        if (isSelected) MarkIcon(Mark.SELECT, null, Modifier.size(19.dp), MaterialTheme.colorScheme.onPrimary)
                     }
                 }
             }

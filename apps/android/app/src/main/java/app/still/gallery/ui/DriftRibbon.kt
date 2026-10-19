@@ -195,22 +195,23 @@ fun DriftRibbon(
     }
     if (jumpOpen) {
         var input by remember(snapshot) { mutableStateOf("") }
-        var failed by remember(snapshot) { mutableStateOf(false) }
+        var dateError by remember(snapshot) { mutableStateOf<Int?>(null) }
         AlertDialog(onDismissRequest = { jumpOpen = false },
             title = { Text(stringResource(R.string.drift_jump)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.drift_date_format))
-                    OutlinedTextField(value = input, onValueChange = { input = it; failed = false }, singleLine = true,
-                        label = { Text(stringResource(R.string.drift_date_label)) }, isError = failed, modifier = Modifier.fillMaxWidth())
-                    if (failed) Text(stringResource(R.string.drift_date_absent), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+                    OutlinedTextField(value = input, onValueChange = { input = it; dateError = null }, singleLine = true,
+                        label = { Text(stringResource(R.string.drift_date_label)) }, isError = dateError != null, modifier = Modifier.fillMaxWidth())
+                    if (dateError != null) Text(stringResource(dateError!!), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
                     if (hasUnknownDate) TextButton(onClick = { if (currentPermission() && onJump(null)) jumpOpen = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.unknown_date)) }
                 }
             },
             confirmButton = { TextButton(onClick = {
                 if (currentPermission()) {
                     val date = try { LocalDate.parse(input.trim()) } catch (_: DateTimeParseException) { null }
-                    if (date != null && onJump(date)) jumpOpen = false else failed = true
+                    if (date == null) dateError = R.string.drift_date_invalid
+                    else if (onJump(date)) jumpOpen = false else dateError = R.string.drift_date_absent
                 }
             }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.drift_jump)) } },
             dismissButton = { TextButton(onClick = { jumpOpen = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.cancel)) } },

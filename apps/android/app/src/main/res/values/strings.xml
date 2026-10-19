@@ -55,11 +55,11 @@
     <string name="video_playing">Playing</string>
     <string name="video_paused">Paused</string>
     <string name="video_finished">Video finished</string>
-    <string name="no_favorites_title">Your favorites go here</string>
+    <string name="no_favorites_title">No favorites yet</string>
     <string name="no_favorites_body">Open a photo or video and choose Add to Still favorites to find it here.</string>
-    <string name="favorites_unresolved">Some saved favorites can’t be matched to your current library access. Their references stay saved.</string>
+    <string name="favorites_unresolved">Some saved favorites aren’t available right now. They’re still saved.</string>
     <string name="favorites_unavailable_title">Saved favorites aren’t available</string>
-    <string name="favorites_unavailable_body">Refresh your library to try matching these references again.</string>
+    <string name="favorites_unavailable_body">Refresh your library to try again.</string>
     <string name="load_failed">Your library could not be read. Check photo access and retry.</string>
     <string name="retry">Retry</string>
     <string name="refresh">Refresh library</string>
@@ -107,7 +107,7 @@
     <string name="app_lock_no_credential">Your phone’s screen lock is unavailable. Set one up in Android security settings.</string>
     <string name="app_lock_cancelled">Authentication was canceled. App lock settings did not change.</string>
     <string name="app_lock_not_recognized">Not recognized. Try again.</string>
-    <string name="app_lock_unavailable">Device authentication is unavailable. Try your device credential or open Android security settings.</string>
+    <string name="app_lock_unavailable">Device authentication is unavailable. Try your phone’s screen lock or open Android security settings.</string>
     <string name="app_lock_auth_failed">Authentication did not finish. Try again.</string>
     <string name="app_lock_enable_failed">App lock could not be turned on because its setting was not saved. This session stays locked. Retry to save it.</string>
     <string name="app_lock_save_failed">The lock setting could not be saved. Still remains locked. Authenticate, then retry the change.</string>
@@ -221,11 +221,12 @@
     <string name="drift_jump">Jump to date</string>
     <string name="drift_previous_dates">Previous dates</string>
     <string name="drift_next_dates">Next dates</string>
-    <string name="drift_date_scope">Dates navigate this view. Your selected sort stays in place.</string>
-    <string name="drift_date_format">Enter a date in this view using YYYY-MM-DD.</string>
-    <string name="drift_date_label">Year-month-day</string>
-    <string name="drift_date_absent">No item in this view has that date. Check the date and format.</string>
+    <string name="drift_date_scope">Jump to a date in this view. The sort order stays the same.</string>
+    <string name="drift_date_format">Use YYYY-MM-DD.</string>
+    <string name="drift_date_label">Date</string>
+    <string name="drift_date_absent">No photos or videos in this view have that date.</string>
     <string name="drift_scope_summary">%1$s · %2$s · %3$s</string>
-    <string name="drift_navigate">Navigate Still</string>
+    <string name="drift_navigate">Menu</string>
     <string name="drift_search_active">Filename search active</string>
+    <string name="drift_date_invalid">Enter a valid date as YYYY-MM-DD.</string>
 </resources>

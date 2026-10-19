@@ -2,7 +2,7 @@
 
 Native Kotlin/Compose phone gallery, Android 8.0 (API 26) and later. This is the
 development foundation, not a production release. It reads real permitted MediaStore
-photos/videos, groups them by month and album, searches filenames, opens images
+photos/videos in a layered ribbon or lazy grid, groups the grid by month and album, searches filenames, opens images
 with zoom and videos with explicit Play/Pause and platform seek controls, and shares selected media through
 Android. Favorites are app-private metadata persisted on this phone, not system
 favorites. Original media is never written or deleted.
@@ -24,6 +24,48 @@ The Gradle 9.8.1 wrapper JAR's official SHA-256 is
 `3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98`.
 The debug APK is `app/build/outputs/apk/debug/app-debug.apk`. Standard local debug
 signing is used; no production signing identity or release distribution is set up.
+
+## Drift gallery presentation (S17/S18)
+
+Photos, Favorites and album contents open in a layered ribbon over the current
+permitted, filtered and sorted rows. At most five thumbnail cards are composed,
+each using the existing 512-pixel preview/cache path. Decorative neighbors have no
+accessibility action. The focused row has Open photo/Open video, Previous/Next,
+Favorite and Grid view buttons; a long press also starts selection. Navigation is
+bounded at the ends. Grid view retains lazy rendering and is the selection surface;
+a large library does not require swiping through every row. Search and View options
+provide filename search, the existing media-type filter and global sort, selection,
+and Ribbon/Grid choice. The current type, sort and view are visible in the header.
+Settings remains a labelled action. Short windows and enlarged text use a Menu for
+all destinations, leaving space for scrollable content. Actual native layout,
+TalkBack and 17,000-item frame/memory behavior are unmeasured.
+
+The date rail contains at most seven actual dates from the current view, with
+Previous dates/Next dates, an exact YYYY-MM-DD jump and a Date unavailable target
+when that view has unknown dates. Chips expose complete localized spoken dates.
+Jumping selects the first matching row in the existing sort; Filename A–Z is never
+regrouped by date. Source dates can include Android added-date fallback and are
+not presented as verified capture times. Scope, refresh, sort and presentation
+changes create an explicit new navigation identity, including equal-looking rows.
+Captured projection and expected-focus checks prevent queued navigation from
+retargeting a new row or replacing a later choice. Existing native action gates
+still decide whether any media can be opened/shared/favorited.
+
+Ribbon focus uses finite Compose springs; photo opening uses a restrained 420ms
+scale/fade. Both run in the existing Compose motion context, which observes Android
+animator duration scale. No custom settings reader or perpetual animation is added.
+There is no delayed exit: refresh, close, scope change, permission loss and lock
+remove the viewer immediately. Each opening has a distinct memory-only identity,
+including close/reopen of the same source. Old close/share/Favorite/player callbacks
+are denied against a later viewer. Photo zoom, pan, details and opening state use
+source provenance plus refresh generation. The native video functions, explicit
+Play/Pause, no-autoplay behavior and lifecycle guards are preserved. Native live
+scale changes, gestures, focus and playback require the device checks below.
+
+The chosen visual uses ink, warm ivory, coral and serif headings; interface labels
+remain Photos/Favorites/actual album names and real filenames/dates, without stock
+photographs, invented captions, slogans or inferred memories. No new persistent
+setting, data schema, dependency, permission, media decoder or provider IO is added.
 
 ## Media and privacy boundary
 
