@@ -15,6 +15,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +43,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -74,6 +78,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -92,6 +98,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.net.toUri
 import androidx.core.content.edit
 import app.still.gallery.R
+import app.still.gallery.media.DriftNavigationSession
+import app.still.gallery.media.DriftTarget
 import app.still.gallery.media.AccessLevel
 import app.still.gallery.media.DeviceMedia
 import app.still.gallery.media.MediaAccess
@@ -150,7 +158,15 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     var albumId by rememberSaveable { mutableStateOf<String?>(null) }
     var selected by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var selecting by rememberSaveable { mutableStateOf(false) }
-    var openedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var viewMode by rememberSaveable { mutableStateOf("RIBBON") }
+    var controlsVisible by remember { mutableStateOf(false) }
+    var navigationVisible by remember { mutableStateOf(false) }
+    var viewRevision by remember { mutableIntStateOf(0) }
+    var focusRevision by remember { mutableIntStateOf(0) }
+    var viewerRevision by remember { mutableIntStateOf(0) }
+    val drift = remember(actionLifetime) { DriftNavigationSession { actionLifetime.isActive && !loading && !loadFailed } }
+    val driftInteraction = remember(actionLifetime) { DriftInteraction { actionLifetime.isActive && !loading && !loadFailed } }
+    val viewers = remember(actionLifetime) { DriftViewerSession { actionLifetime.isActive && !loading && !loadFailed } }
     var favorites by remember { mutableStateOf(preferences.getStringSet("favorites", emptySet()).orEmpty().toSet()) }
     var legacyFavoriteMatches by remember { mutableStateOf(emptyMap<String, String>()) }
     val snackbar = remember { SnackbarHostState() }
@@ -173,10 +189,13 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     fun invalidateSnapshot() {
         cleanup.invalidate()
+        drift.invalidate()
+        driftInteraction.invalidate()
+        viewers.invalidate()
+        viewerRevision++
         val fresh = context.mediaAccess()
         if (fresh != access || fresh.level == AccessLevel.PARTIAL) {
             // Never keep an already-open item visible while reduced permissions are reconciled.
-            openedId = null
             selected = emptyList()
         }
         // Every provider invalidation hides the old snapshot before async read/proof.
@@ -195,7 +214,30 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     fun reload() { if (actionLifetime.isActive) invalidateSnapshot() }
 
+    fun changeBrowseScope(change: () -> Unit) {
+        if (!actionLifetime.isActive) return
+        drift.invalidate()
+        driftInteraction.invalidate()
+        viewers.invalidate()
+        viewerRevision++
+        viewRevision++
+        change()
+    }
+
+    fun openViewer(item: MediaItem) {
+        galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let {
+            if (viewers.open(sourceUiToken(it)) != null) viewerRevision++
+        }
+    }
+
     fun saveFavorites(next: Set<String>) {
+        if (destination == Destination.FAVORITES) {
+            drift.invalidate()
+            driftInteraction.invalidate()
+            viewers.invalidate()
+            viewerRevision++
+            viewRevision++
+        }
         preferences.edit { putStringSet("favorites", next) }
         favorites = next
         cleanup.invalidate()
@@ -229,6 +271,9 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     DisposableEffect(actionLifetime, device) {
         onDispose {
+            drift.invalidate()
+            driftInteraction.invalidate()
+            viewers.invalidate()
             actionLifetime.invalidate()
             cleanup.invalidate()
             device.invalidateScans()
@@ -275,7 +320,6 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
             media = emptyList()
             legacyFavoriteMatches = emptyMap()
             selected = emptyList()
-            openedId = null
             return@LaunchedEffect
         }
         try {
@@ -284,7 +328,6 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                 media = loaded
                 legacyFavoriteMatches = aliases
                 selected = reconcileMediaTokens(selected.toSet(), loaded).toList()
-                openedId = openedId?.let { reconcileMediaTokens(setOf(it), loaded).singleOrNull() }
                 loading = false
                 indexing = true
             }
@@ -296,7 +339,6 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                 media = emptyList()
                 legacyFavoriteMatches = emptyMap()
                 selected = emptyList()
-                openedId = null
                 loadFailed = true
                 access = context.mediaAccess()
             }
@@ -306,8 +348,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     }
 
     BackHandler(selecting || albumId != null) {
-        if (selecting) { selecting = false; selected = emptyList() }
-        else albumId = null
+        changeBrowseScope { if (selecting) { selecting = false; selected = emptyList() } else albumId = null }
     }
 
     LaunchedEffect(destination) {
@@ -334,70 +375,72 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         else -> stringResource(destination.label)
     }
 
+    val zone = ZoneId.systemDefault()
+    // Refresh and every view-scope choice are explicit keys, including equal-shaped results.
+    val driftSnapshot = remember(filtered, refresh, viewRevision, destination, albumId, query, mediaFilter, mediaSort, viewMode, selecting, zone) {
+        drift.replace(filtered, mediaSort, zone)
+    }
+    remember(driftSnapshot) {
+        val oldFocus = driftInteraction.focusedToken
+        val current = oldFocus?.let { drift.target(driftSnapshot, it) } ?: drift.first(driftSnapshot)
+        driftInteraction.replace(driftSnapshot, current?.sourceUiToken)
+    }
+    val focused = remember(driftSnapshot, focusRevision) { driftInteraction.focusedToken?.let { drift.target(driftSnapshot, it) } }
+    var railStart by remember(driftSnapshot, focused?.sourceUiToken) { mutableStateOf<Int?>(null) }
+    fun focusedCurrent(): Boolean = focused != null && drift.isCurrent(driftSnapshot) && driftInteraction.isCurrent(driftSnapshot, focused.sourceUiToken)
+    fun focus(target: DriftTarget?): Boolean {
+        if (target == null || focused == null || !drift.isCurrent(driftSnapshot)) return false
+        if (!driftInteraction.focus(driftSnapshot, focused.sourceUiToken, target.sourceUiToken)) return false
+        focusRevision++
+        return true
+    }
+    val canBrowse = destination != Destination.SETTINGS && destination != Destination.CLEANUP
+    val filterLabel = stringResource(when (mediaFilter) { MediaFilter.ALL -> R.string.filter_all; MediaFilter.PHOTOS -> R.string.filter_photos; MediaFilter.VIDEOS -> R.string.filter_videos })
+    val sortLabel = stringResource(when (mediaSort) { MediaSort.NEWEST -> R.string.sort_newest; MediaSort.OLDEST -> R.string.sort_oldest; MediaSort.NAME -> R.string.sort_name })
+
+    val compactChrome = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() < 480.dp } || LocalDensity.current.fontScale > 1.5f
+
     Scaffold(
         modifier = Modifier.imePadding(),
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             Column(Modifier.statusBarsPadding()) {
-                Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 12.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (albumId != null && !selecting) {
-                        IconButton(onClick = { albumId = null }) { MarkIcon(Mark.BACK, stringResource(R.string.back)) }
-                    } else if (!selecting && destination == Destination.PHOTOS) {
-                        Image(painterResource(R.drawable.ic_still), null, Modifier.size(38.dp))
-                        Spacer(Modifier.width(10.dp))
+                DriftHeader(title = title,
+                    subtitle = if (!selecting && canBrowse) pluralStringResource(R.plurals.media_count, filtered.size, filtered.size) else null,
+                    selecting = selecting, canBrowse = canBrowse && access.level != AccessLevel.NONE && !compactChrome,
+                    showBack = albumId != null && !selecting,
+                    onBack = { changeBrowseScope { albumId = null } },
+                    onSearch = { if (actionLifetime.isActive) controlsVisible = true },
+                    onOptions = { if (actionLifetime.isActive) controlsVisible = true },
+                    onSettings = { changeBrowseScope { destinationName = Destination.SETTINGS.name; albumId = null; selecting = false; selected = emptyList(); controlsVisible = false } },
+                    onCancelSelection = { changeBrowseScope { selecting = false; selected = emptyList() } },
+                )
+                if (canBrowse && !selecting && access.level != AccessLevel.NONE) {
+                    TextButton(onClick = { if (actionLifetime.isActive) controlsVisible = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                        Text(stringResource(R.string.drift_scope_summary, filterLabel, sortLabel,
+                            stringResource(if (viewMode == "GRID" || destination == Destination.ALBUMS && albumId == null) R.string.drift_grid else R.string.drift_ribbon)) + if (query.isNotBlank()) " · " + stringResource(R.string.drift_search_active) else "")
                     }
-                    Column(Modifier.weight(1f)) {
-                        Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        if (!selecting && destination != Destination.SETTINGS && destination != Destination.CLEANUP) {
-                            Text(pluralStringResource(R.plurals.media_count, filtered.size, filtered.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    if (selecting) TextButton(onClick = { selecting = false; selected = emptyList() }) { Text(stringResource(R.string.cancel)) }
-                    else if (destination != Destination.SETTINGS && destination != Destination.CLEANUP && destination != Destination.ALBUMS && visibleMedia.isNotEmpty()) {
-                        TextButton(onClick = { if (actionLifetime.isActive && !loading && !loadFailed) selecting = true }) { Text(stringResource(R.string.select)) }
-                    }
-                }
-                if (destination != Destination.SETTINGS && destination != Destination.CLEANUP && access.level != AccessLevel.NONE) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it; selected = emptyList() },
-                        placeholder = { Text(stringResource(R.string.search_media)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        trailingIcon = if (query.isNotEmpty()) ({ IconButton(onClick = { query = ""; selected = emptyList() }) { MarkIcon(Mark.CLOSE, stringResource(R.string.clear_search)) } }) else null,
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                    )
-                    LibraryControls(mediaFilter, mediaSort,
-                        onFilter = { if (it != mediaFilter) { filterName = it.name; selected = emptyList() } },
-                        onSort = { sortName = it.name },
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                    )
                 }
             }
         },
         bottomBar = {
             if (selecting) {
-                Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    TextButton(onClick = { if (!loading && !loadFailed) share(selectedMediaInView(selected.toSet(), filtered)) }, enabled = !loading && !loadFailed && selectedInView.isNotEmpty()) { MarkIcon(Mark.SHARE, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.share)) }
+                FlowRow(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    TextButton(onClick = { if (!loading && !loadFailed) share(selectedMediaInView(selected.toSet(), filtered)) }, enabled = !loading && !loadFailed && selectedInView.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp)) { MarkIcon(Mark.SHARE, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.share)) }
                     TextButton(onClick = {
                         val chosen = galleryActionItems(selectedMediaInView(selected.toSet(), filtered), media, loading, loadFailed, actionLifetime)
                         if (chosen.isNotEmpty()) {
                             saveFavorites(favorites + chosen.map { it.id })
                             scope.launch { snackbar.showSnackbar(favoriteConfirmation) }
                         }
-                    }, enabled = !loading && !loadFailed && selectedInView.isNotEmpty()) { MarkIcon(Mark.HEART, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.favorites)) }
+                    }, enabled = !loading && !loadFailed && selectedInView.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp)) { MarkIcon(Mark.HEART, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.favorites)) }
                 }
-            } else NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                Destination.entries.forEach { entry ->
-                    NavigationBarItem(
-                        selected = destination == entry,
-                        onClick = { destinationName = entry.name; albumId = null; query = ""; selected = emptyList() },
-                        icon = { MarkIcon(entry.mark, null) },
-                        label = { Text(stringResource(entry.label)) },
-                    )
-                }
-            }
+            } else if (compactChrome) {
+                TextButton(onClick = { if (actionLifetime.isActive) navigationVisible = true }, modifier = Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 48.dp)) { Text(stringResource(R.string.drift_navigate)) }
+            } else DriftDock(
+                entries = Destination.entries.filter { it != Destination.SETTINGS }.map { DriftDockEntry(it.name, stringResource(it.label), it.mark, it == destination) },
+                onNavigate = { name -> changeBrowseScope { destinationName = name; albumId = null; query = ""; selected = emptyList(); controlsVisible = false } },
+            )
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
@@ -424,7 +467,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                                 }
                             },
                             currentFavorites = { favorites }, currentAliases = { legacyFavoriteMatches },
-                            openMember = { item -> galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { openedId = sourceUiToken(it) } },
+                            openMember = { item -> if (destinationName == Destination.CLEANUP.name) openViewer(item) },
                         ))
                     },
                     onCancel = { cleanup.stop(expectedScan) },
@@ -482,35 +525,106 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                         val emptyTitle = when { query.isNotBlank() -> R.string.no_results_title; mediaFilter == MediaFilter.VIDEOS -> R.string.no_videos_title; mediaFilter == MediaFilter.PHOTOS -> R.string.no_photos_title; unmatchedFavorites -> R.string.favorites_unavailable_title; destination == Destination.FAVORITES -> R.string.no_favorites_title; else -> R.string.empty_title }
                         val emptyBody = when { query.isNotBlank() -> R.string.no_results_body; mediaFilter != MediaFilter.ALL -> R.string.filter_empty_body; unmatchedFavorites -> R.string.favorites_unavailable_body; destination == Destination.FAVORITES -> R.string.no_favorites_body; else -> R.string.empty_body }
                         MessagePanel(emptyTitle, emptyBody) {
-                            if (mediaFilter != MediaFilter.ALL) TextButton(onClick = { filterName = MediaFilter.ALL.name; selected = emptyList() }) { Text(stringResource(R.string.show_all_media)) }
+                            if (mediaFilter != MediaFilter.ALL) TextButton(onClick = { changeBrowseScope { filterName = MediaFilter.ALL.name; selected = emptyList() } }) { Text(stringResource(R.string.show_all_media)) }
                             else if (unmatchedFavorites) TextButton(onClick = ::reload) { Text(stringResource(R.string.refresh)) }
                             else if (query.isBlank() && destination != Destination.FAVORITES) TextButton(onClick = ::changeAccess) { Text(stringResource(R.string.change_access)) }
                         }
                     }
-                    destination == Destination.ALBUMS && albumId == null -> AlbumGrid(filtered, device, refresh, albumsPosition) { id -> albumId = id }
+                    destination == Destination.ALBUMS && albumId == null -> AlbumGrid(filtered, device, refresh, albumsPosition) { id ->
+                        if (drift.isCurrent(driftSnapshot)) changeBrowseScope { albumId = id }
+                    }
+                    !selecting && viewMode == "RIBBON" && focused != null && driftSnapshot.isUsable && drift.isCurrent(driftSnapshot) -> key(driftSnapshot) {
+                        val current = filtered[focused.index]
+                        DriftRibbon(filtered, driftSnapshot, focused, device, refresh, current.id in favoriteIds,
+                            heading = if (albumId != null) albumTitle else stringResource(if (destination == Destination.FAVORITES) R.string.favorites else R.string.photos),
+                            day = drift.dayOf(driftSnapshot, focused.sourceUiToken),
+                            rail = drift.rail(driftSnapshot, focused.sourceUiToken, railStart),
+                            hasUnknownDate = drift.jump(driftSnapshot, null) != null,
+                            canInteract = ::focusedCurrent,
+                            onMove = { direction -> if (focusedCurrent()) focus(drift.move(driftSnapshot, focused.sourceUiToken, direction)) },
+                            onJump = { date -> if (focusedCurrent()) focus(drift.jump(driftSnapshot, date)) else false },
+                            onPage = { start -> if (focusedCurrent()) railStart = start },
+                            onOpen = { if (focusedCurrent()) openViewer(current) },
+                            onFavorite = {
+                                if (focusedCurrent()) galleryActionItems(listOf(current), media, loading, loadFailed, actionLifetime).singleOrNull()?.let {
+                                    val matched = favoriteKeysForSource(it.id, favorites, legacyFavoriteMatches)
+                                    saveFavorites(if (matched.isEmpty()) favorites + it.id else favorites - matched)
+                                }
+                            },
+                            onSelect = { if (focusedCurrent()) galleryActionItems(listOf(current), media, loading, loadFailed, actionLifetime).singleOrNull()?.let {
+                                changeBrowseScope { viewMode = "GRID"; selecting = true; selected = listOf(sourceUiToken(it)) }
+                            } },
+                            onGrid = { if (focusedCurrent()) changeBrowseScope { viewMode = "GRID" } },
+                        )
+                    }
                     else -> PhotoGrid(filtered, device, refresh, selectedInView.mapTo(mutableSetOf()) { it.id }, selecting, groupByMonth = mediaSort != MediaSort.NAME,
                         position = if (albumId != null) albumPhotosPosition else if (destination == Destination.FAVORITES) favoritesPosition else photosPosition,
-                        onOpen = { item -> galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { openedId = sourceUiToken(it) } },
-                        onToggle = { item -> galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current -> val token = sourceUiToken(current); selected = if (token in selected) selected - token else selected + token } },
-                        onStartSelection = { item -> galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current -> selecting = true; val token = sourceUiToken(current); if (token !in selected) selected = selected + token } },
+                        onOpen = { item -> if (drift.isCurrent(driftSnapshot)) openViewer(item) },
+                        onToggle = { item -> if (drift.isCurrent(driftSnapshot)) galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current -> val token = sourceUiToken(current); selected = if (token in selected) selected - token else selected + token } },
+                        onStartSelection = { item -> if (drift.isCurrent(driftSnapshot)) galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current ->
+                            changeBrowseScope { selecting = true; viewMode = "GRID"; val token = sourceUiToken(current); if (token !in selected) selected = selected + token }
+                        } },
                     )
                 }
             }
         }
     }
 
-    if (openedId != null) visibleMedia.firstOrNull { sourceUiToken(it) == openedId }?.let { item ->
-        MediaViewer(item, device, refresh, item.id in favoriteIds,
-            onClose = { openedId = null },
-            onShare = { share(listOf(item)) },
-            onFavorite = {
-                galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current ->
-                    val matched = favoriteKeysForSource(current.id, favorites, legacyFavoriteMatches)
-                    saveFavorites(if (matched.isEmpty()) favorites + current.id else favorites - matched)
+    if (navigationVisible) {
+        AlertDialog(onDismissRequest = { navigationVisible = false },
+            title = { Text(stringResource(R.string.drift_navigate)) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    Destination.entries.forEach { entry ->
+                        TextButton(onClick = { changeBrowseScope { destinationName = entry.name; albumId = null; query = ""; selected = emptyList(); navigationVisible = false; controlsVisible = false } }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(entry.label)) }
+                    }
                 }
             },
-            canPlay = { galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).isNotEmpty() },
+            confirmButton = { TextButton(onClick = { navigationVisible = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.close)) } },
         )
+    }
+
+    if (controlsVisible && canBrowse) {
+        AlertDialog(onDismissRequest = { controlsVisible = false },
+            title = { Text(stringResource(R.string.drift_options)) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(value = query, onValueChange = { next -> changeBrowseScope { query = next; selected = emptyList() } },
+                        label = { Text(stringResource(R.string.search_media)) }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        trailingIcon = if (query.isNotEmpty()) ({ IconButton(onClick = { changeBrowseScope { query = ""; selected = emptyList() } }) { MarkIcon(Mark.CLOSE, stringResource(R.string.clear_search)) } }) else null,
+                        modifier = Modifier.fillMaxWidth())
+                    LibraryControls(mediaFilter, mediaSort,
+                        onFilter = { next -> if (next != mediaFilter) changeBrowseScope { filterName = next.name; selected = emptyList() } },
+                        onSort = { next -> if (next != mediaSort) changeBrowseScope { sortName = next.name } })
+                    if (destination != Destination.ALBUMS || albumId != null) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(selected = viewMode == "RIBBON", onClick = { changeBrowseScope { viewMode = "RIBBON"; selecting = false; selected = emptyList() } }, label = { Text(stringResource(R.string.drift_ribbon)) }, modifier = Modifier.heightIn(min = 48.dp))
+                            FilterChip(selected = viewMode == "GRID", onClick = { changeBrowseScope { viewMode = "GRID" } }, label = { Text(stringResource(R.string.drift_grid)) }, modifier = Modifier.heightIn(min = 48.dp))
+                        }
+                        TextButton(onClick = { if (!loading && !loadFailed && visibleMedia.isNotEmpty()) changeBrowseScope { selecting = true; viewMode = "GRID"; controlsVisible = false } }, enabled = !loading && !loadFailed && filtered.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.select)) }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { controlsVisible = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.done)) } },
+        )
+    }
+
+    val viewerEntry = remember(viewerRevision) { viewers.current }
+    if (viewerEntry != null && viewers.isCurrent(viewerEntry)) visibleMedia.firstOrNull { sourceUiToken(it) == viewerEntry.sourceToken }?.let { item ->
+        key(viewerEntry) {
+            MediaViewer(item, device, refresh, item.id in favoriteIds,
+                onClose = { if (viewers.close(viewerEntry)) viewerRevision++ },
+                onShare = { if (viewers.isCurrent(viewerEntry)) share(listOf(item)) },
+                onFavorite = {
+                    if (viewers.isCurrent(viewerEntry)) galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current ->
+                        val matched = favoriteKeysForSource(current.id, favorites, legacyFavoriteMatches)
+                        saveFavorites(if (matched.isEmpty()) favorites + current.id else favorites - matched)
+                    }
+                },
+                canPlay = { viewers.isCurrent(viewerEntry) && galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).isNotEmpty() },
+            )
+        }
     }
 }
 

@@ -1,11 +1,13 @@
 package app.still.gallery.ui
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -19,38 +21,41 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
-private val LightColors = lightColorScheme(
-    primary = Color(0xFF3F5871),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFE0E7EC),
-    onPrimaryContainer = Color(0xFF233B50),
-    background = Color(0xFFF7F6F2),
-    onBackground = Color(0xFF272925),
-    surface = Color(0xFFF7F6F2),
-    onSurface = Color(0xFF272925),
-    surfaceVariant = Color(0xFFEBEAE4),
-    onSurfaceVariant = Color(0xFF62665F),
-    outline = Color(0xFF777B73),
-)
+internal val DriftInk = Color(0xFF111315)
+internal val DriftIvory = Color(0xFFF3EFE5)
+internal val DriftCoral = Color(0xFFEF885F)
 
-private val DarkColors = darkColorScheme(
-    primary = Color(0xFFB3CADB),
-    primaryContainer = Color(0xFF334B60),
-    onPrimaryContainer = Color(0xFFDDE8F0),
-    background = Color(0xFF1D211F),
-    surface = Color(0xFF1D211F),
-    onSurface = Color(0xFFE7E9E2),
-    onBackground = Color(0xFFE7E9E2),
-    surfaceVariant = Color(0xFF343A35),
-    onSurfaceVariant = Color(0xFFBDC6BB),
+private val DriftColors = darkColorScheme(
+    primary = DriftCoral,
+    onPrimary = DriftInk,
+    primaryContainer = Color(0xFF493027),
+    onPrimaryContainer = DriftIvory,
+    secondary = DriftCoral,
+    onSecondary = DriftInk,
+    secondaryContainer = Color(0xFF373A35),
+    onSecondaryContainer = DriftIvory,
+    background = DriftInk,
+    onBackground = DriftIvory,
+    surface = DriftInk,
+    onSurface = DriftIvory,
+    surfaceVariant = Color(0xFF272D2A),
+    onSurfaceVariant = Color(0xFFB9BDB5),
+    outline = Color(0xFF727970),
+    surfaceContainer = Color(0xFF1A1E1C),
+    surfaceContainerHigh = Color(0xFF272D2A),
+)
+private val DriftTypography = Typography(
+    displayLarge = TextStyle(fontFamily = FontFamily.Serif, fontSize = 46.sp, lineHeight = 49.sp, letterSpacing = (-1.2).sp),
+    headlineLarge = TextStyle(fontFamily = FontFamily.Serif, fontSize = 34.sp, lineHeight = 39.sp),
+    headlineMedium = TextStyle(fontFamily = FontFamily.Serif, fontSize = 29.sp, lineHeight = 34.sp),
 )
 
 @Composable
 fun StillTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors, content = content)
+    MaterialTheme(colorScheme = DriftColors, typography = DriftTypography, content = content)
 }
 
-enum class Mark { PHOTOS, ALBUMS, HEART, CLEANUP, SETTINGS, BACK, CLOSE, SHARE, SELECT, INFO, PLUS, MINUS, REFRESH }
+enum class Mark { PHOTOS, ALBUMS, HEART, CLEANUP, SETTINGS, BACK, CLOSE, SHARE, SELECT, INFO, PLUS, MINUS, REFRESH, NEXT, CALENDAR, GRID, RIBBON }
 
 @Composable
 fun MarkIcon(mark: Mark, description: String?, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurface) {
@@ -83,6 +88,10 @@ fun MarkIcon(mark: Mark, description: String?, modifier: Modifier = Modifier, co
                 line(1f, 12f, 4f, 12f); line(20f, 12f, 23f, 12f)
             }
             Mark.BACK -> { line(20f, 12f, 4f, 12f); line(4f, 12f, 11f, 5f); line(4f, 12f, 11f, 19f) }
+            Mark.NEXT -> { line(4f, 12f, 20f, 12f); line(20f, 12f, 13f, 5f); line(20f, 12f, 13f, 19f) }
+            Mark.CALENDAR -> { rounded(3f, 5f, 18f, 16f); line(3f, 10f, 21f, 10f); line(8f, 2f, 8f, 7f); line(16f, 2f, 16f, 7f) }
+            Mark.GRID -> { rounded(3f, 3f, 7f, 7f); rounded(14f, 3f, 7f, 7f); rounded(3f, 14f, 7f, 7f); rounded(14f, 14f, 7f, 7f) }
+            Mark.RIBBON -> { rounded(6f, 3f, 12f, 18f); line(2f, 7f, 2f, 18f); line(22f, 6f, 22f, 17f) }
             Mark.CLOSE -> { line(6f, 6f, 18f, 18f); line(18f, 6f, 6f, 18f) }
             Mark.SHARE -> {
                 line(8f, 9f, 16f, 5f); line(8f, 15f, 16f, 19f)

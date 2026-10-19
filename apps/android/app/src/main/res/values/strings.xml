@@ -208,4 +208,24 @@
         <item quantity="one">%1$d copy marked as extra for review. This is reversible and does not authorize removal.</item>
         <item quantity="other">%1$d copies marked as extra for review. This is reversible and does not authorize removal.</item>
     </plurals>
+    <string name="drift_search">Search</string>
+    <string name="drift_options">View options</string>
+    <string name="drift_open_photo">Open photo</string>
+    <string name="drift_open_video">Open video</string>
+    <string name="drift_previous">Previous</string>
+    <string name="drift_next">Next</string>
+    <string name="drift_grid">Grid view</string>
+    <string name="drift_ribbon">Ribbon view</string>
+    <string name="drift_position">%1$d of %2$d in this view</string>
+    <string name="drift_dates">Browse dates</string>
+    <string name="drift_jump">Jump to date</string>
+    <string name="drift_previous_dates">Previous dates</string>
+    <string name="drift_next_dates">Next dates</string>
+    <string name="drift_date_scope">Dates navigate this view. Your selected sort stays in place.</string>
+    <string name="drift_date_format">Enter a date in this view using YYYY-MM-DD.</string>
+    <string name="drift_date_label">Year-month-day</string>
+    <string name="drift_date_absent">No item in this view has that date. Check the date and format.</string>
+    <string name="drift_scope_summary">%1$s · %2$s · %3$s</string>
+    <string name="drift_navigate">Navigate Still</string>
+    <string name="drift_search_active">Filename search active</string>
 </resources>

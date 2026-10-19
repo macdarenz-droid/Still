@@ -5,6 +5,13 @@ import android.text.format.Formatter
 import android.widget.MediaController
 import android.widget.VideoView
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
+import app.still.gallery.media.sourceUiToken
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -63,14 +70,17 @@ import java.time.format.FormatStyle
 
 @Composable
 fun MediaViewer(item: MediaItem, device: DeviceMedia, generation: Int, favorite: Boolean, onClose: () -> Unit, onShare: () -> Unit, onFavorite: () -> Unit, canPlay: () -> Boolean) {
-    var details by remember(item.id) { mutableStateOf(false) }
-    var scale by remember(item.id) { mutableFloatStateOf(1f) }
-    var panX by remember(item.id) { mutableFloatStateOf(0f) }
-    var panY by remember(item.id) { mutableFloatStateOf(0f) }
+    val photoKey = sourceUiToken(item)
+    val opening = remember(photoKey, generation) { Animatable(if (item.isVideo) 1f else 0f) }
+    LaunchedEffect(photoKey, generation) { opening.animateTo(1f, tween(420, easing = FastOutSlowInEasing)) }
+    var details by remember(photoKey, generation) { mutableStateOf(false) }
+    var scale by remember(photoKey, generation) { mutableFloatStateOf(1f) }
+    var panX by remember(photoKey, generation) { mutableFloatStateOf(0f) }
+    var panY by remember(photoKey, generation) { mutableFloatStateOf(0f) }
     val white = Color(0xFFF0F1EB)
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         BackHandler(onBack = onClose)
-        Column(Modifier.fillMaxSize().background(Color(0xFF171C1A)).safeDrawingPadding()) {
+        Column(Modifier.fillMaxSize().background(DriftInk).safeDrawingPadding()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onClose) { MarkIcon(Mark.CLOSE, stringResource(R.string.close), color = white) }
                 Text(item.name, Modifier.weight(1f).padding(horizontal = 8.dp), color = white, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
@@ -79,7 +89,7 @@ fun MediaViewer(item: MediaItem, device: DeviceMedia, generation: Int, favorite:
             Box(Modifier.fillMaxWidth().weight(1f).clipToBounds(), contentAlignment = Alignment.Center) {
                 if (item.isVideo) VideoPlayer(item, canPlay)
                 else LibraryImage(item, device, generation,
-                    Modifier.fillMaxSize().pointerInput(item.id) {
+                    Modifier.fillMaxSize().pointerInput(photoKey, generation) {
                         detectTransformGestures { _, pan, zoom, _ ->
                             scale = (scale * zoom).coerceIn(1f, 5f)
                             val maxX = size.width * (scale - 1f) / 2
@@ -87,13 +97,17 @@ fun MediaViewer(item: MediaItem, device: DeviceMedia, generation: Int, favorite:
                             panX = (panX + pan.x).coerceIn(-maxX, maxX)
                             panY = (panY + pan.y).coerceIn(-maxY, maxY)
                         }
-                    }.graphicsLayer(scaleX = scale, scaleY = scale, translationX = panX, translationY = panY),
-                    edge = 1600, contentScale = ContentScale.Fit, backgroundColor = Color(0xFF171C1A),
+                    }.graphicsLayer {
+                        val entryScale = .94f + .06f * opening.value
+                        scaleX = scale * entryScale; scaleY = scale * entryScale
+                        translationX = panX; translationY = panY; alpha = opening.value
+                    },
+                    edge = 1600, contentScale = ContentScale.Fit, backgroundColor = DriftInk,
                 )
             }
             Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                 IconButton(onClick = onShare) { MarkIcon(Mark.SHARE, stringResource(R.string.share), color = white) }
-                IconButton(onClick = onFavorite) { MarkIcon(Mark.HEART, stringResource(if (favorite) R.string.unfavorite else R.string.favorite), color = if (favorite) Color(0xFFB3CADB) else white) }
+                IconButton(onClick = onFavorite) { MarkIcon(Mark.HEART, stringResource(if (favorite) R.string.unfavorite else R.string.favorite), color = if (favorite) DriftCoral else white) }
                 if (!item.isVideo) {
                     IconButton(onClick = { scale = (scale - .5f).coerceAtLeast(1f); panX = 0f; panY = 0f }, enabled = scale > 1f) { MarkIcon(Mark.MINUS, stringResource(R.string.zoom_out), color = if (scale > 1f) white else white.copy(alpha = .3f)) }
                     IconButton(onClick = { scale = (scale + .5f).coerceAtMost(5f) }, enabled = scale < 5f) { MarkIcon(Mark.PLUS, stringResource(R.string.zoom_in), color = if (scale < 5f) white else white.copy(alpha = .3f)) }
@@ -105,7 +119,7 @@ fun MediaViewer(item: MediaItem, device: DeviceMedia, generation: Int, favorite:
             AlertDialog(onDismissRequest = { details = false },
                 title = { Text(stringResource(if (item.isVideo) R.string.video_details_title else R.string.details_title)) },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(item.name)
                         Text(if (item.capturedAt <= 0) stringResource(R.string.unknown_date) else DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).format(Instant.ofEpochMilli(item.capturedAt).atZone(ZoneId.systemDefault())))
                         Text(if (item.width > 0 && item.height > 0) stringResource(R.string.dimensions, item.width, item.height) else stringResource(R.string.unknown_dimensions))
