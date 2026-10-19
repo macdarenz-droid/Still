@@ -183,6 +183,9 @@ private fun VideoPlayer(item: MediaItem, canPlay: () -> Boolean) {
 
 /** Observe BOTH explicit and platform-controller play/pause actions without polling. */
 private class PlaybackVideoView(context: Context, private val canStart: () -> Boolean) : VideoView(context) {
+    // Layout-tool construction has no gallery authority and must remain unable to start.
+    constructor(context: Context) : this(context, { false })
+
     var playbackChanged: ((Boolean) -> Unit)? = null
     var playbackSeeked: (() -> Unit)? = null
     var playbackError: (() -> Unit)? = null
