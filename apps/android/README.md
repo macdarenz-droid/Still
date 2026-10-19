@@ -38,9 +38,9 @@ visibility, never the recorded existence of an original.
 Every reload clears visible rows and legacy Favorite aliases, including unchanged
 FULL grants. Only pending source UI tokens may survive for fresh reconciliation.
 Grid/viewer rendering and queued open/select/share/favorite callbacks also check
-current loading/failure and source-token eligibility, so old callbacks cannot act
-on a reused URI during or after a refresh.
-Every action also reads the controller's current gallery authority through a
+current loading/failure and source-token eligibility. Callbacks are denied while
+loading and when the refreshed observed source token differs.
+Queued media, permission and settings actions also read the controller's current gallery authority through a
 required callback and a one-way, memory-only gallery lifetime. Permission/settings
 launches and async result/error publication use the same gate. Disposal ends the
 old lifetime permanently; later authentication creates a fresh gallery scope.
