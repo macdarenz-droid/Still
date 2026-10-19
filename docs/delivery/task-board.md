@@ -510,3 +510,10 @@ file. Strict lint rejected the platform parser for known older-Android security
 issues; preserve the gate and replace its import with AndroidX. No builder edits
 dependency files or adds another library. Google Maven metadata identifies1.4.2
 as the current release; no lockfile is hand-written.
+
+S29 is integrated from `58c58026` + `a7b7e49`; S33 from `bf8e2ec`; S30's own
+series is `731d636` → `5f8f784` → `2947c03`. Builder implementation readiness,
+source preflight and S31 copy clearance are recorded in acceptance; neither is
+checkpoint approval. Root now freezes the combined225-case candidate for full
+checks, actual APK audit and S32's separate local and hosted gates. The final
+immutable source/artifact outcome is `.artifacts/cp10-validation.json` and PR1.

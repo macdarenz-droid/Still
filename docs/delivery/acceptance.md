@@ -1122,3 +1122,42 @@ verified against Google's Maven release metadata. Frontend must replace the
 platform import and unused layout, then rerun exact final checks. The final APK
 audit must account for this one dependency while preserving permissions and
 backup exclusions.
+
+Frozen S29 components `58c58026` and `a7b7e49`, S33 test commit `bf8e2ec`, and
+S30's own ordered commits `731d636`, `5f8f784`, `2947c03` are integrated without
+the frontend's duplicate S29 imports. Integrated production/test bytes match the
+builders' final objects. S29 adds24 cases, S33 adds24 and S30 adds18; the root
+candidate must run all225 including the unchanged159 baseline cases. All74
+backend cases and their files remain unchanged.
+
+The component findings above are corrected in the frozen source: ticket/member
+publication binding; verified descriptor-anchored child operations; explicit
+Android raw-descriptor ownership and retained failed closes; original-filesystem
+retention across recreation; actual worker/admission lifetime; source withdrawal
+cleanup; distinct maintenance/action identities; never-started worker completion;
+and bounded transform reset. The strict lint corrections use the approved EXIF
+dependency, without suppressions. Independent reviewer and red-team source
+preflights both found no remaining blocker; this is not final acceptance.
+
+S29's full183 cases/assemble/strict lint pass; S30's combined201 pass with the
+exact root build dependency. S33 passes24 cases on final S29, then passes again
+after its publication-only counterfactual is restored. Six S29 narrow removed-
+guard counterfactuals each cause one intended assertion failure (failed-close
+retention, admission release, whole-pair source probe, readback digest, old
+filesystem retention and anchored create). Three UI counterfactuals each cause
+one intended assertion failure (maintenance identity, never-started completion
+and automatic hidden-source cleanup). The S33 publication counterfactual causes
+three assertion failures, with zero errors/skips. Exact patches, hashes, XML and
+logs are retained at `/tmp/still-cp10-s29-evidence/`,
+`/tmp/still-cp10-ui-evidence/` and
+`/tmp/still-cp10-s33-evidence/final-a7b7e49/`. Earlier genuine failing evidence
+remains intact. Reviewer independently reran42 core/UI cases successfully.
+
+S31's integrated copy audit at `6528adc` is clear, including actual temporary-copy
+limits, the inherited metadata scope cap, delayed/failed cleanup and honest
+readable-representation claims. Final root full checks, actual local APK audit,
+separate exact-source/artifact verdicts and each hosted confirmation remain
+required. The immutable final record and draft PR1 will bind the candidate SHA,
+APK identity and final outcomes; the next checkpoint promotes that outcome here.
+No host or platform-source evidence establishes real Android FD/proc behavior,
+EXIF/codec rendering, gestures, MediaStore, low storage or process/power loss.
