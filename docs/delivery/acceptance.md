@@ -796,3 +796,93 @@ Recents surfaces, system prompt policy, authentication/lifecycle/accessibility a
 performance remain blocked/unverified until observed on identified hardware.
 Rollback by reverting CP7 and installing a compatible retained build with local
 app data preserved. No main merge, production signing or publication is included.
+
+## CP7 final development outcome (recorded by the next checkpoint)
+
+Final source `e477f09667c6bf19fe747639b4b668762129a0b3` passed separate exact
+local-source/APK reviewer and red-team gates and each independent hosted gate.
+[PR run39216099433](https://github.com/macdarenz-droid/Still/actions/runs/39216099433)
+and [push run39216092858](https://github.com/macdarenz-droid/Still/actions/runs/39216092858)
+completed successfully, all four checks green. All155 unchanged JVM cases,
+assemble/strict lint, TypeScript,27 backend cases,11 discovery and18 host-SQL
+probes passed. Actual local APK:12,259,057 bytes, SHA-256
+`f4b56261a9b675a90eccd9f5fe3b9fd574228de24e38e26f24655fe279057f38`.
+Signature/compiled app-owned capture paths/manifest/permissions/backup/ZIP/8SQL
+checks passed. Delivery `.artifacts/deliveries/still-cp7-e477f09.apk`; full record
+`.artifacts/cp7-validation.json`. No hosted binary was downloaded or presumed equal.
+Real capture/recording/Recents/upgrade and other native/device checks remained open.
+
+## CP8 — Ribbon navigation freeze
+
+The owner reports that a left swipe stops ribbon navigation, Next also stops,
+and switching tabs restores it. Device/API and a native recording are not yet
+available. The owner then asked to continue the architecture; responsive R01
+browsing and section4.2 interaction behavior make this repair the current checkpoint.
+
+The initial hypothesis was that a retained pointer job combined a current permission
+check with an older movement action. Compiled Compose1.12.1 code restarts that job
+when its focus key changes, so ordinary retention was not proven. Do not present
+that conditional hypothesis as the established device cause or refactor the
+pointer detector solely for it.
+
+Both independent source investigations instead identified the shared gate defect.
+StillApp supplies the local Kotlin reference `::focusedCurrent`. Distinct A/B
+references compare equal under FunctionReference equality even though the compiled
+objects capture different focus entries. DriftRibbon's structural-equality
+`rememberUpdatedState(canInteract)` retains A after B is published. A then fails
+the exact-focus check, blocking both swipe and Next until tab disposal recreates
+the holder. Existing policy-only tests did not exercise this Compose publication
+step; keep those155 cases and add production state/callback regressions.
+
+Reviewer proof `/tmp/StillCapturedGateProbe.java` and
+`/tmp/still-reviewer-cp8-captured-gate-probe.log` uses the actual generated reference
+class and Compose state: distinct references compare equal and structural state
+retains A. Its first probe uses null navigation/snapshot placeholders and inspects
+the captured entry before calling the production interaction guard; it does not
+invoke those incomplete compiled callbacks or reproduce Android touch delivery.
+The supplemental `/tmp/StillCapturedGateFullProbe.java` and
+`/tmp/still-reviewer-cp8-full-gate-probe.log` use three real media rows,
+production source tokens and a real S17 snapshot. Direct generated-callback
+invocation proves A is initially true, false after A→B, while B is true despite
+equality. Structural Compose state retains A/denies; referential state publishes
+B/allows. The separate red team independently reran this probe successfully.
+This is actual compiled callback/state execution, not an Android gesture claim.
+Final regression details follow.
+
+S23/S24 require reference-identity callback publication while preserving the original
+exact focus/source/action guards, pointer keys, finite motion and five-card bound.
+No new permission/dependency/schema/IO/media mutation or capture-policy reversal.
+New focused cases must reproduce equal-comparing real Kotlin captured references,
+show current controls remain usable and prove old captured actions still fail.
+An isolated structural-policy counterfactual must fail the real new regressions.
+
+S23 builder `a1674993392a13bc7175fc0cbe72104fae6c8ccc` is integrated with
+exactly three owned files: a tiny reference-policy state holder, the two-line
+Ribbon adapter replacement and four new focused cases. StillApp, detector keys,
+raw actions, source/focus policies and all155 prior cases remain byte-identical.
+Focused cases pass4/0; the independent reviewer also ran those actual compiled
+cases and inspected the adapter. The separate red-team source preflight is clear.
+
+The isolated counterfactual changes only the production holder's import/call
+from `referentialEqualityPolicy` to `structuralEqualityPolicy`. All four tests
+then fail assertions (zero errors/skips), including the shared button/swipe
+sequence failing after its first move. Fixed cases pass with the same tests;
+no detector, assertions or guards were weakened. Evidence:
+`/tmp/still-cp8-evidence/summary.json`, `fixed-4.xml`,
+`structural-policy-mutant-4.xml`, `structural-policy-mutant.patch`,
+`/tmp/still-cp8-gate-focused-fixed.log`,
+`/tmp/still-cp8-gate-structural-mutant.log` and
+`/tmp/still-reviewer-cp8-gate-junit.log`. These prove actual state/callback
+behavior, not native gesture/frame behavior. Root full159 checks and artifact
+gates remain required before development delivery.
+
+After the final owned changes are committed, root must run full assemble/all
+JVM/strict lint and `npm run check`, audit the actual local APK, obtain both
+independent exact-source/APK passes and each hosted confirmation, and update draft
+PR1. Record final immutable source/APK/results/verdicts in
+`.artifacts/cp8-validation.json` and preserve a versioned local delivery. The next
+checkpoint promotes that outcome here without a self-referential final SHA.
+Native repeated touch/button sequences, interruptions, motion/accessibility and
+hardware behavior remain blocked until observed; source/runtime proof does not
+replace those observations. Restore a compatible retained build with local app
+data preserved to roll back. No production signing, main merge or publication.

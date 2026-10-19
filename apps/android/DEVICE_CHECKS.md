@@ -113,6 +113,8 @@ establish native rendering, gestures, motion, focus, accessibility or performanc
 
 | Environment | Procedure | Expected result | Status |
 | --- | --- | --- | --- |
+| All | On Photos/Favorites/album Ribbon, swipe left repeatedly, alternate Next/Previous with swipes in both directions, reach both ends, and return without switching tabs | After every focus change both controls remain usable; no stuck gate, unexpected open/selection or tab-switch workaround; bounds stay on the current item | Blocked |
+| All | After repeated ribbon moves, change dates/pages, refresh/restrict access, leave/lock and return; attempt retained old input | Fresh permitted view remains usable; old exact-focus/snapshot actions stay denied, including A→B→A | Blocked |
 | API 26–37 | Browse Photos, Favorites and album contents; drag and use Previous/Next/Open; reach both ends | At most five ribbon previews; no wrap; same current ordered row from buttons and gestures; real filename/date/count | Blocked |
 | All | Start a drag, navigate A→B→A or jump to the same row, then release; change query/type/sort/album/destination/Ribbon/Grid/selection | Old completion cannot override later focus or act on another view; replacement at the same URI cannot inherit gesture/viewer state | Blocked |
 | All | Refresh to identical-looking rows; reset provider/reuse URI; withdraw same-bit partial access; lock before composition disposal | Immediate old-card/viewer removal and stale-action rejection; no retained exit frame or old thumbnail publication | Blocked |

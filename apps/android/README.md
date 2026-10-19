@@ -64,6 +64,11 @@ or replaced callbacks cannot edit or close a later opening. Ongoing edits within
 the same active Options dialog intentionally update its view scope. Existing native action gates
 still decide whether any media can be opened/shared/favorited.
 
+The shared input gate publishes captured callbacks by reference identity. Kotlin
+local function references can compare equal despite different captured focus;
+structural equality must not keep an earlier gate and block both Swipe and Next.
+This publication repair preserves the original exact-focus and action guards.
+
 Ribbon focus uses finite Compose springs; photo opening uses a restrained 420ms
 scale/fade. Both run in the existing Compose motion context, which observes Android
 animator duration scale. No custom settings reader or perpetual animation is added.
