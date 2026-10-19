@@ -13,6 +13,12 @@ through fresh, unambiguous provider-resolved alias evidence in memory. Keep raw
 saved references intact; ambiguous/unavailable references stay saved with an
 honest notice. No guessed volume binding, invisible metadata exposure or automatic
 reference rewrite is permitted. Explicit unfavorite targets proven matching keys.
+CP3 saved only URI references, without historical birth or content evidence.
+Compatibility can therefore establish current Android reference equivalence only;
+it cannot prove historical identity after an old handle is reused. Exact-URI
+lookups run sequentially on IO with cancellation and final namespace/epoch checks.
+Their cost grows with eligible saved references; large-Favorites upgrade latency
+remains unmeasured device work.
 
 These IDs identify local observations, not pinned byte content. Provider, storage
 volume, database incarnation and row provenance must participate in continuity;

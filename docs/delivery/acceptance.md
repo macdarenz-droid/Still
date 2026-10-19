@@ -317,3 +317,70 @@ The local validation record independently retains both verdicts and hosted IDs.
 No hosted binary inspection, native lock/device-security acceptance, main merge
 or publication was inferred. This historical record remains after the PR moves
 to CP4; all device limits above remain open.
+
+## CP4 — Local catalogue and gallery controls
+
+The owner requested continuing feature checkpoints after lock. CP4 implements
+R01 / F01 / F02 as a local metadata catalogue plus media-type filters, stable date
+and filename sorting, and explicit video Play/Pause controls. It adds no runtime
+dependency, network permission, media-byte persistence, deletion or cloud job.
+ADR0004 defines the data and race boundaries. Fresh authorized MediaStore reads
+remain the sole authority for visible results; retained index rows never grant
+access or imply that a missing source was deleted.
+
+### Builder evidence and review findings
+
+- S09 source `dcedbae637f915f3f31c8dd085dc30696d85a671`, integrated as `acb1f00`,
+  adds versioned SQLite assets, namespace/incarnation history, opaque observation
+  IDs, metadata revisions and transaction/scan fencing. Twelve new pure-policy
+  JVM tests and eighteen real host-SQLite probes cover reset/handle separation,
+  optimistic revisions, constraints, bound data, rollback and close/reopen.
+  The adapter rejects destructive corruption repair and upgrade/downgrade.
+- S09 builder assemble, all45 then-current JVM tests and strict lint passed.
+  Root `npm run check` passed after integration, including all27 backend tests,
+  TypeScript/site checks and the mandatory18 SQL probes; session evidence is
+  `/tmp/still-cp4-s09-check.log`. These are component results, not final CP4 gates.
+- The SQL probe executes the same SQL assets as the Android adapter against
+  real temporary host databases. It does not execute Android SQLiteOpenHelper
+  or prove OEM SQLite, device corruption handling or power-loss durability.
+- During S10 preflight, both independent roles found a Favorites upgrade
+  regression: old aggregate `external` URI references would not match new
+  concrete-volume URIs. That candidate was not accepted or handed off. The fix
+  retains raw keys, resolves eligible exact legacy URIs through current Android
+  access, and uses only unambiguous ephemeral aliases. Unknown references stay
+  saved with generic disclosure; explicit unfavorite removes proven keys only.
+  Old preferences contain no historical birth/hash evidence, so compatibility
+  cannot prove historical photo identity after legacy handle reuse.
+- Backend owns the catalogue/schema contract; frontend owns live media queries,
+  controls, playback and compatibility. Its helper
+  `/root/frontend/android_tooling` owned only LibraryControls and then the new
+  Favorites compatibility test file. SEO is read-only. Neither independent
+  reviewer nor red team implemented these changes.
+
+### Exact candidate and remaining acceptance
+
+S10 final source, regressions and checks must be integrated before the final
+candidate is committed. Run root `npm run check`, Android assemble, all JVM tests
+and strict lint on that exact head; audit the local APK permissions/assets and
+record its SHA-256. Both independent reviewer and separate red team must pass
+the integrated source and artifact, including rechecks of the Favorites finding.
+Record exact head, commands, counts, artifact hash, verdicts and subsequent hosted
+CI in ignored `.artifacts/cp4-validation.json` and
+[draft PR1](https://github.com/macdarenz-droid/Still/pull/1). That persistent PR
+record avoids a self-referential final SHA in its own tree. Material changes
+reopen corresponding checks and both gates. No acceptance is inferred here.
+
+There is still no attached Android device or accelerated emulator. Native
+MediaStore/reset/revocation, app-lock security, SQLite failure/restart, Favorites
+upgrade, codec/player lifecycle, TalkBack/large text and large-library performance
+remain blocked/unverified in the Android device matrix. Exact legacy Favorites
+lookups are sequential and cancellation-aware; latency for large saved sets is
+unmeasured. The supplied screenshots do not establish any of these results.
+The earlier hosted binary download denial is unchanged: the handoff APK is built
+and inspected locally, with no hosted-binary equivalence claim.
+
+Rollback: revert CP4 development changes while preserving a copy of local app
+data, or uninstall the development app, which clears Still-local settings,
+Favorites and catalogue but preserves phone originals. No automatic database
+drop/repair, main merge, release signing, publication, provider account or spending
+forms part of this checkpoint.

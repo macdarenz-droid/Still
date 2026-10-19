@@ -33,8 +33,8 @@ npm run check
 
 `npm run check` typechecks TypeScript, runs required contract/fault suites,
 validates discovery assets and runs real SQLite probes against the Android
-catalogue's shared SQL assets. Missing or empty required suites/assets fail rather than report a false
-pass. The API is a local development service; authentication, consent and provider
+catalogue's shared SQL assets. Missing or empty required suites/assets fail rather
+than report a false pass. The API is a local development service; authentication, consent and provider
 availability are described in `services/api/README.md`. No media upload service or
 production login is included. Do not expose the API to the Internet.
 
@@ -70,6 +70,15 @@ Still; other galleries can still open ordinary phone photos. This is not an
 encrypted vault. Native authentication and screen-protection checks remain in the
 [device matrix](apps/android/DEVICE_CHECKS.md); see [the design](docs/decisions/0003-app-lock.md).
 
+The next development checkpoint adds All/Photos/Videos filters, newest/oldest and
+filename sorting, visible video Play/Pause controls, and an on-phone metadata
+index. Fresh Android media access governs browsing; retained index records never
+restore access to unavailable media. Older Favorites references stay saved and
+are matched only when fresh provider evidence is unambiguous. See
+[the catalogue design](docs/decisions/0004-local-catalogue.md) and checkpoint
+evidence for acceptance status. Native playback, upgrade and performance checks
+remain in the device matrix.
+
 ## Discovery preview
 
 ```sh
@@ -81,8 +90,8 @@ or visitor data collection. Domain and brand checks precede publication.
 
 ## Planned next work
 
-Local-catalogue resilience, duplicate/screenshot review, guarded
-cleanup, selective and automatic backup with verified restoration, search and
+Further catalogue hardening, duplicate/screenshot review, guarded cleanup,
+selective and automatic backup with verified restoration, search and
 memories, reference-guided try-on, PDF/DOCX/text conversion and AI-directed video
 editing remain in scope. Provider costs, data handling, proposed extensions and
 production decisions are tracked in the architecture rather than silently assumed.

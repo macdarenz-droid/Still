@@ -177,6 +177,10 @@ Backend explicitly delegated only `scripts/test-android-catalogue.py` to
 `ui/LibraryControls.kt` to `/root/frontend/android_tooling`. Parent builders retain
 their remaining source ownership, tests, commits and integration accountability.
 
+After the controls handoff, the supervisor approved reassigning that same helper
+only the new `media/MediaFavoriteCompatibilityTest.kt` regression suite. Frontend
+retained all compatibility implementation, native queries, UI and commits.
+
 Data scope is the already-authorized on-phone gallery catalogue from architecture
 sections 7–8: metadata already read for browsing, local opaque IDs and observation
 revisions. No media bytes, thumbnails, OCR, biometrics, cloud mirror, account data
