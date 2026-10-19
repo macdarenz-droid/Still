@@ -959,3 +959,34 @@ no-change evidence that expires during an adapter callback. Their logs are
 `/tmp/still-redteam-cp9-semantic.log` and
 `/tmp/still-redteam-cp9-reconcile-expiry.log`. Final frozen-head checks must cover
 all corrections together.
+
+S25 builder `ccd6745e0f1ce064d2a79fe4efa5f708a4c9f0c0` and S26 test builder
+`802993022c2608ccaa90c93d61397e1b0bb7eb63` are integrated without owned-source
+changes. S25's frozen full check passed50 backend cases (all27 preserved plus23
+new journal cases), TypeScript,11 discovery and18 host-SQL probes. S26's20 focused
+contract cases and typecheck passed separately. Root must now verify all70
+together. Logs: `/tmp/still-s25-check.log`,
+`/tmp/still-cp9-cleanup-contracts-focused.log` and
+`/tmp/still-cp9-cleanup-contracts-typecheck.log`.
+
+All seven isolated final-source counterfactuals detect the recorded defects:
+transaction-local time, failed-read clock persistence, foreign-empty reuse,
+cancellation/history rollback, confirmation provenance, constructor read snapshot
+and callback expiry. Six fail assertions; the constructor-snapshot counterfactual
+fails by rejecting a valid concurrent commit. Summary and individual logs:
+`/tmp/still-s25-counterfactuals.json` and
+`/tmp/still-s25-counterfactual-*.log`. These close component regressions, subject
+to independent effectiveness review on the exact integrated source.
+
+One new malformed-journal fixture initially assumed a read-only WAL connection
+could not create SQLite coordination sidecars. SQLite can create those files;
+the fixture now establishes DELETE mode before its baseline, preserving byte and
+sidecar assertions that detect premature writable WAL setup. Existing tests are
+unchanged. The accepted claim is no application PRAGMA/DDL/record repair before
+validation, not sidecar-free reads of every WAL database.
+
+The frozen integrated candidate still needs root full checks, actual local APK
+audit and both independent exact-source/artifact and hosted verdicts. Final
+immutable evidence belongs in `.artifacts/cp9-validation.json` and draft PR1;
+the next checkpoint promotes that final outcome here. Native source pinning,
+trash/restore, power loss and provider behavior remain unimplemented/unverified.

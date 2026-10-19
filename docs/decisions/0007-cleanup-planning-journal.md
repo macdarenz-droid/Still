@@ -42,6 +42,8 @@ Check identity/version/expected schema before writable PRAGMAs or schema changes
 initialize only a genuinely empty database. Foreign, corrupt, unsupported or
 malformed journals fail closed without drop, repair, reset, pruning or mutation.
 Valid uncertainty records stay retained and change only through guarded commands.
+SQLite itself may create WAL coordination sidecars during a read-only open;
+preflight performs no writable PRAGMAs, schema changes or record repair.
 Reject foreign triggers/views/indexes and shape-valid but impossible stored states;
 an application ID and parseable JSON alone do not establish a supported journal.
 The existing ControlPlane gets only a nonzero foreign-application-ID rejection

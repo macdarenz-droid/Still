@@ -463,3 +463,10 @@ from packaging; do not infer phone/native journal integration. Real native trash
 restore, power loss, capture/motion/accessibility and provider operations remain
 unverified/unimplemented as recorded. Roll back with journal/WAL retained; do not
 drop/reset records. No main merge, production signing, spending or publication.
+
+S25 and S26 frozen components are integrated from `ccd6745` and `8029930`;
+all27 prior backend cases/assertions remain unchanged, with23 new journal cases
+and20 parser cases. Component checks and seven defect counterfactuals pass their
+intended gates. S27 final copy recheck and S28 exact root/local-APK/hosted gates
+remain pending. Record the final immutable candidate in
+`.artifacts/cp9-validation.json` and draft PR1 before development handoff.
