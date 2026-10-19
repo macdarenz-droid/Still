@@ -39,6 +39,10 @@ all old progress/results/actions. A blocked provider call may not return promptl
 after cancellation. Close/cancel handles best effort and show honest stopping
 state; a process-wide bounded admission lane prevents overlapping/recreated runs
 from accumulating readers. Do not silently queue or automatically resume scans.
+The initial bounds are one nonqueueing process-wide slot held until actual
+close/finally, a64KiB buffer,50,000 fresh snapshot rows (larger scope aborts with
+an explicit limit), and16GiB per readable stream (excess is counted without
+partial evidence). These are scan coverage bounds, not limits on gallery browsing.
 
 Review uses current favorite evidence and current protection revision, never a
 frozen eligibility badge. Favorites, protected content and all manually selected
