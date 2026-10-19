@@ -85,10 +85,10 @@ published are separate statuses. No publication is part of this task.
 CP0 scaffold/workflow: accepted with independent reviewer and red-team passes.
 S01 backend and S03 discovery components: both roles passed exact source commits;
 the original S03 reflow failure and regression fix remain in acceptance evidence.
-S02 Android: initial APK compiled and 7 unit tests passed. Strict lint prompted
-source fixes and a researched current dependency/toolchain update; final checks
-are in progress.
-Combined CP1 and final CP2 are pending. Nothing is published.
+S02 Android: current APK build, 8 JVM tests and strict lint pass. Both independent
+roles passed the final preview-regression fix after reopening the earlier source
+pass. All components are integrated; combined CP1 checks and dual review are next.
+Final CP2 is pending. Nothing is published.
 
 ## Remaining product sequence
 

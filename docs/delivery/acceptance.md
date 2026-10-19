@@ -48,7 +48,8 @@ Component evidence before combined acceptance:
 | S01 control plane | c118431e11e6303cd5026ae59ca61805ec7ecf65 | Pass | Pass | 27 tests + typecheck; development-only, no providers |
 | S03 discovery (initial) | 3eb647ee4d507701a08e7c5ceed3ae5ffc1a9ed1 | Changes requested | Source pass | 200% text at 320 overflowed; not accepted |
 | S03 discovery (fixed) | cc2d689c6e76b139ca8dd79e9b93f4ebbef212d5 | Pass | Pass | Full-element200% at 320/390 now fits; no publication |
-| S02 native gallery | Pending compiled SHA | Preflight only | Preflight only | Source fixes applied; compile/unit/lint still running |
+| S02 native gallery (superseded) | 0699dec77a39907a8c8a8d5568b0a59a99f99d10 | Pass, then reopened | Pass, then reopened | Same-URI edited preview issue found before integration |
+| S02 native gallery (fixed) | 29fae0e61fe9531c4d1c0c9c669fcfe500532204 | Pass | Pass | APK build, 8 JVM tests, strict lint; device checks blocked |
 
 S01 preflight fixes were reproduced and independently rechecked: automatic backup
 requires explicit collection/media/network eligibility at admission, dispatch and
@@ -67,8 +68,8 @@ Screenshots/probe evidence for this session are /tmp/still-site-browser-evidence
 and /tmp/still-site-text200-{320,390}.png. Screen-reader testing is not implied.
 
 Integrated `npm run check` passed after S01 integration (27 tests, no skips) and
-`npm run check:site` passed after the S03 fix integration. Combined CP1 remains
-pending the native component and exact integrated-SHA dual review.
+`npm run check:site` passed after the S03 fix integration. All three components now have separate independent reviewer and red-team passes.
+Combined CP1 awaits full checks and dual review on the integrated SHA.
 
 ### Android lint and toolchain update
 
@@ -81,9 +82,27 @@ warnings: core 1.19.1 requires compile SDK 37/AGP >= 9.1.0; activity 1.13.0 requ
 compile SDK 36/AGP >= 8.9.1. AGP 9.4 supports SDK 37 and requires Gradle 9.6.0. Updated
 versions and rationale are recorded in ADR0002. The upgraded stack compiled and
 passed all 7 tests; its newer lint found 5 configuration-aware resource reads and a
-Gradle current-version notice. Those source calls are being fixed and the wrapper
-is updated to approved 9.8.1 with official checksum. Final assemble/unit/lint are pending;
-old lint failure is not treated as a pass. All lint guards and unit assertions remain.
+Gradle current-version notice. Those source calls were fixed and the wrapper
+updated to approved 9.8.1 with official checksum. Final component assemble,
+all 8 JVM tests and strict lint pass; lint reports "No issues found." Old failures
+remain visible here. All lint guards and prior unit assertions were preserved.
+
+A same-URI edited-photo preview race reopened S02 after its first source pass,
+before integration. A shared preview fingerprint now drives both memory cache and
+Compose state/producer identity, using modification/orientation/dimensions/bytes
+and requested size. The new regression failed on the prior URI+size behavior
+(8 tests, 1 failure, prior 7 passing) then passed with the fix (8/0/0). Both roles
+independently rechecked the new SHA. This metadata key is a local cache hint,
+not a content hash or canonical immutable asset-version ID.
+
+Component APK SHA-256:
+`1210f4b55d1d53a8af40dbbc859e7e79c9a5f3b664f27c46365d5d00a9d568cb`.
+Compiled manifest independently audited: media reads only, no Internet/write
+permissions or services, app backup off and all nine cloud/transfer storage
+categories excluded. Besides the launcher, AndroidX's profile receiver is exported
+only behind the platform signature-level DUMP permission; startup provider is not
+exported. No preview tooling activity is packaged. These checks are source/build
+acceptance and do not establish physical-device behavior.
 
 ### Android environment failures and recovery
 
