@@ -505,6 +505,10 @@ canonical pinned version or server authority is included; see ADR0005.
   request. Hold for an active-request reference-identity guard before clearing or
   invoking the mutation, plus cancel/reopen regression. Expected review/revision
   checks remain required but cannot represent dialog dismissal on their own.
+  A further same-shaped-review trace showed structurally equal display rows could
+  retain an old dialog while a new callback targeted a different review. Require
+  an opaque per-review interaction identity in dialog state/admission as well;
+  displayed names/lengths/status cannot serve as review identity.
 
 ### Exact candidate and remaining gates
 
