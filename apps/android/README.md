@@ -78,6 +78,23 @@ generation rollback clears the old pending action. Unchanged strongly evidenced
 rows can retain it while advancing their watermark; unknown legacy continuity
 is cleared on refresh. These local keys do not prove byte identity. Existing
 URI-based Favorites preferences remain unchanged; no migration is attempted.
+On Android 29+, old aggregate `external` Favorites are matched only after an
+authorized query of that exact saved URI identifies the same actual volume,
+table, row handle and observed birth as one unambiguous fresh row. Alias proof
+queries stay inside the same provider-reset and publication fences. They read
+metadata only and run sequentially on IO with cancellation checks; absent or
+ambiguous candidates need no query. Cost is linear in eligible legacy references,
+so large upgrade sets remain unmeasured device work. Favorites remains loading
+until resolution completes. Unmatched references stay saved with a generic
+notice, independent of the current type/search filter. Explicit unfavoriting
+removes only current and legacy keys proven to match that item.
+
+This ephemeral compatibility proves current Android reference equivalence only.
+CP3 Favorites stored no historical birth or byte hash; identity after historical
+URI reuse cannot be established retroactively. Android 30+ requires a nonnull
+provider birth generation in the legacy proof. API 29 requires a positive
+date-added fallback, which remains best effort. Ambiguous/missing proof is never
+guessed or rewritten.
 
 The versioned platform SQLite index stores permitted browsing metadata only,
 never thumbnails or media bytes. It opens and reconciles on IO inside the

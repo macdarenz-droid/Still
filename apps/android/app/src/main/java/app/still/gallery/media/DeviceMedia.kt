@@ -67,7 +67,7 @@ class DeviceMedia(private val context: Context) {
      * browsing fallback. Every database operation, including construction/close,
      * runs on IO, and its token starts before the provider snapshot is read.
      */
-    suspend fun readAndIndex(access: MediaAccess, onLoaded: (List<MediaItem>) -> Unit): Boolean {
+    suspend fun readAndIndex(access: MediaAccess, favoriteReferences: Set<String>, onLoaded: (List<MediaItem>, Map<String, String>) -> Unit): Boolean {
         val expected = scanEpoch.snapshot()
         return withContext(Dispatchers.IO) {
             var catalogue: LocalCatalogue? = null
@@ -83,10 +83,10 @@ class DeviceMedia(private val context: Context) {
                     activeCatalogue = database
                     scan = database?.beginScan()
                 }) throw CancellationException("Library refresh was invalidated")
-                val snapshot = read(access)
+                val snapshot = read(access, favoriteReferences)
                 currentCoroutineContext().ensureActive()
                 withContext(Dispatchers.Main) {
-                    if (!scanEpoch.commitIfCurrent(expected) { onLoaded(snapshot.items) }) {
+                    if (!scanEpoch.commitIfCurrent(expected) { onLoaded(snapshot.items, snapshot.legacyFavoriteMatches) }) {
                         throw CancellationException("Library refresh was invalidated")
                     }
                 }
@@ -111,7 +111,7 @@ class DeviceMedia(private val context: Context) {
         }
     }
 
-    private suspend fun read(access: MediaAccess): DeviceMediaSnapshot = withContext(Dispatchers.IO) {
+    private suspend fun read(access: MediaAccess, favoriteReferences: Set<String>): DeviceMediaSnapshot = withContext(Dispatchers.IO) {
         val result = mutableListOf<MediaItem>()
         val volumes = if (Build.VERSION.SDK_INT >= 29) MediaStore.getExternalVolumeNames(context).sorted() else listOf("external")
         val before = volumes.map(::namespace)
@@ -123,6 +123,8 @@ class DeviceMedia(private val context: Context) {
             if (access.canReadImages) result += query(images, false, provider)
             if (access.canReadVideos) result += query(videos, true, provider)
         }
+        // Exact legacy-URI proofs stay within the same reset/cancellation envelope.
+        val aliases = resolveLegacyFavorites(favoriteReferences, result)
         // Recheck every namespace AFTER the whole enumeration, including empty
         // volumes. A reset of the first volume during the last query is fenced.
         val namespaces = volumes.map(::namespace)
@@ -135,7 +137,55 @@ class DeviceMedia(private val context: Context) {
             throw IllegalStateException("Media volumes changed during the read")
         }
         val byVolume = namespaces.associateBy { it.volumeName }
-        DeviceMediaSnapshot(result.map { it.copy(providerGeneration = byVolume.getValue(it.volumeName).providerGeneration) }, namespaces)
+        DeviceMediaSnapshot(result.map { it.copy(providerGeneration = byVolume.getValue(it.volumeName).providerGeneration) }, namespaces, aliases)
+    }
+
+    private suspend fun resolveLegacyFavorites(references: Set<String>, live: List<MediaItem>): Map<String, String> {
+        if (Build.VERSION.SDK_INT < 29) return emptyMap() // Legacy URIs still directly match on API 26–28.
+        val legacy = references.mapNotNull(::legacyFavoriteReference)
+        if (legacy.isEmpty()) return emptyMap()
+        val candidates = live.groupBy { it.isVideo to it.externalHandle }
+        val matches = mutableMapOf<String, String>()
+        for (reference in legacy) {
+            currentCoroutineContext().ensureActive()
+            val possible = candidates[reference.isVideo to reference.externalHandle].orEmpty()
+            if (possible.size != 1) continue // No IO for missing/ambiguous rows; never guess a volume.
+            val proof = readLegacyFavoriteProof(reference) ?: continue
+            provenLegacyFavoriteMatch(reference, proof, possible)?.let { matches[reference.key] = it }
+        }
+        return matches
+    }
+
+    private fun readLegacyFavoriteProof(reference: LegacyFavoriteReference): LegacyFavoriteProof? {
+        if (Build.VERSION.SDK_INT < 29) return null
+        val projection = mutableListOf(MediaStore.MediaColumns._ID, MediaStore.MediaColumns.VOLUME_NAME, MediaStore.MediaColumns.DATE_ADDED)
+        if (Build.VERSION.SDK_INT >= 30) projection += MediaStore.MediaColumns.GENERATION_ADDED
+        return try {
+            resolver.query(reference.key.toUri(), projection.toTypedArray(), null, null, null)?.use { cursor ->
+                if (cursor.count != 1 || !cursor.moveToFirst()) return@use null
+                fun number(column: String): Long? {
+                    val index = cursor.getColumnIndex(column)
+                    return if (index >= 0 && !cursor.isNull(index)) cursor.getLong(index) else null
+                }
+                val volume = cursor.getColumnIndex(MediaStore.MediaColumns.VOLUME_NAME)
+                if (volume < 0 || cursor.isNull(volume)) return@use null
+                val dateAdded = number(MediaStore.MediaColumns.DATE_ADDED) ?: return@use null
+                val generationAdded = if (Build.VERSION.SDK_INT >= 30) {
+                    number(MediaStore.MediaColumns.GENERATION_ADDED)?.takeIf { it >= 0 } ?: return@use null
+                } else null
+                if (generationAdded == null && dateAdded <= 0) return@use null
+                LegacyFavoriteProof(
+                    providerAuthority = reference.key.toUri().authority ?: return@use null,
+                    volumeName = cursor.getString(volume),
+                    externalHandle = number(MediaStore.MediaColumns._ID)?.toString() ?: return@use null,
+                    isVideo = reference.isVideo,
+                    dateAddedSeconds = dateAdded,
+                    generationAdded = generationAdded,
+                    birthGenerationRequired = Build.VERSION.SDK_INT >= 30,
+                )
+            }
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: RuntimeException) { null } // Retain unresolved reference; valid live browsing continues.
     }
 
     private fun namespace(volume: String): CatalogueNamespace {
@@ -271,7 +321,7 @@ class DeviceMedia(private val context: Context) {
     }
 }
 
-private data class DeviceMediaSnapshot(val items: List<MediaItem>, val namespaces: List<CatalogueNamespace>)
+private data class DeviceMediaSnapshot(val items: List<MediaItem>, val namespaces: List<CatalogueNamespace>, val legacyFavoriteMatches: Map<String, String>)
 
 private fun MediaItem.catalogueObservation() = CatalogueObservation(
     providerAuthority, volumeName, providerVersion, providerGeneration, externalHandle,

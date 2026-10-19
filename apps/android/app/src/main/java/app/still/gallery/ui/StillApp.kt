@@ -106,6 +106,9 @@ import app.still.gallery.media.libraryOrder
 import app.still.gallery.media.reconcileMediaTokens
 import app.still.gallery.media.selectedMediaInView
 import app.still.gallery.media.sourceUiToken
+import app.still.gallery.media.favoriteKeysForSource
+import app.still.gallery.media.visibleFavoriteSourceIds
+import app.still.gallery.media.unresolvedFavoriteKeys
 import app.still.gallery.security.AppLockUiState
 import app.still.gallery.security.LockAction
 import java.time.Instant
@@ -142,6 +145,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     var selecting by rememberSaveable { mutableStateOf(false) }
     var openedId by rememberSaveable { mutableStateOf<String?>(null) }
     var favorites by remember { mutableStateOf(preferences.getStringSet("favorites", emptySet()).orEmpty().toSet()) }
+    var legacyFavoriteMatches by remember { mutableStateOf(emptyMap<String, String>()) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val shareLabel = stringResource(R.string.share_media)
@@ -161,6 +165,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
             // Never keep an already-open item visible while reduced permissions are reconciled.
             openedId = null
             media = emptyList()
+            legacyFavoriteMatches = emptyMap()
             selected = emptyList()
         }
         access = fresh
@@ -234,13 +239,15 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         loadFailed = false
         if (access.level == AccessLevel.NONE) {
             media = emptyList()
+            legacyFavoriteMatches = emptyMap()
             selected = emptyList()
             openedId = null
             return@LaunchedEffect
         }
         try {
-            val saved = device.readAndIndex(access) { loaded ->
+            val saved = device.readAndIndex(access, favorites) { loaded, aliases ->
                 media = loaded
+                legacyFavoriteMatches = aliases
                 selected = reconcileMediaTokens(selected.toSet(), loaded).toList()
                 openedId = openedId?.let { reconcileMediaTokens(setOf(it), loaded).singleOrNull() }
                 loading = false
@@ -251,6 +258,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
             throw cancelled
         } catch (_: RuntimeException) {
             media = emptyList()
+            legacyFavoriteMatches = emptyMap()
             selected = emptyList()
             openedId = null
             loadFailed = true
@@ -265,10 +273,12 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         else albumId = null
     }
 
-    val filtered = remember(media, query, albumId, destination, favorites, mediaFilter, mediaSort) {
+    val favoriteIds = remember(media, favorites, legacyFavoriteMatches) { visibleFavoriteSourceIds(favorites, legacyFavoriteMatches, media) }
+    val unresolvedFavorites = remember(media, favorites, legacyFavoriteMatches) { unresolvedFavoriteKeys(favorites, legacyFavoriteMatches, media) }
+    val filtered = remember(media, query, albumId, destination, favoriteIds, mediaFilter, mediaSort) {
         libraryOrder(media.filter { item ->
             (albumId == null || item.albumId == albumId) &&
-                (destination != Destination.FAVORITES || item.id in favorites) &&
+                (destination != Destination.FAVORITES || item.id in favoriteIds) &&
                 (query.isBlank() || item.name.contains(query.trim(), ignoreCase = true))
         }, mediaFilter, mediaSort)
     }
@@ -326,11 +336,14 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         bottomBar = {
             if (selecting) {
                 Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    TextButton(onClick = { share(selectedMediaInView(selected.toSet(), filtered)) }, enabled = selectedInView.isNotEmpty()) { MarkIcon(Mark.SHARE, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.share)) }
+                    TextButton(onClick = { if (!loading && !loadFailed) share(selectedMediaInView(selected.toSet(), filtered)) }, enabled = !loading && !loadFailed && selectedInView.isNotEmpty()) { MarkIcon(Mark.SHARE, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.share)) }
                     TextButton(onClick = {
-                        saveFavorites(favorites + selectedMediaInView(selected.toSet(), filtered).map { it.id })
-                        scope.launch { snackbar.showSnackbar(favoriteConfirmation) }
-                    }, enabled = selectedInView.isNotEmpty()) { MarkIcon(Mark.HEART, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.favorites)) }
+                        val chosen = if (!loading && !loadFailed) selectedMediaInView(selected.toSet(), filtered) else emptyList()
+                        if (chosen.isNotEmpty()) {
+                            saveFavorites(favorites + chosen.map { it.id })
+                            scope.launch { snackbar.showSnackbar(favoriteConfirmation) }
+                        }
+                    }, enabled = !loading && !loadFailed && selectedInView.isNotEmpty()) { MarkIcon(Mark.HEART, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.favorites)) }
                 }
             } else NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 Destination.entries.forEach { entry ->
@@ -353,6 +366,9 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     TextButton(onClick = ::settings) { Text(stringResource(R.string.open_settings)) }
                 }
             } else {
+                if (destination == Destination.FAVORITES && !loading && unresolvedFavorites.isNotEmpty()) {
+                    Text(stringResource(R.string.favorites_unresolved), Modifier.padding(horizontal = 20.dp, vertical = 12.dp).semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 if (indexFailed && !loadFailed) {
                     Card(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
                         Column(Modifier.padding(16.dp)) {
@@ -373,7 +389,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     }
                 }
                 when {
-                    loading && media.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    loading && (media.isEmpty() || destination == Destination.FAVORITES) -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             CircularProgressIndicator(Modifier.size(28.dp))
                             Text(stringResource(R.string.loading), style = MaterialTheme.typography.bodyMedium)
@@ -383,10 +399,12 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                         Button(onClick = ::reload) { Text(stringResource(R.string.retry)) }
                     }
                     filtered.isEmpty() -> {
-                        val emptyTitle = when { query.isNotBlank() -> R.string.no_results_title; mediaFilter == MediaFilter.VIDEOS -> R.string.no_videos_title; mediaFilter == MediaFilter.PHOTOS -> R.string.no_photos_title; destination == Destination.FAVORITES -> R.string.no_favorites_title; else -> R.string.empty_title }
-                        val emptyBody = when { query.isNotBlank() -> R.string.no_results_body; mediaFilter != MediaFilter.ALL -> R.string.filter_empty_body; destination == Destination.FAVORITES -> R.string.no_favorites_body; else -> R.string.empty_body }
+                        val unmatchedFavorites = destination == Destination.FAVORITES && favoriteIds.isEmpty() && unresolvedFavorites.isNotEmpty()
+                        val emptyTitle = when { query.isNotBlank() -> R.string.no_results_title; mediaFilter == MediaFilter.VIDEOS -> R.string.no_videos_title; mediaFilter == MediaFilter.PHOTOS -> R.string.no_photos_title; unmatchedFavorites -> R.string.favorites_unavailable_title; destination == Destination.FAVORITES -> R.string.no_favorites_title; else -> R.string.empty_title }
+                        val emptyBody = when { query.isNotBlank() -> R.string.no_results_body; mediaFilter != MediaFilter.ALL -> R.string.filter_empty_body; unmatchedFavorites -> R.string.favorites_unavailable_body; destination == Destination.FAVORITES -> R.string.no_favorites_body; else -> R.string.empty_body }
                         MessagePanel(emptyTitle, emptyBody) {
                             if (mediaFilter != MediaFilter.ALL) TextButton(onClick = { filterName = MediaFilter.ALL.name; selected = emptyList() }) { Text(stringResource(R.string.show_all_media)) }
+                            else if (unmatchedFavorites) TextButton(onClick = ::reload) { Text(stringResource(R.string.refresh)) }
                             else if (query.isBlank() && destination != Destination.FAVORITES) TextButton(onClick = { permissions.launch(mediaPermissions()) }) { Text(stringResource(R.string.change_access)) }
                         }
                     }
@@ -403,10 +421,13 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     }
 
     if (openedId != null) media.firstOrNull { sourceUiToken(it) == openedId }?.let { item ->
-        MediaViewer(item, device, refresh, item.id in favorites,
+        MediaViewer(item, device, refresh, item.id in favoriteIds,
             onClose = { openedId = null },
             onShare = { share(listOf(item)) },
-            onFavorite = { saveFavorites(if (item.id in favorites) favorites - item.id else favorites + item.id) },
+            onFavorite = {
+                val matched = favoriteKeysForSource(item.id, favorites, legacyFavoriteMatches)
+                saveFavorites(if (matched.isEmpty()) favorites + item.id else favorites - matched)
+            },
         )
     }
 }

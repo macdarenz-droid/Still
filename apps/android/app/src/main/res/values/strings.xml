@@ -57,6 +57,9 @@
     <string name="video_finished">Video finished</string>
     <string name="no_favorites_title">Your favorites go here</string>
     <string name="no_favorites_body">Open a photo or video and choose Add to Still favorites to find it here.</string>
+    <string name="favorites_unresolved">Some saved favorites can’t be matched to your current library access. Their references stay saved.</string>
+    <string name="favorites_unavailable_title">Saved favorites aren’t available</string>
+    <string name="favorites_unavailable_body">Refresh your library to try matching these references again.</string>
     <string name="load_failed">Your library could not be read. Check photo access and retry.</string>
     <string name="retry">Retry</string>
     <string name="refresh">Refresh library</string>

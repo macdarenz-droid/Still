@@ -112,6 +112,53 @@ fun reconcileMediaTokens(tokens: Set<String>, current: List<MediaItem>): Set<Str
 fun selectedMediaInView(tokens: Set<String>, visible: List<MediaItem>): List<MediaItem> =
     if (tokens.isEmpty()) emptyList() else visible.filter { sourceUiToken(it) in tokens }
 
+data class LegacyFavoriteReference(val key: String, val isVideo: Boolean, val externalHandle: String)
+data class LegacyFavoriteProof(
+    val providerAuthority: String,
+    val volumeName: String,
+    val externalHandle: String,
+    val isVideo: Boolean,
+    val dateAddedSeconds: Long,
+    val generationAdded: Long?,
+    val birthGenerationRequired: Boolean = false,
+)
+
+private val legacyFavoritePattern = Regex("^content://media/external/(images|video)/media/([0-9]+)$")
+
+fun legacyFavoriteReference(key: String): LegacyFavoriteReference? {
+    val match = legacyFavoritePattern.matchEntire(key) ?: return null
+    val handle = match.groupValues[2].toLongOrNull()?.toString() ?: return null
+    return LegacyFavoriteReference(key, match.groupValues[1] == "video", handle)
+}
+
+/** Only an authorized exact-URI provider proof may link an old reference to a live row. */
+fun provenLegacyFavoriteMatch(reference: LegacyFavoriteReference, proof: LegacyFavoriteProof, live: List<MediaItem>): String? {
+    if (legacyFavoriteReference(reference.key) != reference || proof.dateAddedSeconds < 0) return null
+    if (proof.generationAdded == null && (proof.birthGenerationRequired || proof.dateAddedSeconds <= 0)) return null
+    if (proof.generationAdded != null && proof.generationAdded < 0) return null
+    if (proof.providerAuthority != "media" || proof.externalHandle != reference.externalHandle || proof.isVideo != reference.isVideo) return null
+    val candidates = live.filter { it.providerAuthority == proof.providerAuthority && it.externalHandle == reference.externalHandle && it.isVideo == reference.isVideo }
+    val item = candidates.singleOrNull() ?: return null // Never choose a volume by guesswork.
+    if (item.volumeName != proof.volumeName || item.dateAddedSeconds != proof.dateAddedSeconds || item.generationAdded != proof.generationAdded) return null
+    val collection = if (item.isVideo) "video" else "images"
+    val concreteUri = "content://${proof.providerAuthority}/${proof.volumeName}/$collection/media/${proof.externalHandle}"
+    return item.id.takeIf { it == concreteUri }
+}
+
+fun favoriteKeysForSource(sourceUri: String, favorites: Set<String>, legacyMatches: Map<String, String>): Set<String> =
+    favorites.filterTo(mutableSetOf()) { it == sourceUri || legacyMatches[it] == sourceUri }
+
+fun visibleFavoriteSourceIds(favorites: Set<String>, legacyMatches: Map<String, String>, live: List<MediaItem>): Set<String> {
+    val direct = live.mapTo(mutableSetOf()) { it.id }.intersect(favorites)
+    return direct + legacyMatches.filterKeys { it in favorites }.values.intersect(live.mapTo(mutableSetOf()) { it.id })
+}
+
+/** Retain and report references missing from full Android access, independent of a UI filter. */
+fun unresolvedFavoriteKeys(favorites: Set<String>, legacyMatches: Map<String, String>, live: List<MediaItem>): Set<String> {
+    val liveIds = live.mapTo(mutableSetOf()) { it.id }
+    return favorites.filterTo(mutableSetOf()) { it !in liveIds && legacyMatches[it] !in liveIds }
+}
+
 fun shareMimeType(items: List<MediaItem>): String = when {
     items.all { !it.isVideo } -> "image/*"
     items.all { it.isVideo } -> "video/*"
