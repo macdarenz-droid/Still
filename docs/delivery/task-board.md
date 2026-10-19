@@ -116,7 +116,7 @@ screenshots/media must not be committed or reused in discovery assets.
 | Card | Owner / allowed files | Deliverable / acceptance | Dependencies |
 | --- | --- | --- | --- |
 | S05 Lock policy | backend; `apps/android/app/src/main/java/app/still/gallery/security/LockSession.kt`, matching `security/LockSessionTest.kt` in test tree | Pure Kotlin session state machine with default-locked startup when enabled, authenticated enable/disable/unlock, immediate background relock, fresh attempt fencing, explicit credential round-trip handling, canceled/late/failed results denied, persistence failure surfaced. Meaningful JVM tests for unauthorized transitions, restarts and lifecycle races | Base CP2; send interface to frontend before integration; no Android UI/dependency edits |
-| S06 Native lock | frontend; other new files under Android `security/`, `ui/AppLock*.kt`, plus explicitly delegated `MainActivity.kt`, `StillApp.kt`, `strings.xml`, source manifest, Android README and device matrix | Platform biometric/device credential authentication (device credential fallback on API26+); Settings opt-in and authenticated removal; relock on leaving foreground; secure recents/screenshots while enabled; no gallery composition/media access behind lock; process/recreation starts locked. Build, all policy tests and strict lint; expanded manual matrix remains unverified until actually run | S05 interface; no new dependency approved/required: use platform facilities. Supervisor owns integration of delegated entry-point/manifest/settings changes |
+| S06 Native lock | frontend; other new files under Android `security/` and focused matching security tests (excluding S05 files), `ui/AppLock*.kt`, plus explicitly delegated `MainActivity.kt`, `StillApp.kt`, `strings.xml`, source manifest, Android README and device matrix | Platform biometric/device credential authentication (device credential fallback on API26+); Settings opt-in and authenticated removal; relock on leaving foreground; secure recents/screenshots while enabled; no gallery composition/media access behind lock; process/recreation starts locked. Build, all policy tests and strict lint; expanded manual matrix remains unverified until actually run | S05 interface; no new dependency approved/required: use platform facilities. Supervisor owns integration of delegated entry-point/manifest/settings changes |
 | S07 Discovery audit | seo; review only for this checkpoint | Review supplied UI evidence and proposed lock wording for truthful capability/privacy/accessibility claims; return recommendations, no private media copies and no publication | Current code and task card; supervisor/frontend integrate applicable copy |
 | S08 CP3 gates | reviewer and red_team; review only | Independent exact-SHA implementation/test/artifact review and adversarial authentication/lifecycle checks. Fix and recheck material findings before CP3 acceptance | S05/S06 integrated and full checks; no production release |
 
@@ -127,7 +127,8 @@ Merge order S05 then S06, then CP3 review. No builder self-approves.
 
 Scope: a whole-app access gate only. No custom PIN, vault, encryption, account,
 cloud transfer, new media metadata collection, deletion or production signing.
-Only the local lock-enabled preference is durable; authentication/session results
+Only the local lock-enabled setting is durable (strict versioned platform AtomicFile
+record; no silently reset or cached SharedPreferences security flag); authentication/session results
 are memory-only and must never be restored from saved UI state. Existing backup
 exclusions remain. An ordinary phone gallery can still access ordinary photos.
 If device credentials become unavailable while enabled, remain locked and offer
