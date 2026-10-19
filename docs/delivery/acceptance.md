@@ -1312,3 +1312,22 @@ follow-up `242159a` corrects support, attempts, actual analysis and finished-sea
 wording. Root docs add the same support/unsupported qualification. The obsolete
 frontend47e89e7 full run was stopped with exit143 before final tests/lint finished;
 its log is retained without a pass claim. Exact final source checks remain needed.
+
+Reviewer independently invoked the current compiled S34 scanner with a read
+IOException and a tracked close failure suppressed underneath it. The primary IO
+failure was classified as unreadable and the scanner opened all200 selected
+inputs before its final CLOSE_FAILED, with zero successful closes. Evidence
+`/tmp/still-reviewer-cp11-suppressed-close-probe.log` and retained Java probe.
+This P2 blocks acceptance: close uncertainty must dominate immediately, stop
+new provider reads/decode/publication, and retain process/shared-lane ownership
+until explicit valid settlement. Add IO/runtime-plus-close regressions asserting
+one open, no decode, blocked replacement and successful recovery, with old-policy
+failure proof. Existing withdrawal-with-suppressed-close coverage was insufficient.
+
+S35's exact `242159a` full run assembled and passed277 JVM cases but strict lint
+failed one PluralsCandidate on the new attempted-read sentence. Preserve
+`/tmp/still-cp11-ui-evidence/242159a-lint-failure/`; use real plural resources
+and rerun, without a suppression or guard change. This passing test run does not
+approve a lint-failing candidate. Earlier retry and resolver counterfactuals
+respectively produce two and one intended assertion failures; fixed20 focused
+UI cases and independent reviewer20 rerun pass.
