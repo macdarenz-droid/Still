@@ -1276,3 +1276,22 @@ regression evidence, not blind validation of v2. S36 must freeze genuinely new
 independent scenes/seeds/variants before observing v2 outputs; record new pipeline/
 calibration identities on actual features/pair evidence and exact freeze hashes.
 This does not approve unfinished v2 or close JPEG/monitor/coverage findings.
+
+S36 froze a genuinely new v2 held-out generator before revised outputs: SHA-256
+`a070ae6deac33f8e2415a309d3b37e807108eb4a926c05cdc847e68e2ff41c23`, seed
+`0x7E57B11D21`,23 pairs (15 same-scene,8 different-content). Evidence
+`/tmp/still-cp11-s36-evidence/fixture-freeze-v2.json` and
+`frozen-fixtures-v2.kt`. All old generator labels and positive assertions remain
+unchanged; first failure evidence is retained. New freeze does not imply a pass.
+
+S35 reports two draft recovery-state edges and is adding production coordinator
+regressions: Retry while a failed-close dialog remains open could leave SETTLING;
+admission-failure recovery could leave an idle dialog with stale failure. Root
+source preflight also identified repeated selected×full-view token resolution in
+the new selected-scope predicate, multiplied by read checks and pair rendering.
+A200-photo selection in17k rows can cause millions of token constructions per
+check; this is a source-work bound finding, not measured phone behavior. Replace
+it with bounded current-source resolution and one display projection, preserving
+all live selection/source/access/refresh/identity fences, and require a meaningful
+counted-list regression that fails on the old path. No old media/CP10 helper or
+baseline assertion change is authorized by that fix.
