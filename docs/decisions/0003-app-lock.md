@@ -1,6 +1,7 @@
 # ADR 0003: Whole-app access lock
 
-Status: CP3 development design; device security acceptance is pending.
+Status: CP3 development design; capture policy revised by the owner in CP7.
+Device security acceptance is pending.
 
 R14 / F04 and architecture section 16.3 require a whole-app lock. The Android
 gallery can continue development while release-device tests remain incomplete.
@@ -38,9 +39,13 @@ last operation; a crash that restores that marker conservatively relocks the app
 The marker contains no authentication result, credential or unlocked session.
 
 Place the entire gallery behind the gate, including media queries, viewers and
-Settings. Protect Activity and inherited viewer windows from screenshots/recents
-while lock protection is active, before sensitive composition. Device credentials
-that become unavailable leave the app locked with Android security-settings
+Settings. CP3 originally requested screenshot/Recents blocking while lock protection
+was active. On 19 October 2026 the owner explicitly requested removing screenshot
+and screen-recording restrictions so they could show the app. CP7 supersedes that
+capture policy: Still allows captures and ordinary Recents previews even with app
+lock enabled. Authentication, hidden locked gallery content and relocking remain
+required. Android's own authentication surfaces may retain system restrictions.
+Device credentials that become unavailable leave the app locked with Android security-settings
 recovery. Shared recipients retain the explicit URI grants already given to them;
 the gate protects subsequent access through Still.
 

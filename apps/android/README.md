@@ -220,10 +220,11 @@ coverage, including a model separating volatile file visibility from durable
 directory entries. Actual power-loss durability and platform/OEM behavior remain
 device checks.
 
-Still requests Android screenshot/recents protection with `FLAG_SECURE` while
-enabled, authenticating or recovering a failed setting. Viewer and information
-dialogs inherit the Activity's secure policy; API 33+ also disables recents
-screenshots. Actual screenshot/recording/recents behavior needs hardware checks.
+The owner requested screen capture in CP7 to show the app. Still allows screenshots,
+screen recordings and ordinary Recents previews, including when app lock is on.
+App authentication and relocking still apply. Still does not start, save or upload
+recordings. Android can separately protect its system authentication screens.
+Actual screenshot/recording/Recents behavior needs hardware checks.
 No custom PIN, credential storage, vault or encryption is implemented.
 
 ## Exact readable-byte review (S13/S14)

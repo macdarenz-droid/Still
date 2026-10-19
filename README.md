@@ -69,6 +69,7 @@ authentication and relocking when you leave Still. It protects access through
 Still; other galleries can still open ordinary phone photos. This is not an
 encrypted vault. Native authentication and screen-protection checks remain in the
 [device matrix](apps/android/DEVICE_CHECKS.md); see [the design](docs/decisions/0003-app-lock.md).
+Screenshots and screen recordings are allowed, including when app lock is enabled.
 
 The development app adds All/Photos/Videos filters, newest/oldest and
 filename sorting, visible video Play/Pause controls, and an on-phone metadata

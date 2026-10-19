@@ -737,3 +737,53 @@ scale changes, TalkBack/keyboard focus, enlarged text/rotation, privacy surfaces
 playback lifecycle and large-library memory/frame performance are unverified.
 Existing native matrix rows remain open and expand for Drift. No main merge,
 release signing, spending, publication, deletion or data migration is included.
+
+## CP6 final development outcome (recorded by the next checkpoint)
+
+Final source `8f26a389f4e1748a3b6bdba09c0abf67f7c99ff3` passed separate
+reviewer and red-team exact local-source/APK gates and each independent hosted gate.
+[PR run39214095132](https://github.com/macdarenz-droid/Still/actions/runs/39214095132)
+and [push run39214090136](https://github.com/macdarenz-droid/Still/actions/runs/39214090136)
+completed successfully, all four checks green. Root155 JVM cases, assemble/strict
+lint,27 backend cases,11 discovery checks,18 host-SQL probes and TypeScript passed.
+Audited local APK: `24149903b88ec4a1d4839f708aef2f420ab00f2d3f78fc5c13d3d3e40160ac8f`,
+12,259,089 bytes. Signature/manifest/permissions/backup/ZIP/8SQL audits passed.
+Versioned delivery: `.artifacts/deliveries/still-cp6-8f26a38.apk`; full exact record:
+`.artifacts/cp6-validation.json`. No hosted binary was downloaded or presumed equal.
+Native/device/production checks remain open, not inferred from these passes.
+
+## CP7 — Owner-requested screen capture
+
+The owner asked to remove screenshot and screen-recording blocking to show the app.
+This explicitly authorizes removing the capture-only secure-window and Recents
+restrictions, superseding the earlier ADR0003 capture requirement. Optional app-lock
+setting, authentication attempts, fail-closed storage, foreground/lifetime/media
+fences, and player behavior remain unchanged. No capture toggle, recording service,
+media mutation, permission, dependency, schema or new stored/transmitted data is added.
+Screens and ordinary Recents previews become captureable as requested. Android may
+independently protect its system authentication UI.
+
+S21/S22 define the bounded implementation and independent gates. Preserve all155
+existing cases/assertions; the policy removal is verified by source/API and actual
+APK inspection, not a unit test mirroring deleted flag calls. Final frozen head
+requires `npm run check`, Android assemble/all JVM/strict lint, APK signature/
+manifest/backup/ZIP/assets audit, separate reviewer AND red-team exact source/local
+APK passes, then all hosted checks and each independent hosted confirmation.
+Record final immutable source/hash/results/verdicts in `.artifacts/cp7-validation.json`
+and draft PR1, preserving a unique versioned local APK. The next checkpoint promotes
+that outcome here rather than embedding a self-referential source SHA.
+
+S21 builder `6e3f3a92e2d372583966d745a35cc697dc717f5a` changes exactly the
+three assigned source/resource files. The source sweep finds no app-owned secure
+flag, Recents suppression or capture callback. Controller comparison differs only
+by removal of its callback parameter and invocation; full checks and actual APK
+inspection follow on root's frozen integrated head. Source evidence:
+`/tmp/still-cp7-s21-source-checks.json`. Platform libraries may still contain
+general secure-window support; inspect app-owned compiled methods rather than
+claiming every such library symbol must disappear from the APK.
+
+No attached phone or accelerated emulator is available. Actual capture/recording/
+Recents surfaces, system prompt policy, authentication/lifecycle/accessibility and
+performance remain blocked/unverified until observed on identified hardware.
+Rollback by reverting CP7 and installing a compatible retained build with local
+app data preserved. No main merge, production signing or publication is included.
