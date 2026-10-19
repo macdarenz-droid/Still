@@ -79,7 +79,7 @@ class SimilarityPolicyTest {
     }
     @Test fun forgedCoverageAndSourceEvidenceAreRejected() {
         val rows = listOf(cleanupTestItem(1), cleanupTestItem(2))
-        val bad = listOf(coverage(rows).copy(attempted = 0), coverage(rows).copy(admittedBytes = 0), coverage(rows).copy(featured = 1),
+        val bad = listOf(coverage(rows).copy(attempted = 0), coverage(rows).copy(attempted = 1), coverage(rows).copy(admittedBytes = 0), coverage(rows).copy(featured = 1),
             coverage(rows).copy(unsupported = 1), coverage(rows).copy(admittedBytes = SimilarityBounds.MAX_RUN_BYTES, quotaProbeBytes = 1))
         for (value in bad) {
             val session = SimilaritySession(); val ticket = session.begin(rows) {}
