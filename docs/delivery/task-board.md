@@ -253,6 +253,9 @@ new `ui/CleanupScreen.kt` to `/root/frontend/android_tooling`; parent owns model
 native IO, all shared wiring/tests/strings/docs and commits. Any further ownership
 change must be approved before editing. Preserve all72 prior JVM tests and their
 assertions, all27 backend tests,18 host-SQL probes and existing lint/CI guards.
+Backend may delegate only the new `cleanup/ProtectionDurabilityTest.kt` to
+`/root/backend/protection_faults` after publishing its storage interface; parent
+retains implementation, other tests, commits and integration responsibility.
 
 Acceptance: exact matches require SHA-256/version + actual complete-read byte
 count; type/reported-size prefilter is explicitly incomplete coverage. Reject
