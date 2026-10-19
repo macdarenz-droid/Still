@@ -18,7 +18,12 @@ Base: `b31a7ab`. Environment: managed Linux, Node 24.19.0, npm 11.9.0, Java 21.
 - Supervisor fixes: both roles now mandatory in AGENTS.md and task board;
   scripts/test-backend.mjs rejects missing or empty required suites; this evidence
   record distinguishes bootstrap checks from pending runtime checks.
-- Re-review: pending on the commit containing these fixes. CP0 is not accepted yet.
+- Re-review: **independent reviewer PASS** and **red-team PASS** at exact SHA
+  `580ce7b60947f6f41ef0b4a4275c7fbec85afc5e`, scaffold/workflow scope only.
+  Architecture byte equality was independently verified. The red team exercised
+  copied guard code against missing/empty required suites, two passing suites and
+  a failing suite; exit codes were correct in every case. No tracked files changed.
+- CP0 accepted for scaffold/workflow only. App/API/site checks remain CP1 gates.
 
 | Check on initial SHA | Result | Evidence / implication |
 | --- | --- | --- |
@@ -31,8 +36,8 @@ Base: `b31a7ab`. Environment: managed Linux, Node 24.19.0, npm 11.9.0, Java 21.
 | npm test after guard fix | Expected failure | Required test suite missing: tests/contracts; exits 1 |
 | Architecture retention | Passed | Root architecture.md is a byte-identical copy of supplied attachment |
 
-Those failures remain visible. CP0 may accept the documented scaffold after both
-roles recheck it; runtime implementation acceptance belongs to CP1 and final CP2.
+Those initial failures remain visible. CP0 accepts the documented scaffold;
+runtime implementation acceptance belongs to CP1 and final CP2.
 
 ## CP1 — Integrated foundation
 
@@ -45,6 +50,8 @@ passes, branch/draft PR handoff. Passing CP2 cannot authorize production release
 
 ## Outstanding feature and release evidence
 
+- No attached Android device or accelerated emulator: x86_64 worker has no
+  /dev/kvm or KVM module. Manual runtime checks are blocked here.
 - Real Android device: permission grants/denial/partial access/revocation/reselection,
   external library changes, shared media viewing, sharing, accessibility, rotation,
   background/foreground and large-library performance: **not run**.
