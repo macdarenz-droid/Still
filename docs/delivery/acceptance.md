@@ -1256,3 +1256,23 @@ publication fence, keep invalidation nonblocking and add concurrent old-policy
 failure/fixed-pass evidence. No native timing claim follows from that structural
 finding. These fixes must preserve the frozen retrieval thresholds; builders and
 root cannot self-approve their corrected implementation.
+
+S36's first actual run on frozen-v1 `26998ff` has15 cases:11 passed and four
+assertion failures, zero errors/skips. Two reproduce coverage-contract gaps. Two
+expose the same clear positive brightness miss (+19 RGB): pHash2/spatial0.074
+pass, but coarse histogram distance0.3665 exceeds frozen0.32; the cross-year case
+reusing it also fails. Preserve `/tmp/still-cp11-s36-evidence/first-15.xml` and its
+full log. On21 held-out pairs, four semantically different document/state pairs
+were appearance candidates and two same-scene cases were missed (light and
+explicitly unsupported alpha). Resize/JPEG/crop/EXIF positives retrieved; clear
+subject/color/aspect/pattern negatives rejected. This small synthetic corpus is
+not broad quality evidence; meaningful-detail collisions remain manual review.
+
+The supervisor approved a versioned v2 illumination-normalized color/layout
+correction within S34, retaining DCT and the numeric thresholds, with separate
+declared lighting calibration. Never drop the failed light/cross-year positive
+assertions or silently widen thresholds. The exposed21-pair v1 set is now
+regression evidence, not blind validation of v2. S36 must freeze genuinely new
+independent scenes/seeds/variants before observing v2 outputs; record new pipeline/
+calibration identities on actual features/pair evidence and exact freeze hashes.
+This does not approve unfinished v2 or close JPEG/monitor/coverage findings.

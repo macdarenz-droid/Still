@@ -85,6 +85,14 @@ Freeze thresholds before observing held-out results. If evaluation feedback chan
 them, retain the failure and treat that fixture set as regression evidence; obtain
 new held-out fixtures. Positive retrieval cases must actually produce candidates.
 
+Initial frozen-v1 evaluation missed a clear brightness-shift positive because
+fixed histogram bins changed abruptly. CP11 therefore uses a separately versioned
+illumination-normalized color/layout revision with the same numeric thresholds,
+declared new calibration and genuinely new independently frozen evaluation. The
+original failures and corpus remain regression evidence; every descriptor/pair
+must carry the revised pipeline identity. This is a retrieval correction, without
+semantic text/state equivalence or general quality claims.
+
 ## UI and Compare integration
 
 Keep existing Drift, Grid, exact Cleanup and CP10 toolbar behavior. Add Find
