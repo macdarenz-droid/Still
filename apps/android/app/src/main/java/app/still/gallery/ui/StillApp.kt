@@ -489,7 +489,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                             val startView = viewRevision
                             val granted = access
                             fun currentPair(): Boolean = actionLifetime.isActive && refresh == startRefresh && viewRevision == startView &&
-                                drift.isCurrent(driftSnapshot) && !loading && !loadFailed &&
+                                drift.isCurrent(driftSnapshot) && !loading && !loadFailed && context.mediaAccess() == granted &&
                                 compareSelectedPhotos(capturedComparePair, selected.toSet(), filtered).size == 2 &&
                                 galleryActionItems(capturedComparePair, media, loading, loadFailed, actionLifetime).size == 2
                             if (currentPair()) {

@@ -245,7 +245,7 @@
     <string name="compare_busy">Another media read or comparison is still active. Try again after it finishes.</string>
     <string name="compare_size_limit">A photo’s temporary copy exceeds the 32 MiB limit for comparison. Neither photo is shown.</string>
     <string name="compare_scope_limit">Comparison is unavailable when more than 50,000 library items are accessible. No temporary photo copies were prepared.</string>
-    <string name="compare_source_changed">These photos are no longer current. Refresh the library and select them again.</string>
+    <string name="compare_source_changed">The library or photo access changed. Refresh and select the photos again.</string>
     <string name="compare_invalid_selection">Select two available photos in this view to compare.</string>
     <string name="compare_failed">Still couldn’t prepare these photos. Close and try again.</string>
     <string name="compare_preview_failed">Still can’t preview these photos for comparison.</string>

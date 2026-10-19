@@ -3,7 +3,7 @@ package app.still.gallery.ui
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
-import android.media.ExifInterface
+import androidx.exifinterface.media.ExifInterface
 import java.io.IOException
 import java.io.InputStream
 

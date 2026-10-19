@@ -128,6 +128,7 @@ class CompareCoordinator<P : AutoCloseable>(
         previews = emptyList()
         progress = CompareProgress()
         transform = CompareTransform()
+        failure = CompareFailure.UNAVAILABLE
         phase = ComparePhase.PREPARING
         actionIdentity = Any()
         val preparing = try { createWork() } catch (_: Exception) { phase = ComparePhase.FAILED; return }

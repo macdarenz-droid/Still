@@ -93,7 +93,7 @@ fun CompareScreen(
                     Text(status, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.bodyLarge)
                     if (state.phase == ComparePhase.PREPARING) {
                         LinearProgressIndicator(Modifier.fillMaxWidth())
-                        Text(stringResource(if (state.progress.stage == CompareStage.COPYING) R.string.compare_copy_progress else R.string.compare_preview_progress, state.progress.completed))
+                        Text(stringResource(if (state.progress.stage == CompareStage.COPYING) R.string.compare_copy_progress else R.string.compare_preview_progress, state.progress.completed), Modifier.semantics { liveRegion = LiveRegionMode.Polite })
                         Button(onClick = onStop, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.compare_stop)) }
                     }
                     if (state.phase == ComparePhase.STOPPING) Text(stringResource(R.string.compare_stopping_detail))
@@ -110,7 +110,7 @@ private fun ComparePane(state: CompareUiState<ComparePreview>, preview: CompareP
         val label = stringResource(R.string.compare_photo_label, index + 1, state.names.getOrElse(index) { "" })
         Text(label, style = MaterialTheme.typography.bodyMedium)
         val bitmap = preview.bitmap
-        if (bitmap != null) BoxWithConstraints(Modifier.fillMaxWidth().height(height).clipToBounds(), contentAlignment = Alignment.Center) {
+        if (bitmap != null) Box(Modifier.fillMaxWidth().height(height).clipToBounds(), contentAlignment = Alignment.Center) {
             val aspect = bitmap.width.toFloat() / bitmap.height
             Image(bitmap.asImageBitmap(), label, contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize().pointerInput(state.request) {
