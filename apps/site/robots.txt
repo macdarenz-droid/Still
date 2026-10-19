@@ -1,0 +1,3 @@
+# Local development preview. Review indexing only after domain and release checks.
+User-agent: *
+Disallow: /
