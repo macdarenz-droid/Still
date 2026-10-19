@@ -202,7 +202,8 @@ content protection choice. No media bytes or previews are persisted; no hashes
 are logged or transmitted. Start while an old blocked provider reader is still
 unwinding returns Busy, rather than queueing or resuming work. Stop fences results
 immediately and shows Stopping until the actual reader exits and closes; provider
-calls may delay that exit. Lock, refresh, permission changes, Favorites mutation
+calls may delay that exit. Worker completion acknowledges Stop even when its
+default-dispatched coroutine was canceled before the body began. Lock, refresh, permission changes, Favorites mutation
 and gallery disposal invalidate scan results/actions. New scopes never restore
 scan tokens, keepers or old completion callbacks.
 
@@ -223,6 +224,9 @@ review decisions. An extra is a reversible review choice, never permission to
 remove media. There is no quality ranking, automatic keeper, deletion/trash,
 savings estimate or native mutation in this checkpoint.
 
+Protect/unprotect confirmations are single-use and bind both the exact visible
+request and opaque current review identity. Cancel, reopening identical values,
+equal-looking later results and disposal cannot retarget a retained confirmation.
 Protect/unprotect is explicitly confirmed for ALL matching readable content,
 including a later copy only after fresh hashing. The separate local record stores
 only algorithm/version + SHA-256 + actual positive byte count, not URI/name/source

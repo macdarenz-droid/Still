@@ -47,4 +47,6 @@ data class CleanupUiState(
     val protectionState: CleanupProtectionState = CleanupProtectionState.LOADING,
     val protectionWriteFailed: Boolean = false,
     val sourceLimitExceeded: Boolean = false,
+    // Actual memory-only review object. Equal-looking rows cannot reuse an old decision.
+    val interactionIdentity: Any? = null,
 )

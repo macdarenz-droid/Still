@@ -25,10 +25,9 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -59,9 +58,13 @@ fun CleanupScreen(
     onRetryProtection: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var confirmation by remember(
-        state.groups, state.phase, state.hasAccess, state.protectionState, state.protectionWriteFailed,
-    ) { mutableStateOf<CleanupProtectionConfirmation?>(null) }
+    val confirmations = remember(
+        state.groups, state.phase, state.hasAccess, state.protectionState, state.protectionWriteFailed, state.interactionIdentity,
+    ) { CleanupConfirmationState(state.interactionIdentity) }
+    val currentConfirmations = rememberUpdatedState(confirmations)
+    DisposableEffect(confirmations) {
+        onDispose { confirmations.invalidate() }
+    }
     val groups = if (state.phase == CleanupPhase.COMPLETE && state.hasAccess) state.groups else emptyList()
     val protectionReady = state.protectionState == CleanupProtectionState.READY
 
@@ -107,7 +110,7 @@ fun CleanupScreen(
             }
             item(key = "group-${group.id}-protection", contentType = "group-action") {
                 TextButton(
-                    onClick = { confirmation = CleanupProtectionConfirmation(group.id, !group.protected) },
+                    onClick = { confirmations.open(group.id, !group.protected) },
                     enabled = protectionReady,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) {
@@ -120,12 +123,12 @@ fun CleanupScreen(
         }
     }
 
-    val request = confirmation
+    val request = confirmations.current
     val group = groups.firstOrNull { it.id == request?.groupId }
     if (request != null && group != null && protectionReady && group.protected != request.protect) {
         val scroll = remember(request) { ScrollState(0) }
         AlertDialog(
-            onDismissRequest = { confirmation = null },
+            onDismissRequest = { confirmations.dismiss(request) },
             title = {
                 Text(stringResource(if (request.protect) R.string.cleanup_confirm_protect_title else R.string.cleanup_confirm_unprotect_title))
             },
@@ -138,8 +141,11 @@ fun CleanupScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        confirmation = null
-                        onProtectionChange(request.groupId, request.protect)
+                        if (currentConfirmations.value === confirmations) {
+                            confirmations.confirm(request, state.interactionIdentity) {
+                                onProtectionChange(request.groupId, request.protect)
+                            }
+                        }
                     },
                     modifier = Modifier.heightIn(min = 48.dp),
                 ) {
@@ -147,7 +153,7 @@ fun CleanupScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { confirmation = null }, modifier = Modifier.heightIn(min = 48.dp)) {
+                TextButton(onClick = { confirmations.dismiss(request) }, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -303,5 +309,3 @@ private fun protectionMessage(state: CleanupProtectionState): Int = when (state)
     CleanupProtectionState.UNKNOWN -> R.string.cleanup_protection_unknown
     CleanupProtectionState.SAVING -> R.string.cleanup_protection_saving
 }
-
-private data class CleanupProtectionConfirmation(val groupId: Int, val protect: Boolean)

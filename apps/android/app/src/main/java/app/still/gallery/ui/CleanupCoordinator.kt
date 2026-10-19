@@ -18,6 +18,7 @@ import app.still.gallery.cleanup.ReadableMediaKind
 import app.still.gallery.media.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
@@ -42,6 +43,7 @@ class CleanupCoordinator(
     private val lifetime: GalleryActionLifetime,
     private val reader: (MediaAccess) -> CleanupSourceReader,
     private val protections: () -> AndroidContentProtections,
+    private val publicationDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
 ) {
     private val session = ExactReviewSession()
     private val annotation = CleanupRequestFence { lifetime.isActive }
@@ -100,7 +102,7 @@ class CleanupCoordinator(
                 val result = CleanupScanner(sourceReader).scan(
                     next.favorites,
                     checkCurrent = { requireRun(token) },
-                    onSnapshot = { fresh -> withContext(Dispatchers.Main.immediate) {
+                    onSnapshot = { fresh -> withContext(publicationDispatcher) {
                         requireRun(token)
                         if (!next.acceptSnapshot(fresh)) throw CancellationException("The gallery mapping changed")
                     } },
@@ -111,7 +113,7 @@ class CleanupCoordinator(
                         registered[ref] = candidate
                         observed[candidate] = item
                     },
-                    onProgress = { update -> withContext(Dispatchers.Main.immediate) {
+                    onProgress = { update -> withContext(publicationDispatcher) {
                         requireRun(token)
                         coverage = update.toUi()
                     } },
@@ -129,14 +131,6 @@ class CleanupCoordinator(
                 phase = CleanupPhase.COMPLETE
                 actionIdentity = Any()
             } catch (cancelled: CancellationException) {
-                if (scan === token && lifetime.isActive) {
-                    currentReview = null
-                    members = emptyMap()
-                    phase = if (phase == CleanupPhase.STOPPING) CleanupPhase.CANCELLED else CleanupPhase.INVALIDATED
-                    session.invalidate()
-                    scan = null
-                    actionIdentity = Any()
-                }
                 throw cancelled
             } catch (failure: Exception) {
                 if (scan === token && lifetime.isActive) {
@@ -149,6 +143,24 @@ class CleanupCoordinator(
                     sourceLimitExceeded = failure is CleanupScopeLimitException
                     currentReview = null
                     members = emptyMap()
+                    session.invalidate()
+                    scan = null
+                    actionIdentity = Any()
+                }
+            }
+        }
+        observeWorkerCompletion(requireNotNull(worker), token)
+    }
+
+    private fun observeWorkerCompletion(job: Job, token: ExactScanToken) {
+        job.invokeOnCompletion { cause ->
+            if (cause is CancellationException) scope.launch(publicationDispatcher) {
+                // Completion also runs when DEFAULT launch never entered its body.
+                // For a started reader it follows the actual IO/finally/lease exit.
+                if (scan === token && lifetime.isActive) {
+                    currentReview = null
+                    members = emptyMap()
+                    phase = if (phase == CleanupPhase.STOPPING) CleanupPhase.CANCELLED else CleanupPhase.INVALIDATED
                     session.invalidate()
                     scan = null
                     actionIdentity = Any()
@@ -262,6 +274,7 @@ class CleanupCoordinator(
             coverage = coverage, limitedAccess = access.level == AccessLevel.PARTIAL, hasAccess = access.level != AccessLevel.NONE,
             canStart = canStart && lifetime.isActive, groups = groups, protectionState = protectionState,
             protectionWriteFailed = protectionWriteFailed, sourceLimitExceeded = sourceLimitExceeded,
+            interactionIdentity = review.takeIf { current },
         )
     }
 

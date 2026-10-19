@@ -348,7 +348,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     }
                     Column(Modifier.weight(1f)) {
                         Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        if (!selecting && destination != Destination.SETTINGS) {
+                        if (!selecting && destination != Destination.SETTINGS && destination != Destination.CLEANUP) {
                             Text(pluralStringResource(R.plurals.media_count, filtered.size, filtered.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
