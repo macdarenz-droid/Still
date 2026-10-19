@@ -8,6 +8,11 @@ metadata in platform SQLite with opaque local source/observation IDs and metadat
 revisions. Use versioned schema SQL shared with real host-SQLite probes. No runtime
 or test dependency is added. Keep the existing favorites preference store intact;
 this checkpoint does not migrate annotations by URI or add deletion/protection.
+When concrete-volume discovery changes a URI spelling, preserve older Favorites
+through fresh, unambiguous provider-resolved alias evidence in memory. Keep raw
+saved references intact; ambiguous/unavailable references stay saved with an
+honest notice. No guessed volume binding, invisible metadata exposure or automatic
+reference rewrite is permitted. Explicit unfavorite targets proven matching keys.
 
 These IDs identify local observations, not pinned byte content. Provider, storage
 volume, database incarnation and row provenance must participate in continuity;

@@ -200,6 +200,11 @@ canonical pinned content versions and verified backup are subsequent work. Keep
 the supplied architecture unchanged. No data-drop upgrade/downgrade or destructive
 automatic repair; schema mismatch/corruption is surfaced. Rollback the CP4 changes
 or uninstall the development app (clears local data, preserves phone originals).
+S10 must preserve pre-CP4 aggregate-URI Favorites when rows become concrete-volume
+URIs. A fresh provider-resolved, unique alias proof may support compatibility in
+memory without rewriting saved keys. Ambiguous/unavailable references remain
+retained and honestly surfaced; never guess a volume or attach an inaccessible
+favorite. Explicit unfavorite removes only the proven matching saved references.
 
 Finish: committed owned paths, exact SHA, mappings from acceptance to tests,
 `npm run check` including the new host SQLite probe, Android assemble/all JVM/strict
