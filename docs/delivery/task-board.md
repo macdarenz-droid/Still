@@ -383,36 +383,38 @@ capture policy, preserving app data. No media mutation or migration is involved.
 Finish requires both independent exact-source/local-APK passes, all hosted checks,
 updated draft PR1 and `.artifacts/cp7-validation.json` with a uniquely saved APK.
 
-## CP8 ribbon swipe repair (architecture R01 / section4.2)
+## CP8 ribbon navigation repair (architecture R01 / section4.2)
 
-The owner reports that swiping left to the next ribbon photo stops responding
-until another button is used, and asked to continue following the architecture.
-Repair this browsing interaction before the next feature checkpoint. Source
-investigation found a mixed live permission gate and captured navigation action;
-ordinary focus-key retention is not proven as the direct device cause. Record
-that uncertainty, preserve the chosen UI and all existing source/intent fences.
+The owner reports that swiping left stops the ribbon and that Next also stops;
+switching tabs restores it. Continue the architecture with this browsing repair
+before the next feature checkpoint. Independent compiled-code/runtime investigation
+proves that successive local `::focusedCurrent` references compare equal despite
+different captured focus entries. Compose structural-equality updated state keeps
+the first gate, rejecting both controls after the first focus change. This is a
+reproduced source/runtime mechanism, not a native touch reproduction.
 
 | Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
 | --- | --- | --- | --- |
-| S23 Continuous ribbon gestures | frontend; `ui/DriftRibbon.kt`, new `ui/DriftSwipe.kt`, matching new `ui/DriftSwipeTest.kt` only | One stable handler per snapshot, coherent latest binding sampled once at drag start, same binding used through release; subsequent gestures use fresh focus. Independent attempts/cancel/disposal cannot retarget or clear newer work. Repeated forward/back swipes work without another button; short drags/cancel/bounds recover. Mid-drag button/date/page/ABA/new snapshot/authority loss rejects the old attempt. Meaningful production-seam original-fail/fixed-pass evidence | New named branch from this card; no helper delegation, new dependencies or existing155 test edits. Supervisor integrates |
-| S24 CP8 gates | reviewer and red_team; read only | Independently check real adapter-to-helper wiring, continuous gesture regression effectiveness, unchanged source/access/lock/capture/player/data boundaries and exact integrated source/local APK, then hosted confirmation | Root full155+new cases/assemble/strict lint/npm, actual APK audit and versioned delivery |
+| S23 Ribbon gate publication | frontend; `ui/DriftRibbon.kt`, new `ui/DriftRibbonGate.kt` and matching new `ui/DriftRibbonGateTest.kt`; only the canInteract argument in StillApp.kt if needed | Publish the latest exact permission callback by reference identity, preserving captured-focus/source guards. Shared button/swipe permission remains usable across repeated focus changes despite equal-comparing callbacks. Actual production gate-state regression must fail under the old structural policy and pass fixed; alternate swipe/button forward/back, source/authority changes and focus ABA | New named branch from this card; no helper delegation, dependencies or existing155 test edits. Supervisor integrates |
+| S24 CP8 gates | reviewer and red_team; read only | Independently check actual compiled-reference/state defect reproduction, adapter/helper wiring and regression effectiveness; preserve all source/access/lock/capture/player/data boundaries and exact integrated source/local APK, then hosted confirmation | Root full155+new cases/assemble/strict lint/npm, actual APK audit and versioned delivery |
 
 Root owns docs, acceptance, Android README/device matrix, integration/CI/PR and
-dependency decisions. No media/security/catalogue/cleanup/policy/build/permission/
-schema/IO changes; CP7 capture permission remains. Avoid resetting pointer input
-on each accepted focus change: explicit per-attempt identity must still cancel
-stale intent. Motion stays finite and in Compose's animator-scale context; bounded
-five-card rendering and current-source actions remain unchanged.
+all dependency decisions. Preserve chosen visuals, finite motion, bounded five-card
+composition, focus-keyed pointer cancellation, date/viewer/overlay identities and
+current-source actions. Do not refactor the detector for an unproven old-handler
+lifetime hypothesis. No media/security/catalogue/cleanup/navigation-policy/build/
+permission/schema/IO changes; CP7 capture permission remains.
 
-Preserve all155 baseline tests/assertions. New tests must use the actual production
-gesture seam and fail when the old mixed gate/action behavior is restored. Cover
-a retained handler over successive gestures plus canceled/interrupted/old callbacks
-and both ends; do not merely assert source text or reproduce the implementation.
-No attached device/emulator exists; model/source/compiled evidence cannot confirm
-the owner's exact native symptom or real touch/motion behavior. The updated native
-matrix must include repeated swipes without intervening taps and explicit interrupts.
+Preserve all155 baseline tests/assertions. New cases use the real production gate
+holder and actual Kotlin local function-reference semantics or the actual compiled
+reference class; no invented comparator as sole defect proof. Show old-policy
+failure and fixed passes, including current-UI availability AND rejection of old
+captured actions. Mere callback invocation without state publication is insufficient.
+No attached device/emulator exists; model/source/compiled evidence cannot establish
+the owner's exact native gesture behavior. Expand the native matrix with repeated
+swipe and Next/Previous sequences without tab switches and interrupt checks.
 
-Risk/rollback: only transient UI gesture state changes, no saved-state migration,
+Risk/rollback: only transient callback publication changes, no saved-state migration,
 media mutation, new stored/transmitted data or automatic playback. Restore a
 compatible retained build with app data preserved if needed. Finish requires exact
 root build/all tests/lint/npm, actual APK audit, both independent local and hosted
