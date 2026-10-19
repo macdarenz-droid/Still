@@ -29,6 +29,11 @@ the page. Run the supervisor-owned `npm run check:site` for static acceptance.
 Browser verification should cover 320, 390, 768 and 1440 CSS-pixel widths, keyboard
 navigation, enlarged text, reduced motion, in-page navigation and the absence of
 horizontal overflow. Automated checks do not replace screen-reader review.
+For a 200% text-size probe, snapshot every element's computed font size before
+applying the doubled sizes. Include headings with line breaks and links containing
+SVG icons, and check both 320 and 390 CSS-pixel widths; scaling only leaf elements
+misses these text containers. Compare document scroll width with client width so
+the vertical scrollbar does not hide horizontal overflow.
 
 ## Before any public website
 
