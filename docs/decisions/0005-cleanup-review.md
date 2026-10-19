@@ -71,6 +71,8 @@ format, read/write/sync/readback or uncertain crash state is UNKNOWN and blocks
 extras/unprotect success. Preserve records; do not auto repair, prune, reset or
 pretend failed removal saved. Actual Android/OEM power-loss behavior is not proved
 by the pure fault model. No lock-setting/security implementation is changed.
+The initial protection format is bounded to 4,096 content keys and 512 KiB;
+capacity rejection preserves existing choices and never prunes to make room.
 
 Full acceptance preserves existing checks, adds meaningful streaming, provenance,
 blocked-read/cancellation, keeper/favorite and protection-failure regressions,

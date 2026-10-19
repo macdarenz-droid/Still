@@ -443,3 +443,67 @@ The versioned local delivery remains `.artifacts/deliveries/still-cp4-1b4932b.ap
 Hosted binaries were not downloaded/inspected or presumed identical. Native
 runtime/security/accessibility/performance, main merge and production publication
 were excluded; the existing device limits remain open.
+
+## CP5 — Exact readable-copy review and protected content
+
+The owner requested continued feature checkpoints. CP5 implements the matching-copy
+review/protection stage of R02/F03. User-started scans compare complete readable
+representations, with honest candidate/omission/failure coverage. Manual keepers
+are reversible and scan-bound. Explicit durable protection applies to all matching
+readable content. No deletion/trash, reclaimed-space estimate, backup verification,
+canonical pinned version or server authority is included; see ADR0005.
+
+### Component evidence and ownership
+
+- S13 source `9393d656252a4f841419c87bce247404d82bd8f9` and tests
+  `a3b04a2a9d14204bb1db9e641addf6acbb8781a2` are integrated as `44638f0` and
+  `b8f330d`. Three new source files provide scan-bound policy and strict durable
+  content protection; three new suites add 27 cases (11 policy, 8 store,
+  8 durability). Frozen component assemble, all 99 then-current JVM tests,
+  strict lint and repository checks passed with no guard or assertion weakened.
+- S13 tests exercise current/unknown favorites, multiple keepers, content identity,
+  strict record parsing/capacity, real host-file close/reopen, competing-instance
+  revision CAS, queued authority, revision exhaustion and a separate file/directory
+  crash model. The bounded format accepts at most 4,096 protected-content keys
+  and 512 KiB, with no pruning or silent reset. Missing/uncertain/corrupt/newer
+  record state is UNKNOWN and blocks extras/mutations. Tests do not prove the
+  Android AtomicFile adapter or actual filesystem/power-loss behavior.
+- Backend owns the new `cleanup/` implementation and tests. Its approved helper
+  `/root/backend/protection_faults` authored only `ProtectionDurabilityTest.kt`.
+  Frontend owns scanner/native UI integration and its scoped tests/docs; helper
+  `/root/frontend/android_tooling` owns only `ui/CleanupScreen.kt`. SEO, reviewer
+  and red team remain read-only; neither independent role implements changes.
+- S14 scanner-only source `533dc5817789170ea2b65f2c1a59de75c4663053` passed
+  16 focused streaming/scanner cases in 25s; session log
+  `/tmp/still-cleanup-scanner-green.log`. An initial fixture returned a nonunique
+  exact probe for duplicate enumeration, causing one test failure; the fixture
+  was corrected to model a unique exact-row query, retaining the alias assertions.
+  The real failure remains in `/tmp/still-cleanup-scanner-tests.log`. This is
+  component evidence, not final UI/build/checkpoint acceptance.
+
+### Exact candidate and remaining gates
+
+After all final owned source, integration and evidence changes are committed,
+run root `npm run check`, Android assemble/all JVM/strict lint on that exact head.
+Audit the actual local APK, signature, permissions/backup exclusions and packaged
+assets, then obtain separate independent reviewer AND red-team verdicts. Material
+fixes require new checks and both rechecks. Record exact SHA/APK, results, findings,
+verdicts and subsequent hosted runs in ignored `.artifacts/cp5-validation.json`
+and [draft PR1](https://github.com/macdarenz-droid/Still/pull/1), preserving a
+versioned local APK. The persistent PR record avoids self-referential source IDs;
+the next checkpoint promotes this outcome here. No acceptance is inferred yet.
+
+No Android device or accelerated emulator is attached. Native transformations,
+blocked-read cancellation latency/closure, MediaStore scope changes, authentication,
+AtomicFile durability, TalkBack/large text and large-library/video performance
+remain blocked/unverified. A scan is evidence of observed readable bytes, not
+identical underlying originals or present pinned content. Host unit/SQL/file tests
+do not replace these native checks. Hosted binary download restrictions remain
+unchanged: only normal CI metadata/logs are read; the offered APK is built and
+audited locally, with no hosted-binary equivalence claim.
+
+Rollback: stop scans and revert CP5 with a retained copy of local app data, or
+uninstall the development app (clears Still-local annotations/settings/catalogue,
+preserves phone originals). No automatic record repair/drop/pruning, native media
+mutation, production signing, main merge, spending or publication forms part of
+this checkpoint.
