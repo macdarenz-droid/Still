@@ -181,6 +181,14 @@ After the controls handoff, the supervisor approved reassigning that same helper
 only the new `media/MediaFavoriteCompatibilityTest.kt` regression suite. Frontend
 retained all compatibility implementation, native queries, UI and commits.
 
+The supervisor subsequently delegated only the `AppLockRoot` → `StillApp` call
+in `ui/AppLock.kt` to frontend, to forward current controller access authority.
+No authentication/controller/policy change is included. A non-saveable, one-way
+gallery lifetime fence combines with that live authority for queued actions,
+external permission/settings launches and playback starts. This closes the
+reviewed pre-disposal/background and removed-gallery callback paths; native event
+timing remains a device check.
+
 Data scope is the already-authorized on-phone gallery catalogue from architecture
 sections 7–8: metadata already read for browsing, local opaque IDs and observation
 revisions. No media bytes, thumbnails, OCR, biometrics, cloud mirror, account data

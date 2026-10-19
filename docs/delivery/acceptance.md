@@ -361,6 +361,13 @@ access or imply that a missing source was deleted.
   usable during reload. The candidate was held for visibility/action fencing
   and a meaningful regression before final acceptance. The independent reviewer
   also required stale read-error publication to be fenced to its refresh.
+- Red-team callback review then required a one-way gallery-disposal fence and
+  current access checks before queued media or permission/settings actions.
+  The supervisor approved only the AppLockRoot call-site change needed to pass
+  a live controller-access predicate; authentication and durable lock policy
+  remain unchanged. Playback start must consult that current eligibility for
+  both native and visible controls. These are source-level callback traces,
+  not a claim of reproduced Android event delivery or native exploitability.
 - Backend owns the catalogue/schema contract; frontend owns live media queries,
   controls, playback and compatibility. Its helper
   `/root/frontend/android_tooling` owned only LibraryControls and then the new
