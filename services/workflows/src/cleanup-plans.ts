@@ -279,7 +279,7 @@ export class CleanupPlans {
       const plan = this.loadRevision(ownerId, planId, command.expectedRevision);
       const item = this.itemRevision(plan, itemId, command.expectedItemRevision);
       if (unresolved(item).length || item.uncertainties.length >= MAX_UNCERTAINTIES || this.allPlans().some(record => record.ownerId === ownerId && record.items.some(member => member.uncertainties.some(entry => entry.id === command.uncertaintyId)))) {
-        fault("cleanup_uncertainty_conflict", "Uncertainty is already recorded or its retained history is full.", 409, "policy", "Reconcile the recorded uncertainty; retain its history.");
+        fault("cleanup_uncertainty_conflict", "Uncertainty is already recorded or its retained history is full.", 409, "policy", "Read the current item. Resolve any open uncertainty with trusted evidence; retain the journal if its history is full.");
       }
       item.uncertainties.push({ id: command.uncertaintyId, openedAt: at, resolvedAt: null, noChangeProof: null });
       this.clearReview(plan, "uncertainty");
