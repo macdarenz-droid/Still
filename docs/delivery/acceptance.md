@@ -599,6 +599,13 @@ Both independent design roles passed; actual browser checks corrected keyboard
 focus, enlarged-text reflow and live reduced-motion cancellation. This evidence
 supports the design prototype only. No stock assets enter the native app.
 
+During native implementation, the owner explicitly reiterated "no ai wordings"
+and requested rereading the architecture. The supervisor reread the complete
+1226-line canonical document. R12/section4.3 is a final copy gate: direct labels,
+real metadata and no sample slogans or generic promotional headings. Frontend and
+SEO were notified, and the native draft slogans were removed. Planned AI features
+remain in scope; this correction concerns wording. Architecture bytes are retained.
+
 ### Component evidence and review boundaries
 
 S17 builder `1652b12a7cd26f19fe1a542c03d4053e356b51db` is integrated as

@@ -11,6 +11,16 @@ https://chatgpt.com/space/page_c731a83d8b3c8191bec755c2c9575d18.
 Both independent roles accepted that browser design sample; it is not Android
 runtime or accessibility evidence. No stock/demo media belongs in the native app.
 
+The owner reiterated the architecture's language rule during implementation:
+R12 and section4.3 require direct, specific wording. The selected visual design
+does not approve the sample slogans. Native headings use Photos, Favorites and
+real album names; controls use plain action labels and real dates/filenames.
+Do not ship promotional headings such as the samples' "Hold on to the good" or
+"A gallery with a pulse", or generic phrases such as "At a glance" and "By the
+numbers". This wording correction does not remove planned AI functionality.
+The later explicit choice of dark Drift supersedes the earlier warm-default
+palette for this checkpoint; all other architecture requirements remain in force.
+
 ## Presentation and behavior
 
 Use an ink canvas, warm white text, restrained coral selection, expressive serif
