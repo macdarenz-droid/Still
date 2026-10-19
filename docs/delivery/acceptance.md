@@ -682,7 +682,7 @@ or offset later returns to the same value. Both batch handlers check the capture
 view; Grid/Ribbon opening aligns focus and position memory. Cleanup keeps its
 existing full-gallery source gate. Invalid duplicate-token projections show an
 error/Retry before Grid; effect-initialized nonempty projections wait for readiness.
-The independent red team found those two fallback/readiness edges during review.
+The independent red team found the duplicate-token fallback and checked readiness.
 Position memory retains only a UI token, reconciles strong fresh continuity and
 never restores action authority, rows, bitmaps or an authenticated lifetime.
 
