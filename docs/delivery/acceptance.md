@@ -1331,3 +1331,47 @@ and rerun, without a suppression or guard change. This passing test run does not
 approve a lint-failing candidate. Earlier retry and resolver counterfactuals
 respectively produce two and one intended assertion failures; fixed20 focused
 UI cases and independent reviewer20 rerun pass.
+
+Frozen S34 implementation series `26998ff` → `af205333` → `3c603fe` → `79b195d`
+→ `f10a0d8`, S36 `7e8ea816` and S35's own `e89ba051` → `242159a` → `a3fb33bb`
+are integrated. Duplicate backend imports from the frontend branch are excluded.
+All16 owned source/test/resource files match final builder objects; all24 prior
+Android test files and74 backend cases remain byte-preserved. Root expects295
+JVM cases (225 prior +34 S34 +20 S35 +16 S36), verified from actual final XML.
+
+S34's exact f10 full259/assemble/strict lint pass. Thirteen final-source narrow
+removed-guard variants each trigger one intended assertion failure, zero errors/
+skips: attempted coverage, admitted bytes, JPEG completion, MPF omission,
+nonblocking finalization, every-selected final source probe, failed-close ownership,
+quota-probe accounting, no unbudgeted EOF, exact hash+length omission, exposure
+normalization, caller-list ownership and immediate close-failure dominance.
+Counterfactual method uses Kotlin2.4.21 on isolated actual production files and
+unchanged final test classes; the owner case includes unchanged Scanner to avoid
+Compose stability-field linkage. A tooling-only linkage failure and the first
+escaped attempted-coverage variant are retained separately, never counted as
+assertion detections. The strengthened partial-attempt case preserves the original
+assertions and now detects that guard independently.
+
+S34 evidence `/tmp/still-cp11-s34-evidence/` binds final application-source hashes,
+full XML/lint/logs and exact counterfactual patches/results. S36 exact f10 recheck
+passes all16 without changing its commit/fixtures; old mutant runs on af205333 are
+explicitly labelled historical dependencies, with unchanged relevant policy/
+guard bytes and final fixed-source proof at
+`/tmp/still-cp11-s36-evidence/final-f10a0d8/`. Original labels/failed assertions,
+old exposed corpus and new independent evaluation remain separately recorded.
+
+S35's exact final dependency f10 plus own a3fb33bb passes279 JVM/assemble/strict
+lint, with genuine retry-before19/2 and PluralsCandidate failures retained.
+Fixed20 focused cases, retry-policy two assertion failures and old quadratic
+resolver one traversal assertion failure prove corrections; summary
+`/tmp/still-cp11-ui-evidence/summary.json`. S37's final component copy audit is
+clear. Reviewer independently reran34 core and20 UI cases, and the same failed-
+close probe now stops at one open rather than200; source preflight findings are
+closed at the component level. Formal exact root/local-APK and hosted approval
+remains pending until final integration checks and separate role verdicts.
+
+The root now freezes this candidate for full npm/Android checks and actual APK
+inspection. Final immutable source/APK/verdict/CI evidence belongs in ignored
+`.artifacts/cp11-validation.json` and updated draft PR1, with the accepted result
+promoted here by the next checkpoint. No component readiness, synthetic fixture
+result or platform-source proof establishes native/hardware/production acceptance.
