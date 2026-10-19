@@ -147,6 +147,18 @@ committed into app build configuration.
 
 ## CP2 — Final development handoff
 
+CP2 local source/build handoff passed both roles at
+`09d7a6d0b326d6b7c4933267b9478d371b3692f3`; the development branch was pushed and
+[draft PR1](https://github.com/macdarenz-droid/Still/pull/1) opened. Hosted CI then
+reopened the handoff gate: [initial run39188938802](https://github.com/macdarenz-droid/Still/actions/runs/39188938802)
+passed backend/discovery but failed before the Android build. The setup action's
+default `packages: tools platform-tools` requested obsolete SDK package `tools`.
+The workflow now explicitly requests supported `platform-tools`; the following
+step still installs the exact platform37.0/build-tools36.0.0. License logging is
+quieted without disabling license acceptance or any build/test/lint guard.
+A new exact-SHA reviewer and red-team pass plus hosted CI are required; the initial
+hosted failure is not treated as green.
+
 CP2 applies to the final committed handoff head after this acceptance record.
 Run full checks on that exact head, then obtain separate independent reviewer and
 red-team verdicts. The final SHA, command outcomes and artifact hash are recorded
