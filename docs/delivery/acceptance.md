@@ -572,3 +572,44 @@ uninstall the development app (clears Still-local annotations/settings/catalogue
 preserves phone originals). No automatic record repair/drop/pruning, native media
 mutation, production signing, main merge, spending or publication forms part of
 this checkpoint.
+
+## CP5 final development outcome (recorded by the next checkpoint)
+
+Final source `1cc49a6e3ca4a23adffbb1eaa52e33183c1aca4c` passed separate
+reviewer and red-team exact local-source/APK gates. Each independently confirmed
+[PR run39205892848](https://github.com/macdarenz-droid/Still/actions/runs/39205892848)
+and [push run39205889018](https://github.com/macdarenz-droid/Still/actions/runs/39205889018),
+both runs/all four checks green. Root129 JVM cases (zero failures/errors/skips),
+assemble/strict lint,27 backend cases,18 host-SQL probes and TypeScript/discovery
+checks passed. Actual audited local APK:
+`8df7fe9b8dde196d06084fde07ed711d04ff1ebb9e8630247c19a314e34a6633`,12,250,577 bytes.
+Signature, compiled manifest/backup exclusions, ZIP and all8 SQL assets passed.
+The versioned delivery remains `.artifacts/deliveries/still-cp5-1cc49a6.apk`;
+full evidence is `.artifacts/cp5-validation.json`. Hosted binaries were not
+downloaded or presumed identical. Native/device/production limits remain open.
+
+## CP6 — Selected Drift native photo experience
+
+The owner selected the first DRIFT design on19 October2026. Two generated renders
+and self-contained interactive browser samples are retained in the private
+[design Page](https://chatgpt.com/space/page_c731a83d8b3c8191bec755c2c9575d18).
+Selected final HTML hash:
+`fec5ed6a5e668e6ff9f4e54f638325e968b882f2769e5c6f5cfcbde6e969f2d2`.
+Both independent design roles passed; actual browser checks corrected keyboard
+focus, enlarged-text reflow and live reduced-motion cancellation. This evidence
+supports the design prototype only. No stock assets enter the native app.
+
+ADR0006 and cards S17–S20 define the native implementation. Record owned source,
+meaningful current-view/date/identity tests and all actual review findings here.
+After final source/docs are committed, run full root/native checks and audit the
+local APK, then obtain independent reviewer AND separate red-team exact candidate
+verdicts. Fixes require corresponding new checks and both rechecks. Keep final
+source/hash/results/verdicts/hosted links in ignored `.artifacts/cp6-validation.json`
+and draft PR1 to avoid a self-referential final SHA in its own tree. Component or
+browser approval is not native checkpoint acceptance.
+
+No Android device/accelerated emulator is attached. Native motion, touch, system
+scale changes, TalkBack/keyboard focus, enlarged text/rotation, privacy surfaces,
+playback lifecycle and large-library memory/frame performance are unverified.
+Existing native matrix rows remain open and expand for Drift. No main merge,
+release signing, spending, publication, deletion or data migration is included.

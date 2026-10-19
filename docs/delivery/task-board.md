@@ -100,11 +100,12 @@ CP4 catalogue/controls passed both independent development gates at
 `1b4932b28d2afe9835cccd4f1d35783a713b5b6a`, with all72 JVM tests, build/lint,
 repository and all four hosted checks green. Its exact local APK/verdicts are
 retained in acceptance.md and `.artifacts/cp4-validation.json`; native checks remain open.
-CP5 matching-copy review/protection is integrated from final builder source
-`e327d8da782fa5d84cf92c613d518be6a5db0152`, which passed all129 JVM tests,
-assemble, strict lint and repository checks. Final integrated source/local APK,
-separate verdicts and hosted results belong in `.artifacts/cp5-validation.json`
-and draft PR1. Component evidence alone does not accept CP5.
+CP5 matching-copy review/protection passed both independent development gates at
+`1cc49a6e3ca4a23adffbb1eaa52e33183c1aca4c`, with129 JVM tests, build/lint,
+repository checks and all four hosted checks green. Exact local APK/verdicts are
+retained in acceptance.md and `.artifacts/cp5-validation.json`; native checks remain open.
+The owner then selected the first DRIFT design sample for native implementation.
+CP6 cards below define that work; browser design approval is separate from native acceptance.
 
 ## Remaining product sequence
 
@@ -308,3 +309,39 @@ clears Still-local annotations/settings/catalogue but preserves phone originals.
 Finish requires owned source committed, acceptance-to-test mapping, exact root
 head/APK hash, both independent passes, hosted CI and updated draft PR/development
 APK. Production signing, main merge, spending and publication remain excluded.
+
+## CP6 selected Drift native picture experience (R01 / F01 / F02)
+
+The owner chose A/first DRIFT on19 October2026 after reviewing two design renders
+and interactive samples. Implement the selected picture experience under ADR0006,
+then resume the remaining product sequence in later checkpoints.
+
+| Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S17 Drift navigation | backend; new `media/DriftPolicy.kt` and matching new `media/DriftPolicyTest.kt` only | Pure current-view token/index/local-date projection with instance/snapshot invalidation, bounded seven-target day rail, honest Unknown dates and unchanged NAME ordering. No IO/persistence/access authority. Meaningful timezone/DST/stale/duplicate/reuse/boundary/17k-row cases; publish interface promptly | Named branch from this card; no existing media/security/catalogue/cleanup edits. Integrate before S18 |
+| S18 Drift Android | frontend; new `ui/Drift*.kt` and focused matching new UI tests; delegated UI/wiring in `StillApp.kt`, theme tokens/icons in `StillTheme.kt`, photo-viewer function/layout in `MediaViewer.kt`, scoped layout in `LibraryControls.kt`, `strings.xml`, `res/drawable/ic_still.xml`, Android README/device matrix; only MainActivity imports/enableEdgeToEdge styling call | Ink/coral layered bounded photo ribbon, explicit navigation, real date rail/jump, view-scoped focus and Grid escape, responsive chrome/search/menu, coherent typography/dock and photo opening motion. Keep all existing live-source/permission/lifetime/favorites/share/playback/selection/Cleanup gates and error states. Existing VideoPlayer/PlaybackVideoView/security/lifecycle bodies unchanged. No new IO/dependency/permission/schema; real native checks marked unrun when unavailable | S17 interface first; UI can develop in parallel. Supervisor owns integration. No delegation approved yet; ask root before helper ownership |
+| S19 Copy/design audit | seo; read only | Real current-library text, scoped counts, honest observed dates/Unknown dates, current filter/sort state, labelled Settings and non-gesture controls. No shipped stock/demo labels, invented places/memories/AI/capture/privacy/performance claims | Design then frozen source; no edits/media reuse/publication |
+| S20 CP6 gates | reviewer and red_team; read only | Separate design/source preflight and exact integrated source/local-APK verdicts; stale animation/navigation/source/lock/refresh checks, test effectiveness and final hosted confirmations | Root full checks and artifact audit, fixes/rechecks; no release/main merge |
+
+Root owns task board/ADR/acceptance/root README/CI/PR/dependency decisions. Backend
+and frontend use their separate worktrees on new named branches from this card.
+Shared file regions above are explicitly delegated; MainActivity authorization is
+only system-bar styling, not authentication/secure-window/lifecycle behavior.
+Neither independent role implements changes. Preserve all129 existing JVM cases,
+27 backend tests,18 host-SQL probes, lint/CI guards and the original architecture.
+
+Acceptance follows ADR0006: at most five thumbnail cards, bounded date rail and
+lazy grid, no automatic slideshow, live reduced motion, all essential controls
+reachable at small/enlarged layouts, immediate invalidation rather than an exit
+animation retaining withdrawn media. Native handlers recheck the exact current
+source token and live authority; navigation model validity alone grants no access.
+No photos, hashes or user media are logged/transmitted/packaged. All stock sample
+assets remain ignored design artifacts; native app displays only authorized media.
+
+Required final evidence: root `npm run check`, Android assemble/all JVM/strict lint
+on frozen head containing latest origin/main, signature/manifest/backup/assets audit,
+local APK hash, both independent passes, hosted checks and updated draft PR1.
+Native gesture/font/animator-scale/TalkBack/frame/memory/security/playback checks
+remain open until actually run on identified hardware. Rollback the UI checkpoint
+with app-data copy retained; no database migration, original deletion, provider
+spending, production signing, publication or main merge is included.
