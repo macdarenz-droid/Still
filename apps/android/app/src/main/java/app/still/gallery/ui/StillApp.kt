@@ -99,6 +99,8 @@ import app.still.gallery.media.mediaPermissions
 import app.still.gallery.media.shareMimeType
 import app.still.gallery.media.visibleSelection
 import app.still.gallery.media.previewFingerprint
+import app.still.gallery.security.AppLockUiState
+import app.still.gallery.security.LockAction
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -112,7 +114,7 @@ private enum class Destination(val label: Int, val mark: Mark) {
 }
 
 @Composable
-fun StillApp() {
+fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, securitySettings: () -> Unit) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val device = remember { DeviceMedia(context.applicationContext) }
@@ -316,7 +318,7 @@ fun StillApp() {
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (destination == Destination.SETTINGS) {
-                SettingsContent(access, { permissions.launch(mediaPermissions()) }, ::settings, ::reload)
+                SettingsContent(access, { permissions.launch(mediaPermissions()) }, ::settings, ::reload, lockState, authenticateLock, securitySettings)
             } else if (access.level == AccessLevel.NONE) {
                 MessagePanel(R.string.access_title, R.string.access_body) {
                     Button(onClick = { permissions.launch(mediaPermissions()) }) { Text(stringResource(R.string.choose_access)) }
@@ -442,7 +444,7 @@ fun LibraryImage(item: MediaItem, device: DeviceMedia, generation: Int, modifier
 private data class ThumbnailPreview(val bitmap: android.graphics.Bitmap? = null, val loading: Boolean = true)
 
 @Composable
-private fun SettingsContent(access: MediaAccess, changeAccess: () -> Unit, settings: () -> Unit, refresh: () -> Unit) {
+private fun SettingsContent(access: MediaAccess, changeAccess: () -> Unit, settings: () -> Unit, refresh: () -> Unit, lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, securitySettings: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.development_title), style = MaterialTheme.typography.titleLarge)
         Text(stringResource(R.string.development_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -452,6 +454,8 @@ private fun SettingsContent(access: MediaAccess, changeAccess: () -> Unit, setti
         TextButton(onClick = changeAccess) { Text(stringResource(R.string.change_access)) }
         TextButton(onClick = settings) { Text(stringResource(R.string.open_settings)) }
         TextButton(onClick = refresh) { Text(stringResource(R.string.refresh)) }
+        HorizontalDivider(Modifier.padding(vertical = 12.dp))
+        AppLockSettings(lockState, authenticateLock, securitySettings)
         HorizontalDivider(Modifier.padding(vertical = 12.dp))
         Text(stringResource(R.string.privacy_title), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(R.string.privacy_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

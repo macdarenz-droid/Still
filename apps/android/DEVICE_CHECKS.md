@@ -1,4 +1,4 @@
-# S02 device acceptance matrix
+# Android device acceptance matrix
 
 Status: **BLOCKED — no attached Android device or accelerated emulator in the
 bootstrap environment.** An APK build, JVM tests and lint do not replace these
@@ -25,5 +25,28 @@ unsupported files, empty and large libraries, and removable storage where presen
 | All | TalkBack, keyboard/switch navigation, 200% font, dark theme, RTL | Labels and selection conveyed, touch targets usable, no essential text/action clipped | Blocked |
 | Reference device | Scroll at least 10,000 permitted items, rapidly open/close, revoke during load | Record cold-start/scroll memory and responsiveness; fix or document limits before release | Blocked |
 
-Cleanup, backup/restore, app lock, AI, OCR and editing tests belong to their future
-task cards. Nothing in this checkpoint claims those features are implemented.
+## S06 whole-app lock
+
+All rows below are **Blocked** pending identified physical devices or a suitable
+emulator. JVM fault/transition tests and source inspection do not establish any
+platform-authentication, screenshot, accessibility or lifecycle result. The
+owner-supplied gallery screenshots have unknown API and APK identity and do not
+count as lock acceptance.
+
+| Environment | Procedure | Expected result | Status |
+| --- | --- | --- | --- |
+| API 26–27 | Set a phone screen lock; turn Still app lock on/off; cancel each prompt | System phone-screen-lock challenge; fresh success required for either setting change; cancellation preserves setting | Blocked |
+| API 28–29, 30–37 | Enable, unlock and disable using biometric; retry a mismatch; choose phone screen lock; trigger enrollment/lockout/unavailable errors | No mismatch or error unlock; fallback opens the exact system challenge; honest retry/settings route | Blocked |
+| All | Enable, force-stop/reopen; rotate or recreate during locked, unlocked and authenticating states | Fresh Activity starts locked; no restored auth/session/token or stale success | Blocked |
+| All | Leave to Home, Recents, sharing chooser or Android Settings and return; use split-screen/top-resumed changes on API 29+ | Gallery/media work gated immediately at foreground loss; fresh authentication on return | Blocked |
+| All | During credential challenge return results before/after app foreground, press Home, cancel, reopen and trigger another challenge | Gallery remains absent throughout; only matching single-use challenge can succeed; stale/unrelated results fail closed | Blocked |
+| All | Turn screen off during viewer, biometric and external credential challenge; unlock phone and reopen Still | Still relocks; old callbacks cannot authorize; a new Still challenge is required | Blocked |
+| All | Launch Still repeatedly and deliver a launcher/new intent while already open, including during prompt | Single task; every new entry relocks and invalidates old challenge | Blocked |
+| All | While lock enabled, remove phone screen lock/enrollment in Android Settings; return to Still | Content remains gated; recovery opens Android security settings; unavailable authentication cannot disable lock | Blocked |
+| All | Capture screenshot/recording and inspect Recents while locked, unlocking, gallery, photo/video viewer and information dialog are visible | Android protection requested for Activity and inherited dialog windows; verify actual device surfaces and document OEM limits | Blocked |
+| All | Interrupt setting writes or inject read/corruption/write/sync/readback/marker removal failures; recreate app and retry authenticated setting change | No silent success or failed-disable bypass; recovery stays locked; successful fresh update can recover | Blocked |
+| All | Enable and background quickly; disable then background; return from authentication while screen off | No sensitive first frame or recents flash; only foreground accepted authentication grants access | Blocked |
+| All | Gate/settings with TalkBack, switch/keyboard navigation and 200% font; trigger cancel/error/recovery | Textual state and polite error announcements; readable scrolling; reachable actions without icon/color dependence | Blocked |
+
+Cleanup, backup/restore, AI, OCR and editing remain future tasks. No runtime or
+production security acceptance is claimed by the native implementation alone.

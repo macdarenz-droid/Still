@@ -1,7 +1,7 @@
 # Still Android development app
 
 Native Kotlin/Compose phone gallery, Android 8.0 (API 26) and later. This is the
-S02 foundation, not a production release. It reads real permitted MediaStore
+development foundation, not a production release. It reads real permitted MediaStore
 photos/videos, groups them by month and album, searches filenames, opens images
 with zoom and videos with platform controls, and shares selected media through
 Android. Favorites are app-private metadata persisted on this phone, not system
@@ -47,15 +47,53 @@ A later persistent catalogue will map source handles to those IDs; these URIs
 must never be submitted as backend job asset references.
 
 This build declares no internet or write/delete permission. There are no cloud
-transfers, AI providers, analytics, app lock, deletion, verified backup or generated
+transfers, AI providers, analytics, deletion, verified backup or generated
 outputs. Those remain in the product plan and are described as future work in
 Settings. Favorites and search do not infer anything about inaccessible media.
 Android auto-backup is off so local preference data is not silently backed up.
 
+## Optional app lock (S06)
+
+Settings can require Android device authentication before opening the whole
+gallery. Enabling and disabling each require fresh authentication. API 28+
+uses platform biometrics when available, with a phone-screen-lock fallback;
+API 26–27 uses the phone screen lock. This protects access through Still. It
+does not encrypt, move or hide the phone's original media from other apps.
+
+An enabled session starts locked after every Activity creation. Unlock results,
+attempt identities and session state exist only in memory. Leaving the
+foreground, opening a new external entry or turning the screen off invalidates
+access. Sharing and Android Settings therefore require authentication on return.
+The gallery is absent from composition while locked or authenticating, so its
+MediaStore query, thumbnails and video viewer do not run behind the gate. Only
+gallery navigation and selection UI state use the saveable registry.
+
+Each external phone-screen-lock launch has a unique result registration capturing
+the exact memory-only attempt. Its single expected lifecycle handoff keeps only
+that challenge; gallery access stays blocked. Recreated Activities do not restore
+the registration or accept old results. Biometric mismatches permit another scan;
+terminal errors, cancellation, screen-off and new entry fence stale callbacks.
+If the phone screen lock is unavailable, an enabled Still stays locked and offers
+Android security settings.
+
+The only new durable data is a strict, versioned local on/off setting and a
+pending-write marker. The adapter syncs and verifies AtomicFile writes. A failed
+or interrupted update, malformed record or read error is treated as locked; a
+marker remains until an authenticated setting update succeeds. A failed enable
+is explicitly reported as unsaved, never as enabled. This protocol has JVM fault
+coverage; power-loss durability and platform/OEM behavior remain device checks.
+
+Still requests Android screenshot/recents protection with `FLAG_SECURE` while
+enabled, authenticating or recovering a failed setting. Viewer and information
+dialogs inherit the Activity's secure policy; API 33+ also disables recents
+screenshots. Actual screenshot/recording/recents behavior needs hardware checks.
+No custom PIN, credential storage, vault or encryption is implemented.
+
 ## Verification limits
 
 Unit tests exercise API-specific permission policy, mixed-media sharing,
-selection visibility and late-thumbnail invalidation. They do not prove Android
+selection visibility, late-thumbnail invalidation, lock-policy transitions and
+setting-write failures. They do not prove Android authentication prompts,
 permission dialogs, URI grants, image formats, lifecycle, codecs or accessibility
 on hardware. Run the [manual device matrix](DEVICE_CHECKS.md) before accepting this
 as a release candidate. Large-library indexing and performance remain unmeasured;
