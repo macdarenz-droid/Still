@@ -1161,3 +1161,46 @@ required. The immutable final record and draft PR1 will bind the candidate SHA,
 APK identity and final outcomes; the next checkpoint promotes that outcome here.
 No host or platform-source evidence establishes real Android FD/proc behavior,
 EXIF/codec rendering, gestures, MediaStore, low storage or process/power loss.
+
+## CP10 final development outcome (recorded by the next checkpoint)
+
+Exact source `d4d3305328833dc65e527c16396e2cc42cd12a25` passed independent
+reviewer and separate red-team actual local-source/APK gates, then each hosted
+confirmation. PR run39231231751 and push run39231227197 succeeded with all four
+checks green. All225 Android cases/24 suites,74 backend cases, TypeScript,
+11 discovery,18 real host-SQL probes, assemble and strict lint passed. All159
+pre-CP10 Android cases and backend assertions remained byte-preserved. Ten CP10
+counterfactual variants detect their intended removed guards; genuine component
+failures and their corrections remain documented above.
+
+Unique actual local APK `.artifacts/deliveries/still-cp10-d4d3305.apk` is15,601,568
+bytes, SHA-256 `32fd1b025d4e490c52f39f69115c8a874b244a7698dd376b5da2b546dc0a06d0`.
+Independent actual DEX/signature/manifest/permissions/backup/8SQL audits passed.
+Full immutable record `.artifacts/cp10-validation.json` and updated open draft PR1
+were verified against clean source/remote head/latest-main ancestry. No hosted
+binary was downloaded. Native device/provider/FD/proc/codec/EXIF/gesture/a11y/
+performance/storage/process/power-loss checks remain unverified, and deletion is
+disabled; these host/source development gates are not production acceptance.
+
+## CP11 — Selected-photo appearance candidates
+
+ADR0009 and S34–S38 implement required R02/architecture9.1 as selected2–200-photo
+appearance candidates across dates, direct-pair evidence and explicit fresh CP10
+Compare. This adds no transitive equivalence, keeper/extras/protection/removal
+capability, new persistent store/cloud/dependency or full-library-index completion
+claim. Preserve all225 Android and74 backend assertions. Retain actual failing
+checks/findings, meaningful production-pixel and fault tests, independent held-out
+retrieval limitations and both exact local-source/APK plus each hosted verdict.
+Final immutable candidate outcomes belong in ignored `.artifacts/cp11-validation.json`
+and draft PR1; the next checkpoint promotes the accepted outcome here.
+
+Independent design preflight flags concrete hazards before implementation: existing
+CleanupScanner's unconditional-finally release does not establish failed-close
+ownership; new analysis must retain resources/lane until verified closure. Bound
+encoded/header/decode/bitmap/feature/pair work, reject low-information collapse,
+never truncate selected scope silently and distinguish omitted scope from no matches.
+Use current selected-source/namespace fences and distinct scan/result/pair/choice
+identities; delayed same-shaped actions cannot enter Compare for a new review.
+Thumbnail equality and perceptual features never establish interchangeable copies
+or fidelity. Host pixel fixtures cannot prove native codec/provider/accuracy or
+hardware resource behavior. No component/design clearance is checkpoint approval.

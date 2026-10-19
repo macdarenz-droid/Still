@@ -517,3 +517,44 @@ source preflight and S31 copy clearance are recorded in acceptance; neither is
 checkpoint approval. Root now freezes the combined225-case candidate for full
 checks, actual APK audit and S32's separate local and hosted gates. The final
 immutable source/artifact outcome is `.artifacts/cp10-validation.json` and PR1.
+
+## CP11 selected-photo appearance candidates (Stage2 / R02)
+
+Continue accepted CP10 under ADR0009. User selects2–200 current visible photos in
+Grid and taps Find similar; all selected photos are considered across dates,
+without silent truncation. Show review-only direct appearance pairs and an explicit
+Compare action that independently prepares the chosen pair with CP10. Durable
+full-library incremental similarity indexing remains planned; no permanent
+narrowing of R02 or other roadmap features. No deletion/protection/keeper authority,
+new cloud connection, dependency, persisted features or file staging in analysis.
+
+| Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S34 Visual analysis | backend; new `similarity/SimilarityPolicy.kt`, `SimilarityReadOwnership.kt`, `SimilarityScanner.kt`, `AndroidSimilarityFeatures.kt` under Android main package and matching new `similarity/*Test.kt` except S36 | Versioned source-derived DCT pHash64 plus aspect/color/spatial checks, low-information rejection, exact-pair omission; immutable direct pairs/coverage, opaque ticket/result/pair identities. Selected2–200,16MiB/input,256MiB/run,64KiB chunks,32MiB explicit encoded buffers,edge256/1Mpixel/4MiB single feature bitmap,200 descriptors/19,900 pair checks/50 results with omitted count. Fresh metadata cap50k, per-read and whole-selection final fences, alias rejection, complete EOF/close before extraction. Shared nonqueueing Cleanup admission, process-retained failed closes and retry across recreation. Real stream/fault/source/production-pixel tests, no transitive clustering or similarity confidence claims | New named branch from this card; publish compile-ready API promptly. No helper, old source/test/dependency/schema/security/provider edits. Supervisor integrates first |
+| S35 Similarity review UI | frontend; new `ui/Similarity*.kt` and matching new tests; existing `StillApp.kt` only selection action/start/render/lifecycle/source/scope/Compare integration; `strings.xml` only new strings | Grid selected batch→Find similar→read-only lazy direct pair cards, actual names/dates and coverage, Stop/Close/error/partial/failed-close Retry states. Responsive accessible essential buttons, existing palette/capture behavior. Exact result/pair-choice origin helper resolves current authorized pair and starts existing CP10 Compare freshly; no fake gallery selection, saved capabilities, old-action retarget, analysis bitmap cache, exact-policy/keeper/protection/mutation actions. Fence selection ABA, source withdrawal, before-start cancellation and actual worker settlement. Meaningful production coordinator/binding regressions | S34 API first; stateless UI in parallel. Existing Compare/input/media/security/player/cleanup bodies unchanged. No helpers/dependencies/old test edits. Root integrates after S34 |
+| S36 Independent pixel evaluations | input_policy_tests; new `apps/android/app/src/test/java/app/still/gallery/similarity/SimilarityEvaluationTest.kt` only | Independently generated labelled synthetic scene/document/state/color/pattern/tiny/flat/alpha/EXIF1–8 fixtures against production pixel helper; actual host ImageIO re-encoding where useful. Separate calibration vs evaluation evidence, held-out false positives/misses and limits. Direct A–B/B–C/notA–C, cross-year metadata and no authority escalation; bounded count/result overflow. Preserve existing assertions. No implementation or other test edits | Explicit one-file test reassignment from S34; named branch, copy dependency WIP only as uncommitted scaffold. No helper/self-approval; report API/evaluation defects to root |
+| S37 Copy/claims audit | seo; read only | Honest selection2–200, resource/metadata limits and actual coverage, uncertain appearance/detail differences and exact-vs-visual separation; no quality winner/duplicate certainty/original/backup/removal/memory/latency guarantee. Plain R12 copy; full roadmap retained | Design then frozen integrated source/docs; no edits/publication |
+| S38 CP11 independent gates | reviewer and red_team; read only | Separate design/source/test-effectiveness and exact root/local-APK verdicts, real scope/alias/close/budget/low-information/direct-pair/source-withdrawal/stale Compare probes, preserved baselines and each hosted confirmation | Root final full checks/audit and fix/recheck. No production publication |
+
+Supervisor owns ADR/task board/acceptance/root and Android README/device matrix,
+shared build/dependency/CI/PR decisions and integration. Preserve every225 Android
+and74 backend case/assertion, all CP10 inputs/Compare semantics and previous ribbon,
+lock/capture, viewer/playback, exact Cleanup, catalogue and CP9 contracts/journal.
+The new module may import existing media/read admission interfaces but not change
+them. No dependency, Android permission, schema, persisted/transmitted data category,
+source mutation, file staging or production configuration change is approved.
+
+DCT pHash is the root-selected initial implementation for versioned candidate
+retrieval, with thresholds chosen using declared calibration fixtures and independent
+held-out evaluation; no general accuracy claim. Low-detail/documents/state changes
+can still collide and always remain manual appearance review. Capture time is not
+a filter. Known animation/motion cases are omitted honestly when unsupported.
+
+Risks/rollback/retention and command environment follow ADR0009. Root must run
+`npm run check`, Android assemble/all225+new JVM/strict lint and actual signature/
+permissions/manifest/backup/8SQL/DEX audit. Both independent exact local AND hosted
+passes, all four exact-head CI checks, unique CP11 APK, ignored validation record
+and updated draft PR1 finish development acceptance. Hardware provider/codec/EXIF/
+gesture/font/TalkBack/memory/thermal/large-library/process/power-loss checks remain
+Blocked until observed. Keep genuine failures and effective old-policy regression
+proofs. No main merge, release signing, paid provider or publication.
