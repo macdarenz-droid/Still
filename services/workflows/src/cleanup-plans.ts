@@ -235,7 +235,7 @@ export class CleanupPlans {
     return this.operation(ownerId, { action: "revalidate", planId, itemId: null, command }, at => {
       const plan = this.loadRevision(ownerId, planId, command.expectedRevision);
       this.fence(plan, at);
-      if (!plan.expired && !plan.cancelled && !plan.blockers.includes("uncertainty")) this.review(plan, at);
+      if (!plan.expired && !plan.cancelled && !this.hasRelatedUncertainty(plan)) this.review(plan, at);
       this.advanceAndSave(plan, at);
       return plan;
     });
@@ -336,7 +336,11 @@ export class CleanupPlans {
     plan.evidence = null; plan.reviewFingerprint = null; plan.state = "blocked";
     for (const item of plan.items) {
       item.blockers = checked.blockers.get(item.id)!;
-      if (checked.evidence) item.physicalSourceId = checked.evidence.sources.find(source => source.ref.sourceId === item.ref.sourceId)!.physicalSourceId;
+      if (checked.evidence) {
+        const physical = checked.evidence.sources.find(source => source.ref.sourceId === item.ref.sourceId)!.physicalSourceId;
+        if (item.physicalSourceId === null) item.physicalSourceId = physical;
+        else if (item.physicalSourceId !== physical) item.blockers = unique([...item.blockers, "source_alias"]);
+      }
     }
     if (this.hasRelatedUncertainty(plan, checked.evidence)) for (const item of plan.items) item.blockers = unique([...item.blockers, "uncertainty"]);
     if (checked.evidence && plan.items.every(item => item.blockers.length === 0)) {
@@ -373,8 +377,11 @@ export class CleanupPlans {
     const physical = new Set([...plan.items.map(item => item.physicalSourceId), ...(evidence?.sources.map(source => source.physicalSourceId) ?? [])].filter((id): id is string => id !== null));
     const records = this.allPlans().filter(record => !(record.ownerId === plan.ownerId && record.id === plan.id));
     records.push(plan);
-    return records.some(record => record.ownerId === plan.ownerId && record.items.some(item => unresolved(item).length &&
-      (refs.some(ref => ref.sourceId === item.ref.sourceId || ref.versionId === item.ref.versionId || ref.assetId === item.ref.assetId) || (item.physicalSourceId !== null && physical.has(item.physicalSourceId)))));
+    return records.some(record => record.ownerId === plan.ownerId && record.items.some(item => {
+      if (!unresolved(item).length) return false;
+      if (item.physicalSourceId === null) return true;
+      return refs.some(ref => ref.sourceId === item.ref.sourceId || ref.versionId === item.ref.versionId || ref.assetId === item.ref.assetId) || physical.has(item.physicalSourceId);
+    }));
   }
 
   private itemRevision(plan: CleanupPlanRecord, itemId: string, revision: number): CleanupItemRecord {
@@ -547,6 +554,7 @@ export class CleanupPlans {
       }
       for (const item of result.items) {
         const member = current.items.find(member => member.id === item.id)!;
+        if (item.physicalSourceId !== null) ensure(member.physicalSourceId === item.physicalSourceId);
         ensure(item.uncertainties.length <= member.uncertainties.length);
         item.uncertainties.forEach((entry, index) => {
           const later = member.uncertainties[index];

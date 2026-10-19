@@ -39,7 +39,7 @@ function fixture(t: TestContext, trusted = true) {
     },
   };
   const stores: CleanupPlans[] = [];
-  const open = () => { const value = new CleanupPlans(path, { now: () => state.time, ...(trusted ? { trustedEvidence: adapter } : {}) }); stores.push(value); return value; };
+  const open = (withTrusted = trusted) => { const value = new CleanupPlans(path, { now: () => state.time, ...(withTrusted ? { trustedEvidence: adapter } : {}) }); stores.push(value); return value; };
   t.after(() => { for (const store of stores) { try { store.close(); } catch { /* already explicitly closed */ } } rmSync(directory, { recursive: true, force: true }); });
   return { directory, path, state, adapter, open, store: open() };
 }
@@ -411,6 +411,71 @@ test("S25: a current confirmation without its exact retained confirmation operat
     for (const item of current.items) { item.revision++; item.state = "confirmed_nonexecuting"; }
   });
   const before = readFileSync(f.path); assert.throws(() => f.open()); assert.deepEqual(readFileSync(f.path), before);
+});
+
+test("S25: known physical identity cannot disappear after an uncertain plan gets a read-only expiry revision", t => {
+  for (const physical of [null, "different-physical-source"]) {
+    const f = fixture(t); let plan = f.store.createPlan(OWNER, { ...create(), expiresInMs: 1_000 }).plan;
+    assert.equal(plan.items[0].physicalSourceId, "physical-target");
+    plan = f.store.markItemUncertain(OWNER, plan.id, plan.items[0].id, { ...itemCommand(plan, "uncertain"), uncertaintyId: "uncertainty" }).plan;
+    f.state.time = BASE + 2_000;
+    const expired = f.store.getPlan(OWNER, plan.id);
+    assert.equal(expired.revision, 3); assert.equal(expired.state, "uncertain"); assert.equal(expired.expired, true);
+    f.store.close();
+    mutateCurrent(f.path, plan.id, current => { current.items[0].physicalSourceId = physical; });
+    const before = readFileSync(f.path);
+    let rejected = false;
+    try {
+      const reopened = f.open();
+      f.state.mutate = value => { value.sources[0].physicalSourceId = "physical-target"; return value; };
+      const alias = reopened.createPlan(OWNER, create("alias", [ref("fresh-target", "fresh-asset", "fresh-version")], [ref("fresh-keeper", "fresh-asset", "fresh-version")])).plan;
+      assert.fail(`Corrupt identity reopened and the same physical source became ${alias.state}`);
+    } catch (error) {
+      if (error instanceof assert.AssertionError) throw error;
+      assert.match(String(error), /Cleanup journal is invalid or unsupported/);
+      rejected = true;
+    }
+    assert.equal(rejected, true); assert.deepEqual(readFileSync(f.path), before);
+  }
+});
+
+test("S25: revalidation preserves known physical identity for an unchanged exact source revision", t => {
+  const f = fixture(t); const plan = f.store.createPlan(OWNER, create()).plan;
+  f.state.mutate = value => { value.sources[0].physicalSourceId = "different-physical-source"; return value; };
+  const changed = f.store.revalidatePlan(OWNER, plan.id, revision(plan, "changed-physical")).plan;
+  assert.equal(changed.state, "blocked"); assert.ok(changed.blockers.includes("source_alias"));
+  assert.equal(changed.reviewFingerprint, null); assert.equal(changed.items[0].physicalSourceId, "physical-target");
+  f.store.close(); assert.equal(f.open().getPlan(OWNER, plan.id).items[0].physicalSourceId, "physical-target");
+});
+
+test("S25: unknown unresolved physical identity fences its owner across new opaque aliases until trusted resolution", t => {
+  const f = fixture(t, false); let original = f.store.createPlan(OWNER, create()).plan;
+  assert.equal(original.items[0].physicalSourceId, null);
+  original = f.store.markItemUncertain(OWNER, original.id, original.items[0].id, { ...itemCommand(original, "unknown-uncertainty"), uncertaintyId: "unknown-identity" }).plan;
+  f.store.close();
+  f.state.mutate = value => { value.sources[0].physicalSourceId = "shared-physical-source"; return value; };
+  const trusted = f.open(true);
+  const command = create("new-alias", [ref("fresh-target", "fresh-asset", "fresh-version")], [ref("fresh-keeper", "fresh-asset", "fresh-version")]);
+  const alias = trusted.createPlan(OWNER, command).plan;
+  assert.equal(alias.state, "uncertain"); assert.ok(alias.blockers.includes("uncertainty")); assert.equal(alias.reviewFingerprint, null);
+  assert.equal(trusted.createPlan("owner-b", command).plan.state, "reviewable");
+  const blocked = trusted.revalidatePlan(OWNER, alias.id, revision(alias, "still-uncertain")).plan;
+  assert.equal(blocked.state, "uncertain");
+  f.state.allowNoChange = true;
+  const resolved = trusted.reconcileItem(OWNER, original.id, original.items[0].id, itemCommand(original, "resolve-unknown")).plan;
+  assert.equal(resolved.items[0].state, "reconciled_no_change");
+  assert.equal(resolved.items[0].physicalSourceId, null); // No identity is invented by no-change evidence.
+  const reviewed = trusted.revalidatePlan(OWNER, alias.id, revision(blocked, "fresh-review")).plan;
+  assert.equal(reviewed.state, "reviewable"); inactive(reviewed);
+});
+
+test("S25: a fresh explicit review may learn a previously unknown physical identity", t => {
+  const f = fixture(t, false); const original = f.store.createPlan(OWNER, create()).plan;
+  assert.equal(original.items[0].physicalSourceId, null); f.store.close();
+  const trusted = f.open(true);
+  const reviewed = trusted.revalidatePlan(OWNER, original.id, revision(original, "learn-identity")).plan;
+  assert.equal(reviewed.state, "reviewable"); assert.equal(reviewed.items[0].physicalSourceId, "physical-target");
+  trusted.close(); assert.equal(f.open(true).getPlan(OWNER, original.id).items[0].physicalSourceId, "physical-target");
 });
 
 test("S25: exhausted revisions reject mutation and retain the prior record", t => {
