@@ -12,9 +12,10 @@
     "dev:api": "node --watch services/api/src/server.ts",
     "start:api": "node services/api/src/server.ts",
     "check:site": "python3 scripts/check-site.py",
+    "check:catalogue": "python3 scripts/test-android-catalogue.py",
     "build:android": "cd apps/android && ./gradlew --no-daemon :app:assembleDebug",
     "test:android": "cd apps/android && ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug",
-    "check": "npm run typecheck && npm test && npm run check:site"
+    "check": "npm run typecheck && npm test && npm run check:site && npm run check:catalogue"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
