@@ -351,6 +351,16 @@ access or imply that a missing source was deleted.
   saved with generic disclosure; explicit unfavorite removes proven keys only.
   Old preferences contain no historical birth/hash evidence, so compatibility
   cannot prove historical photo identity after legacy handle reuse.
+- Follow-up `acefd77960f023fc7d09a728b9ba92be050367b4` passed the13 new
+  Favorites regressions and all68 then-current JVM tests. Restoring the old
+  raw-URI membership/removal behavior in an isolated worktree caused3 of31
+  selected media tests to fail, proving visibility, reduced-access and targeted
+  unfavorite coverage (`/tmp/still-gallery-favorites-before.log`). This is
+  component evidence only: both roles then identified a second refresh race.
+  Under unchanged full access, old viewer/grid media and callbacks remained
+  usable during reload. The candidate was held for visibility/action fencing
+  and a meaningful regression before final acceptance. The independent reviewer
+  also required stale read-error publication to be fenced to its refresh.
 - Backend owns the catalogue/schema contract; frontend owns live media queries,
   controls, playback and compatibility. Its helper
   `/root/frontend/android_tooling` owned only LibraryControls and then the new
