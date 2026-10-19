@@ -13,11 +13,22 @@ required later capabilities are tracked below, not removed.
 | S01 Control plane | backend; packages/contracts, services/api, services/workflows, db/migrations, tests/contracts, tests/faults | Versioned typed DTOs; durable SQLite jobs/consent/outbox; authenticated owner isolation; numeric bounded budget; revision/idempotency validation; no provider pretence; contract/fault tests including reopen | S00 then integrate before S02 cloud work |
 | S02 Android gallery | frontend; apps/android (including build scripts and wrapper, supervisor approves dependency versions below) | Compose gallery using real MediaStore; full/limited/denied access and reselection; image/video viewer, system sharing, local favorites/selection, albums/search. Debug APK, unit and lint checks; manual device matrix explicitly pending when unavailable | S00; local gallery independent of API |
 | S03 Discovery | seo; apps/site, docs/discovery | Accessible responsive early-development page, honest planned capabilities, no fake downloads; noindex until domain and brand checks. Store listing draft and launch checks. Static validation and browser review if available | S00; native app remains primary |
-| S04 Independent acceptance | Fresh reviewer; review only, no implementation ownership | Review exact integrated diff, test quality and architecture boundaries; supervisor/builder fixes then affected re-review. Final checks, exact SHA and artifact hashes in acceptance record | After S01–S03 |
+| S04 Independent acceptance | reviewer and red_team; review only, no implementation ownership | At every checkpoint, separate independent review AND adversarial red-team pass on exact SHA. Findings require fixes/recheck before acceptance. Final checks and artifact hashes in acceptance record | CP0 bootstrap, CP1 integrated foundation, CP2 final handoff |
 
 All builders work on named branches in separate worktrees. No builder edits another
 card’s files. Supervisor owns integration and new dependencies. Merge sequence is
 S00 → S01/S02/S03 → S04; only task branches integrate, no direct main push or merge.
+
+## Mandatory checkpoint gates
+
+The owner requires an independent reviewer and a separate red team at **every
+checkpoint before shipping** (added 19 October 2026). CP0 covers bootstrap; CP1
+covers the integrated app/API/discovery foundation; CP2 covers the final reviewable
+branch, checks and artifacts. Each records exact SHA, reviewer outcome, red-team
+outcome, unresolved findings and validation. Neither builders nor supervisor
+self-approve. Material fixes are rechecked by both roles. No checkpoint acceptance
+or shipping while either required pass is absent or unresolved blocking findings
+remain. A draft PR/debug artifact is a development handoff, not publication.
 
 ## Approved bootstrap choices
 
