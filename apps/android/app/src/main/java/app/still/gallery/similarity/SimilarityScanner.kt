@@ -64,7 +64,10 @@ class SimilarityScanner(
                         coverage = coverage.copy(attempted = coverage.attempted + 1)
                         val captured = try {
                             val input = reader.open(source)
-                            ownership.track(work, input).use { capture(input, encoded, budget, check) }
+                            val resource = ownership.track(work, input)
+                            // Physical close uncertainty dominates a primary read error. use() would
+                            // suppress this signal under IOException and admit another provider handle.
+                            try { capture(input, encoded, budget, check) } finally { resource.close() }
                         } catch (cancelled: CancellationException) { throw cancelled }
                         catch (failure: SimilarityException) { throw failure }
                         catch (_: java.io.IOException) { Capture.Unreadable }

@@ -241,6 +241,30 @@ class SimilarityScannerTest {
         } finally { other!!.close() }
         assertEquals(2, scanner.scan(ticket, emptySet()).coverage.featured)
     }
+    @Test fun primaryReadFailureCannotHideCloseUncertaintyAndOpenAnotherProvider() = runBlocking {
+        for (runtimeFailure in listOf(false, true)) {
+            val fixture = Fixture(200)
+            var failClose = true
+            fixture.reader.close = { if (failClose) throw IOException() }
+            fixture.reader.stream = { object : InputStream() {
+                override fun read(): Int = throw IOException()
+                override fun read(b: ByteArray, o: Int, l: Int): Int {
+                    if (runtimeFailure) throw IllegalStateException() else throw IOException()
+                }
+            } }
+            failure(SimilarityFailure.CLOSE_FAILED) { fixture.scan() }
+            assertEquals("No second provider may open after a failed physical close", 1, fixture.reader.opened)
+            assertEquals(0, fixture.reader.closed)
+            assertEquals(0, fixture.decoderCalls)
+            assertNull(fixture.lane.tryEnter())
+            assertEquals(SimilaritySettleResult.CLOSE_FAILED, fixture.replacement().settle())
+            failClose = false
+            assertEquals(SimilaritySettleResult.CLEAN, fixture.replacement().settle())
+            assertEquals(1, fixture.reader.closed)
+            assertFalse(fixture.scanner.isCurrent(fixture.ticket))
+            fixture.assertFree()
+        }
+    }
     private class Reader(count: Int) : CleanupSourceReader {
         val rows = MutableList(count) { cleanupTestItem(it + 1) }
         var snapshotRows: List<MediaItem>? = null
