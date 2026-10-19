@@ -1,25 +1,43 @@
 package app.still.gallery.ui
 
+import app.still.gallery.media.MediaItem
+import app.still.gallery.media.reconcileMediaTokens
+
+/** UI intent only: it neither retains rows nor grants access while a read is pending. */
+class DriftFocusMemory {
+    var token: String? = null
+        private set
+
+    fun capture(candidate: String?) { if (candidate != null) token = candidate }
+    fun reconcile(current: List<MediaItem>) {
+        token = token?.let { reconcileMediaTokens(setOf(it), current).singleOrNull() }
+    }
+    fun settle(candidate: String?, loading: Boolean) { if (!loading) token = candidate }
+}
+
+class DriftFocusEntry internal constructor(val sourceToken: String)
+
 /** Memory-only UI intent fence. A navigation projection never grants source access. */
 class DriftInteraction(private val authorized: () -> Boolean) {
     private var projection: Any? = null
-    var focusedToken: String? = null
+    var currentFocus: DriftFocusEntry? = null
         private set
+    val focusedToken: String? get() = currentFocus?.sourceToken
 
     fun replace(current: Any, focus: String?) {
         projection = current
-        focusedToken = focus
+        currentFocus = focus?.let(::DriftFocusEntry)
     }
 
-    fun invalidate() { projection = null; focusedToken = null }
+    fun invalidate() { projection = null; currentFocus = null }
 
-    fun isCurrent(expected: Any, sourceToken: String?): Boolean =
-        authorized() && projection === expected && focusedToken == sourceToken
+    fun isCurrent(expected: Any, focus: DriftFocusEntry?): Boolean =
+        authorized() && projection === expected && focus != null && currentFocus === focus
 
     /** A queued gesture must not override a newer explicit navigation choice. */
-    fun focus(expected: Any, previousToken: String?, nextToken: String): Boolean {
-        if (!isCurrent(expected, previousToken)) return false
-        focusedToken = nextToken
+    fun focus(expected: Any, previous: DriftFocusEntry?, nextToken: String): Boolean {
+        if (!isCurrent(expected, previous)) return false
+        currentFocus = DriftFocusEntry(nextToken)
         return true
     }
 }
@@ -47,6 +65,36 @@ class DriftViewerSession(private val authorized: () -> Boolean) {
         if (!isCurrent(expected)) return false
         current = null
         return true
+    }
+
+    fun invalidate() { current = null }
+}
+
+class DriftDateRequest internal constructor(internal val focus: Any)
+
+/** A cancelled or replaced picker may neither navigate nor dismiss another opening. */
+class DriftDatePicker(private val currentFocus: () -> Any?) {
+    var current: DriftDateRequest? = null
+        private set
+
+    fun open(focus: Any): DriftDateRequest? {
+        if (currentFocus() !== focus) return null
+        return DriftDateRequest(focus).also { current = it }
+    }
+
+    fun isCurrent(request: DriftDateRequest): Boolean = current === request && currentFocus() === request.focus
+
+    fun dismiss(request: DriftDateRequest): Boolean {
+        if (!isCurrent(request)) return false
+        current = null
+        return true
+    }
+
+    fun confirm(request: DriftDateRequest, jump: () -> Boolean): Boolean {
+        if (!isCurrent(request)) return false
+        val accepted = jump()
+        if (accepted && current === request) current = null
+        return accepted
     }
 
     fun invalidate() { current = null }

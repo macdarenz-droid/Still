@@ -47,8 +47,14 @@ Jumping selects the first matching row in the existing sort; Filename A–Z is n
 regrouped by date. Source dates can include Android added-date fallback and are
 not presented as verified capture times. Scope, refresh, sort and presentation
 changes create an explicit new navigation identity, including equal-looking rows.
-Captured projection and expected-focus checks prevent queued navigation from
-retargeting a new row or replacing a later choice. Existing native action gates
+Captured projection and opaque per-focus checks prevent queued navigation from
+retargeting a new row or replacing a later choice, including a return to the same
+source. Pointer and picker work use that focus identity. Each date-picker opening
+has its own single-use request, so cancelled confirmations or dismissals cannot
+navigate or close a later opening. A separate token-only position intent survives
+loading and exact mode/sort changes; foreground refresh reconciles it through the
+existing strong-source continuity policy, then creates fresh interaction identities.
+Changed, missing or weakly evidenced rows cannot inherit that intent. Existing native action gates
 still decide whether any media can be opened/shared/favorited.
 
 Ribbon focus uses finite Compose springs; photo opening uses a restrained 420ms

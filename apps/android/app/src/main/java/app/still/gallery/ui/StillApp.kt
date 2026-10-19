@@ -163,6 +163,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     var navigationVisible by remember { mutableStateOf(false) }
     var viewRevision by remember { mutableIntStateOf(0) }
     var focusRevision by remember { mutableIntStateOf(0) }
+    val focusMemory = remember { DriftFocusMemory() }
     var viewerRevision by remember { mutableIntStateOf(0) }
     val drift = remember(actionLifetime) { DriftNavigationSession { actionLifetime.isActive && !loading && !loadFailed } }
     val driftInteraction = remember(actionLifetime) { DriftInteraction { actionLifetime.isActive && !loading && !loadFailed } }
@@ -189,6 +190,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     fun invalidateSnapshot() {
         cleanup.invalidate()
+        focusMemory.capture(driftInteraction.focusedToken)
         drift.invalidate()
         driftInteraction.invalidate()
         viewers.invalidate()
@@ -216,6 +218,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     fun changeBrowseScope(change: () -> Unit) {
         if (!actionLifetime.isActive) return
+        focusMemory.capture(driftInteraction.focusedToken)
         drift.invalidate()
         driftInteraction.invalidate()
         viewers.invalidate()
@@ -226,7 +229,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     fun openViewer(item: MediaItem) {
         galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let {
-            if (viewers.open(sourceUiToken(it)) != null) viewerRevision++
+            if (viewers.open(sourceUiToken(it)) != null) { focusMemory.capture(sourceUiToken(it)); viewerRevision++ }
         }
     }
 
@@ -328,6 +331,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                 media = loaded
                 legacyFavoriteMatches = aliases
                 selected = reconcileMediaTokens(selected.toSet(), loaded).toList()
+                focusMemory.reconcile(loaded)
                 loading = false
                 indexing = true
             }
@@ -381,16 +385,19 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         drift.replace(filtered, mediaSort, zone)
     }
     remember(driftSnapshot) {
-        val oldFocus = driftInteraction.focusedToken
+        val oldFocus = focusMemory.token ?: driftInteraction.focusedToken
         val current = oldFocus?.let { drift.target(driftSnapshot, it) } ?: drift.first(driftSnapshot)
         driftInteraction.replace(driftSnapshot, current?.sourceUiToken)
+        focusMemory.settle(current?.sourceUiToken, loading || loadFailed)
     }
-    val focused = remember(driftSnapshot, focusRevision) { driftInteraction.focusedToken?.let { drift.target(driftSnapshot, it) } }
+    val focusedIntent = remember(driftSnapshot, focusRevision) { driftInteraction.currentFocus }
+    val focused = focusedIntent?.sourceToken?.let { drift.target(driftSnapshot, it) }
     var railStart by remember(driftSnapshot, focused?.sourceUiToken) { mutableStateOf<Int?>(null) }
-    fun focusedCurrent(): Boolean = focused != null && drift.isCurrent(driftSnapshot) && driftInteraction.isCurrent(driftSnapshot, focused.sourceUiToken)
+    fun focusedCurrent(): Boolean = focused != null && drift.isCurrent(driftSnapshot) && driftInteraction.isCurrent(driftSnapshot, focusedIntent)
     fun focus(target: DriftTarget?): Boolean {
         if (target == null || focused == null || !drift.isCurrent(driftSnapshot)) return false
-        if (!driftInteraction.focus(driftSnapshot, focused.sourceUiToken, target.sourceUiToken)) return false
+        if (!driftInteraction.focus(driftSnapshot, focusedIntent, target.sourceUiToken)) return false
+        focusMemory.capture(target.sourceUiToken)
         focusRevision++
         return true
     }
@@ -535,7 +542,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     }
                     !selecting && viewMode == "RIBBON" && focused != null && driftSnapshot.isUsable && drift.isCurrent(driftSnapshot) -> key(driftSnapshot) {
                         val current = filtered[focused.index]
-                        DriftRibbon(filtered, driftSnapshot, focused, device, refresh, current.id in favoriteIds,
+                        DriftRibbon(filtered, driftSnapshot, focusedIntent!!, focused, device, refresh, current.id in favoriteIds,
                             heading = if (albumId != null) albumTitle else stringResource(if (destination == Destination.FAVORITES) R.string.favorites else R.string.photos),
                             day = drift.dayOf(driftSnapshot, focused.sourceUiToken),
                             rail = drift.rail(driftSnapshot, focused.sourceUiToken, railStart),

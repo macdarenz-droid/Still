@@ -33,6 +33,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
@@ -72,7 +73,7 @@ import kotlin.math.abs
 
 @Composable
 fun DriftRibbon(
-    items: List<MediaItem>, snapshot: DriftSnapshot, focused: DriftTarget,
+    items: List<MediaItem>, snapshot: DriftSnapshot, interactionKey: DriftFocusEntry, focused: DriftTarget,
     device: DeviceMedia, generation: Int, favorite: Boolean, heading: String,
     day: DriftDay?, rail: DriftDayWindow?, hasUnknownDate: Boolean,
     canInteract: () -> Boolean,
@@ -83,7 +84,10 @@ fun DriftRibbon(
     if (sourceUiToken(item) != focused.sourceUiToken) return
     val openLabel = stringResource(if (item.isVideo) R.string.drift_open_video else R.string.drift_open_photo)
     val currentPermission by rememberUpdatedState(canInteract)
-    var jumpOpen by remember(snapshot) { mutableStateOf(false) }
+    val currentInteraction by rememberUpdatedState(interactionKey)
+    val picker = remember(snapshot) { DriftDatePicker { if (currentPermission()) currentInteraction else null } }
+    var jumpRequest by remember(snapshot, interactionKey) { mutableStateOf<DriftDateRequest?>(null) }
+    DisposableEffect(picker, interactionKey) { onDispose { picker.invalidate() } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(heading, Modifier.padding(horizontal = 24.dp, vertical = 8.dp), style = MaterialTheme.typography.displayLarge)
         BoxWithConstraints(Modifier.fillMaxWidth().clipToBounds()) {
@@ -91,10 +95,10 @@ fun DriftRibbon(
             val cardHeight = cardWidth * 1.3f
             val density = LocalDensity.current
             val widthPx = with(density) { maxWidth.toPx() }
-            var drag by remember(snapshot, focused.sourceUiToken) { mutableFloatStateOf(0f) }
-            var dragging by remember(snapshot, focused.sourceUiToken) { mutableStateOf(false) }
+            var drag by remember(snapshot, interactionKey) { mutableFloatStateOf(0f) }
+            var dragging by remember(snapshot, interactionKey) { mutableStateOf(false) }
             val movement by animateFloatAsState(drag, if (dragging) snap() else spring(dampingRatio = .82f, stiffness = 300f), label = "ribbon release")
-            Box(Modifier.fillMaxWidth().height(cardHeight + 54.dp).pointerInput(snapshot, focused.sourceUiToken) {
+            Box(Modifier.fillMaxWidth().height(cardHeight + 54.dp).pointerInput(snapshot, interactionKey) {
                 detectHorizontalDragGestures(
                     onDragStart = { dragging = true; drag = 0f },
                     onDragCancel = { dragging = false; drag = 0f },
@@ -170,7 +174,7 @@ fun DriftRibbon(
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.drift_dates), Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-                TextButton(onClick = { if (currentPermission()) jumpOpen = true }, modifier = Modifier.heightIn(min = 48.dp)) {
+                TextButton(onClick = { if (currentPermission()) jumpRequest = picker.open(interactionKey) }, modifier = Modifier.heightIn(min = 48.dp)) {
                     MarkIcon(Mark.CALENDAR, null); Text(stringResource(R.string.drift_jump), Modifier.padding(start = 8.dp))
                 }
             }
@@ -193,10 +197,11 @@ fun DriftRibbon(
             Text(stringResource(R.string.drift_date_scope), Modifier.padding(bottom = 24.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
-    if (jumpOpen) {
-        var input by remember(snapshot) { mutableStateOf("") }
-        var dateError by remember(snapshot) { mutableStateOf<Int?>(null) }
-        AlertDialog(onDismissRequest = { jumpOpen = false },
+    val request = jumpRequest
+    if (request != null && picker.isCurrent(request)) {
+        var input by remember(request) { mutableStateOf("") }
+        var dateError by remember(request) { mutableStateOf<Int?>(null) }
+        AlertDialog(onDismissRequest = { if (picker.dismiss(request)) jumpRequest = null },
             title = { Text(stringResource(R.string.drift_jump)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -204,17 +209,17 @@ fun DriftRibbon(
                     OutlinedTextField(value = input, onValueChange = { input = it; dateError = null }, singleLine = true,
                         label = { Text(stringResource(R.string.drift_date_label)) }, isError = dateError != null, modifier = Modifier.fillMaxWidth())
                     if (dateError != null) Text(stringResource(dateError!!), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-                    if (hasUnknownDate) TextButton(onClick = { if (currentPermission() && onJump(null)) jumpOpen = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.unknown_date)) }
+                    if (hasUnknownDate) TextButton(onClick = { if (picker.confirm(request) { onJump(null) }) jumpRequest = null }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.unknown_date)) }
                 }
             },
             confirmButton = { TextButton(onClick = {
-                if (currentPermission()) {
+                if (picker.isCurrent(request)) {
                     val date = try { LocalDate.parse(input.trim()) } catch (_: DateTimeParseException) { null }
                     if (date == null) dateError = R.string.drift_date_invalid
-                    else if (onJump(date)) jumpOpen = false else dateError = R.string.drift_date_absent
+                    else if (picker.confirm(request) { onJump(date) }) jumpRequest = null else if (picker.isCurrent(request)) dateError = R.string.drift_date_absent
                 }
             }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.drift_jump)) } },
-            dismissButton = { TextButton(onClick = { jumpOpen = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.cancel)) } },
+            dismissButton = { TextButton(onClick = { if (picker.dismiss(request)) jumpRequest = null }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
