@@ -356,3 +356,29 @@ source/APK checks, both independent final verdicts and hosted confirmations rema
 required before development handoff. The final immutable candidate, APK hash and
 verdicts will be recorded in ignored `.artifacts/cp6-validation.json` and draft PR1;
 the next checkpoint promotes that completed outcome into the acceptance history.
+
+## CP7 allow screen capture (owner request)
+
+The owner explicitly requested removing screenshot and screen-recording blocking
+so they can show the app. This authorizes the capture-policy change, including
+ordinary Recents previews; app-lock authentication and relocking remain required.
+
+| Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S21 Capture policy | frontend; `MainActivity.kt`, `security/AppLockController.kt`, `res/values/strings.xml` only | Remove `FLAG_SECURE`, Recents screenshot suppression and the capture-only controller callback. Replace the old Settings promise with direct wording that capture is allowed. Keep all authentication/session/storage/lifecycle/player behavior and all155 tests intact. No capture toggle, dependency, permission, schema, IO or signing changes | Named branch from this task-card commit; no helper delegation. Supervisor integrates |
+| S22 CP7 gates | reviewer and red_team; read only | Independently inspect the exact source/local APK, removal of capture restrictions and preservation of the lock gate, then confirm hosted checks | Root full checks and artifact audit; no production publication |
+
+Supervisor owns Android README/device matrix, ADR0003, root README, acceptance,
+integration/CI/PR and the versioned APK. Existing task-card limits apply outside
+the explicitly authorized capture-policy delta. This small platform-policy removal
+needs source/API and APK inspection, existing155 JVM cases, strict lint, assemble
+and `npm run check`; do not add a test that merely mirrors removed flag calls.
+Screenshot/recording/Recents behavior on identified hardware remains unverified
+until actually observed. Android may separately protect system authentication UI.
+
+Screen content and Recents previews can now be captured by the phone's tools, as
+requested. No screen recording is started, saved or uploaded by Still. Roll back
+this source change and reinstall a compatible retained build to restore the prior
+capture policy, preserving app data. No media mutation or migration is involved.
+Finish requires both independent exact-source/local-APK passes, all hosted checks,
+updated draft PR1 and `.artifacts/cp7-validation.json` with a uniquely saved APK.
