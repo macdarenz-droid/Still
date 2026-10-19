@@ -465,7 +465,7 @@ canonical pinned version or server authority is included; see ADR0005.
   strict record parsing/capacity, real host-file close/reopen, competing-instance
   revision CAS, queued authority, revision exhaustion and a separate file/directory
   crash model. The bounded format accepts at most 4,096 protected-content keys
-  and 512 KiB, with no pruning or silent reset. Missing/uncertain/corrupt/newer
+  and 512 KiB, with no pruning or silent reset. Uncertain/corrupt/newer
   record state is UNKNOWN and blocks extras/mutations. Tests do not prove the
   Android AtomicFile adapter or actual filesystem/power-loss behavior.
 - Backend owns the new `cleanup/` implementation and tests. Its approved helper
