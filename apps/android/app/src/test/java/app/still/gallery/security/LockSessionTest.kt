@@ -47,6 +47,21 @@ class LockSessionTest {
         assertTrue(recreated.completeAuthentication(fresh, AuthenticationResult.SUCCESS))
     }
 
+    @Test fun collidingAttemptNumbersFromAnotherSessionCannotAuthenticate() {
+        val previous = Fixture(true)
+        previous.session.onForeground()
+        val stale = previous.attempt()
+        val current = Fixture(true)
+        current.session.onForeground()
+        val fresh = current.attempt()
+        assertEquals(stale.sequence, fresh.sequence)
+        assertFalse(current.session.completeAuthentication(stale, AuthenticationResult.SUCCESS))
+        assertFalse(current.session.state.canAccessContent)
+        assertTrue(current.session.completeAuthentication(fresh, AuthenticationResult.SUCCESS))
+        assertTrue(current.session.state.canAccessContent)
+        assertTrue(current.writes.isEmpty())
+    }
+
     @Test fun disabledStartupNeedsNoAccountOrAuthenticationButOnlyForegroundCanShowContent() {
         val fixture = Fixture(false)
         assertFalse(fixture.session.state.canAccessContent)
