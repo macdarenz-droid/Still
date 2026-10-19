@@ -126,6 +126,7 @@ import app.still.gallery.media.cleanupSnapshotMatchesGallery
 import app.still.gallery.cleanup.AndroidContentProtections
 import app.still.gallery.security.AppLockUiState
 import app.still.gallery.security.LockAction
+import app.still.gallery.similarity.SimilarityResult
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -185,6 +186,13 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         CompareCoordinator<ComparePreview>(scope, { actionLifetime.isActive }, { recoverCompareStorage(context.applicationContext, device) })
     }
     LaunchedEffect(comparison) { comparison.initialize() }
+    val similarityCompare = remember(actionLifetime) { SimilarityCompareBinding { actionLifetime.isActive } }
+    val similarity = remember(device, actionLifetime) {
+        SimilarityCoordinator<SimilarityResult>(scope, { actionLifetime.isActive },
+            { recoverSimilarityReads(AndroidCleanupSourceReader(context.applicationContext, device, context.mediaAccess())) },
+            { request -> if (similarityCompare.invalidate(request)) comparison.invalidate() })
+    }
+    LaunchedEffect(similarity) { similarity.initialize() }
     val shareLabel = stringResource(R.string.share_media)
     val shareFailure = stringResource(R.string.share_failed)
     val favoriteConfirmation = stringResource(R.string.favorites_saved)
@@ -197,6 +205,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     val albumPhotosPosition = rememberLazyGridState()
 
     fun invalidateSnapshot() {
+        similarity.invalidate()
         comparison.invalidate()
         cleanup.invalidate()
         options.invalidate(); menu.invalidate()
@@ -229,6 +238,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     fun changeBrowseScope(expectedOptions: DriftOverlayRequest? = null, change: () -> Unit) {
         if (!actionLifetime.isActive || expectedOptions != null && !options.isCurrent(expectedOptions)) return
+        similarity.invalidate()
         comparison.invalidate()
         if (expectedOptions == null) { options.invalidate(); optionsRequest = null }
         menu.invalidate(); menuRequest = null
@@ -264,6 +274,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     }
 
     fun saveFavorites(next: Set<String>) {
+        similarity.invalidate()
         comparison.invalidate()
         if (destination == Destination.FAVORITES) {
             drift.invalidate()
@@ -305,6 +316,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     DisposableEffect(actionLifetime, device) {
         onDispose {
+            similarity.dispose()
             comparison.dispose()
             drift.invalidate()
             driftInteraction.invalidate()
@@ -319,7 +331,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     DisposableEffect(lifecycle, device, access) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) comparison.invalidate()
+            if (event == Lifecycle.Event.ON_STOP) { similarity.invalidate(); comparison.invalidate() }
             if (event == Lifecycle.Event.ON_START || event == Lifecycle.Event.ON_RESUME) invalidateSnapshot()
         }
         lifecycle.addObserver(observer)
@@ -448,6 +460,8 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     val compactChrome = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() < 480.dp } || LocalDensity.current.fontScale > 1.5f
     val capturedComparePair = selectedInView.toList()
     val compareAction = comparison.actionIdentity
+    val similarityAction = similarity.actionIdentity
+    val capturedSimilarityScope = selectedInView.toList()
 
     Scaffold(
         modifier = Modifier.imePadding(),
@@ -492,7 +506,8 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                                 drift.isCurrent(driftSnapshot) && !loading && !loadFailed && context.mediaAccess() == granted &&
                                 compareSelectedPhotos(capturedComparePair, selected.toSet(), filtered).size == 2 &&
                                 galleryActionItems(capturedComparePair, media, loading, loadFailed, actionLifetime).size == 2
-                            if (currentPair()) {
+                            if (currentPair() && comparison.actionIdentity === compareAction && comparison.canStart) {
+                                similarityCompare.invalidate()
                                 viewers.invalidate(); viewerRevision++
                                 comparison.start(compareAction, capturedComparePair.map { it.name }, ::currentPair) {
                                     ComparePreparedWork(context.applicationContext, device, capturedComparePair, granted, favorites.toSet(), ::currentPair)
@@ -500,6 +515,33 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                             }
                         }, enabled = comparison.canStart && !loading && !loadFailed, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.compare_title)) }
                     }
+                    TextButton(onClick = {
+                        val startRefresh = refresh
+                        val startView = viewRevision
+                        val granted = access
+                        val selectionProjection = SimilaritySelectionProjection(capturedSimilarityScope, selected, filtered, media)
+                        fun currentScope(): Boolean = actionLifetime.isActive && refresh == startRefresh && viewRevision == startView &&
+                            drift.isCurrent(driftSnapshot) && !loading && !loadFailed && context.mediaAccess() == granted &&
+                            selectionProjection.isCurrent(selected, media)
+                        if (similarity.actionIdentity === similarityAction && similarity.canStart &&
+                            capturedSimilarityScope.size in 2..200 && capturedSimilarityScope.none { it.isVideo } && currentScope()) {
+                            comparison.invalidate(); viewers.invalidate(); viewerRevision++
+                            similarity.start(similarityAction, capturedSimilarityScope.size, ::currentScope) {
+                                SimilarityScannerWork(AndroidCleanupSourceReader(context.applicationContext, device, granted),
+                                    capturedSimilarityScope, favorites.toSet(), {
+                                        if (!currentScope()) throw CancellationException("Photo selection changed")
+                                    }, { fresh ->
+                                        if (!currentScope()) throw CancellationException("Photo selection changed")
+                                        if (!cleanupSnapshotMatchesGallery(fresh.items, media)) {
+                                            invalidateSnapshot()
+                                            throw CancellationException("The gallery changed")
+                                        }
+                                    })
+                            }
+                        }
+                    }, enabled = similarity.canStart && !loading && !loadFailed && capturedSimilarityScope.size in 2..200 && capturedSimilarityScope.none { it.isVideo },
+                        modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.similarity_find)) }
+                    Text(stringResource(R.string.similarity_selection_limit), style = MaterialTheme.typography.bodySmall)
                 }
             } else if (compactChrome) {
                 TextButton(onClick = { openMenu() }, modifier = Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 48.dp)) { Text(stringResource(R.string.drift_navigate)) }
@@ -512,6 +554,8 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
         Column(Modifier.fillMaxSize().padding(padding)) {
             val storageAction = comparison.actionIdentity
             CompareStorageNotice(comparison.state, onRetry = { comparison.retryCleanup(storageAction) })
+            val readAction = similarity.actionIdentity
+            SimilarityReadNotice(similarity.state, onRetry = { similarity.retry(readAction) })
             if (destination == Destination.CLEANUP) {
                 val expectedReview = cleanup.currentReview
                 val expectedScan = cleanup.currentScan
@@ -634,7 +678,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     else -> PhotoGrid(filtered, device, refresh, selectedInView.mapTo(mutableSetOf()) { it.id }, selecting, groupByMonth = mediaSort != MediaSort.NAME,
                         position = if (albumId != null) albumPhotosPosition else if (destination == Destination.FAVORITES) favoritesPosition else photosPosition,
                         onOpen = { item -> if (drift.isCurrent(driftSnapshot)) openViewer(item, driftSnapshot) },
-                        onToggle = { item -> if (drift.isCurrent(driftSnapshot)) galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current -> comparison.invalidate(); val token = sourceUiToken(current); selected = if (token in selected) selected - token else selected + token } },
+                        onToggle = { item -> if (drift.isCurrent(driftSnapshot)) galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current -> similarity.invalidate(); comparison.invalidate(); val token = sourceUiToken(current); selected = if (token in selected) selected - token else selected + token } },
                         onStartSelection = { item -> if (drift.isCurrent(driftSnapshot)) galleryActionItems(listOf(item), media, loading, loadFailed, actionLifetime).singleOrNull()?.let { current ->
                             changeBrowseScope { selecting = true; viewMode = "GRID"; val token = sourceUiToken(current); if (token !in selected) selected = selected + token }
                         } },
@@ -707,7 +751,41 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
             )
         }
     }
+    val similarState = similarity.state
+    val similarResult = similarState.result
+    val similarRequest = similarState.request
+    // One authorized metadata pass per result/gallery projection, rather than per displayed pair.
+    val pairDisplays = remember(similarRequest, similarResult, media, loading, loadFailed) {
+        if (similarResult == null || loading || loadFailed) emptyList() else {
+            val expected = similarResult.pairs.flatMap { listOf(it.first, it.second) }.distinctBy(::sourceUiToken)
+            val current = similarityCurrentPhotos(expected, media).associateBy(::sourceUiToken)
+            similarResult.pairs.mapNotNull { pair ->
+                val first = current[sourceUiToken(pair.first)]
+                val second = current[sourceUiToken(pair.second)]
+                if (first != null && second != null) SimilarityPairDisplay(pair, first, second) else null
+            }
+        }
+    }
     val compareState = comparison.state
+    val originCompareAction = comparison.actionIdentity
+    val reviewReadAction = similarity.actionIdentity
+    if (similarState.visible) key(similarRequest, similarResult) {
+        SimilarityScreen(similarState, pairDisplays, device, refresh, comparison.canStart,
+            onCompare = { pair ->
+                if (similarRequest != null && similarResult != null) {
+                    val granted = access
+                    similarityCompare.startComparison(similarRequest, similarResult, pair, comparison, originCompareAction,
+                        { similarity.isCurrent(similarRequest, similarResult) },
+                        { similarity.resolve(similarRequest, similarResult, pair)?.let { galleryActionItems(it, media, loading, loadFailed, actionLifetime) }?.takeIf { it.size == 2 } }) { photos, checkOrigin ->
+                        ComparePreparedWork(context.applicationContext, device, photos, granted, favorites.toSet(), checkOrigin)
+                    }
+                }
+            },
+            onClose = { similarity.close(similarRequest) }, onStop = { similarity.stop(similarRequest) },
+            onRetry = { similarity.retry(reviewReadAction) },
+            comparisonNotice = { CompareStorageNotice(compareState, onRetry = { comparison.retryCleanup(originCompareAction) }) },
+        )
+    }
     if (compareState.visible) {
         val request = compareState.request
         CompareScreen(compareState,

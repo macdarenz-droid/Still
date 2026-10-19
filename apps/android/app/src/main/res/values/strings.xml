@@ -262,4 +262,45 @@
     <string name="compare_pan_right">Pan both photos right</string>
     <string name="compare_pan_up">Pan both photos up</string>
     <string name="compare_pan_down">Pan both photos down</string>
+    <string name="similarity_find">Find similar</string>
+    <string name="similarity_title">Similar photos</string>
+    <string name="similarity_close">Close</string>
+    <string name="similarity_stop">Stop</string>
+    <string name="similarity_retry">Retry</string>
+    <string name="similarity_compare">Compare</string>
+    <string name="similarity_selection_limit">Select 2–200 photos to find similar photos.</string>
+    <string name="similarity_scope">Checks only the selected photos, across dates. Limit: 16 MiB per photo and 256 MiB per search. Android may convert photos, remove metadata or fetch cloud-backed media.</string>
+    <string name="similarity_detail_warning">Similar-looking photos can contain different text, expressions or changes. Compare to check the details.</string>
+    <string name="similarity_scanning">Checking selected photos</string>
+    <string name="similarity_ready">Photos checked</string>
+    <string name="similarity_stopping">Stopping…</string>
+    <string name="similarity_stopping_detail">A media read may need to finish before the search can stop.</string>
+    <string name="similarity_stopped">Search stopped. Close to select photos and start again.</string>
+    <string name="similarity_settling">Finishing photo reads…</string>
+    <string name="similarity_busy">Another media read is active. Try again after it finishes.</string>
+    <string name="similarity_close_failed">Still couldn’t close a photo read. New searches are unavailable until it closes. Retry to try closing the read again.</string>
+    <string name="similarity_source_changed">The library or photo access changed. Refresh the library and select the photos again.</string>
+    <string name="similarity_scope_limit">This search is unavailable when more than 50,000 library items are accessible.</string>
+    <string name="similarity_failed">Still couldn’t check these photos. Close and try again.</string>
+    <string name="similarity_no_pairs">No similar photos found among the photos checked.</string>
+    <string name="similarity_not_enough">Fewer than two photos could be compared. See the skipped and unchecked counts.</string>
+    <string name="similarity_exact_scope">Pairs with matching readable data are left out. Use Cleanup to review matching copies.</string>
+    <string name="similarity_compare_wait">Compare is unavailable while earlier photo preparation or cleanup is unfinished.</string>
+    <string name="similarity_pair_number">Pair %1$d</string>
+    <string name="similarity_photo_name">Photo %1$d: %2$s</string>
+    <string name="similarity_date_unavailable">Date unavailable</string>
+    <string name="similarity_checked">Checked %1$d of %2$d selected photos</string>
+    <string name="similarity_bytes_read">Data read: %1$s</string>
+    <plurals name="similarity_pairs"><item quantity="one">%1$d pair to review</item><item quantity="other">%1$d pairs to review</item></plurals>
+    <plurals name="similarity_selected"><item quantity="one">%1$d selected photo</item><item quantity="other">%1$d selected photos</item></plurals>
+    <plurals name="similarity_analyzed"><item quantity="one">%1$d photo analyzed</item><item quantity="other">%1$d photos analyzed</item></plurals>
+    <plurals name="similarity_empty"><item quantity="one">%1$d empty photo could not be compared.</item><item quantity="other">%1$d empty photos could not be compared.</item></plurals>
+    <plurals name="similarity_unreadable"><item quantity="one">%1$d photo could not be read.</item><item quantity="other">%1$d photos could not be read.</item></plurals>
+    <plurals name="similarity_oversized"><item quantity="one">%1$d photo exceeded the 16 MiB limit.</item><item quantity="other">%1$d photos exceeded the 16 MiB limit.</item></plurals>
+    <plurals name="similarity_unsupported"><item quantity="one">%1$d photo used an unsupported format, size or animation.</item><item quantity="other">%1$d photos used an unsupported format, size or animation.</item></plurals>
+    <plurals name="similarity_low_information"><item quantity="one">%1$d photo had too little visual detail to compare.</item><item quantity="other">%1$d photos had too little visual detail to compare.</item></plurals>
+    <plurals name="similarity_budget_omitted"><item quantity="one">%1$d selected photo was not fully checked when the read limit was reached.</item><item quantity="other">%1$d selected photos were not fully checked when the read limit was reached.</item></plurals>
+    <plurals name="similarity_not_attempted"><item quantity="one">%1$d selected photo was not checked.</item><item quantity="other">%1$d selected photos were not checked.</item></plurals>
+    <plurals name="similarity_exact_omitted"><item quantity="one">%1$d pair with matching readable data was left out.</item><item quantity="other">%1$d pairs with matching readable data were left out.</item></plurals>
+    <plurals name="similarity_pairs_omitted"><item quantity="one">%1$d additional pair was not shown because this review is limited to 50 pairs.</item><item quantity="other">%1$d additional pairs were not shown because this review is limited to 50 pairs.</item></plurals>
 </resources>
