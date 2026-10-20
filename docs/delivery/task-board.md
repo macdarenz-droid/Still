@@ -665,3 +665,18 @@ its own engine/language, source scope, sensitive-text retention, exclusions and
 correction decisions. All CP13 code changes require the repository checks, exact
 reviewer and red-team passes, and an open development-only PR; no main merge,
 production release or publication is authorized.
+
+CP13 code is integrated at `cb166a987163aa56dd1a479282d6bc159528dfeb`. The seven
+new files remain isolated generated-byte proof code; no provider, user media,
+production bootstrap, Android UI, route or dependency was added. Root wired
+`tests/backup/` into `npm test` and added the focused `npm run test:backup` runner.
+S46's read-only frontend/SEO review outlined later backup/recovery and access states;
+it confirmed filename-only search and no current screenshot extraction or provider
+promise. No UI or discovery copy changed.
+The full local `npm run check` passes all 120 backend cases, 11 discovery checks,
+18 catalogue SQL probes and 7 similarity-index SQL probes; the focused backup
+runner passes 46/46. Reviewer and red team independently passed the exact component commit.
+Final integrated-head and hosted results are tracked on the draft PR and in its
+ignored validation artifact before any later release step.
+This proof does not authorize source deletion or claim original fidelity, provider
+recovery, cross-process recovery, phone durability or new-device restore.
