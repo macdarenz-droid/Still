@@ -1985,3 +1985,44 @@ or restore was used. Host tests establish query-string construction, not a devic
 behavior. This probe does not establish third-party original fidelity,
 complete motion/sidecar inventory, source stability, backup eligibility, or
 restore. PR #1 remains draft and unmerged.
+
+## CP23 — Host-only selected-source eligibility policy
+
+CP23 adds the pure Kotlin eligibility model from ADR0018 before any Android source
+adapter. It evaluates one selected photo against bounded hypothetical metadata:
+exact current selection, original-fidelity classification, modeled source
+continuity, and a complete matching primary/motion/sidecar inventory. Missing,
+ambiguous, stale, unsupported or mismatched facts return structured whole-photo
+blockers. Positive results mean only that a synthetic model scenario satisfies
+its stated requirements; every decision keeps `productionCapability` and
+`backupEligible` false. No Android/provider fact, URI, bytes, handle, or caller was
+added.
+
+The S83 task card was independently reviewed and red-teamed at
+`1f5569d606c940dcb5ad67b265f5b3949091909b`. The exact integrated source candidate
+is `b259ebd41bc0d1a7a24a53d217ea32d2186431bf`, changing only the policy, its JVM
+tests and the CP23 task-board record. Frontend and SEO audits passed this exact
+candidate; the independent reviewer and separate red team also passed it. The
+red-team review found no production caller or route from the hypothetical model
+to source-read or backup authority.
+
+The focused policy suite passes **25/25** and the complete Android JVM suite
+passes **466/466** with zero failures, errors or skips. The debug app assembles,
+and strict lint reports zero errors and warnings with one existing Compose hint.
+Root `npm run check` and `git diff --check` pass. Four isolated counterfactuals
+that remove the fidelity guard, companion-completeness guard, exact-selection
+comparison, or false capability constant are all detected by the retained tests
+(**4/4**). Evidence is retained in
+`/tmp/still-cp23-warning-evidence/summary.json` and its focused/full test, lint and
+counterfactual logs. The integrated debug APK SHA-256 is
+`10dcc4f17e20454ef108f7b1497d2297866b5ce6b65216fd1faa0a8801e343ab`.
+
+Hosted Foundation push run
+[39505795403](https://github.com/macdarenz-droid/Still/actions/runs/39505795403)
+and draft PR run
+[39505802880](https://github.com/macdarenz-droid/Still/actions/runs/39505802880)
+both pass Android and contracts/discovery on the exact source candidate. No
+device was attached; no real media, permission grant, provider account, app
+network request, source read, media transfer, backup or restore was used. This
+checkpoint is a host-only policy proof and does not establish Android source
+fidelity or complete device inventory. PR #1 remains open, draft and unmerged.
