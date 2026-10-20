@@ -619,19 +619,16 @@ The exact local candidate `99e1e119da2921d66e5d74fd1918f12c7c3f30d0` passes the
 full Android build,327 JVM cases, strict lint, instrumentation-source compilation
 and instrumentation APK packaging; `npm run check` passes TypeScript,74 backend
 tests,11 discovery checks,18 catalogue probes and7 similarity-index SQL probes.
-Hosted run `39426036542` failed Android lint because its newer
-`AndroidGradlePluginVersion` rule requires Gradle9.8.2; contracts/discovery passed.
-The wrapper pin was upgraded to9.8.2 with the official verified checksum, keeping
-lint enabled. The exact
-`99e1e119da2921d66e5d74fd1918f12c7c3f30d0` source and APK passed fresh local
-reviewer and red-team checks at tracked head
-`604ade897dd324d353c14be97368da680ddb8b81`; both roles verified the local
-build, APK identities and scope. Fresh hosted checks and hosted role
-confirmations remain pending on the corrected wrapper. The Android
-instrumentation suite for
-`SimilarityIndexStore` is compiled and packaged but not executed: no device or
-emulator is attached, so actual Android SQLite behavior remains unverified. Exact
-artifacts, logs, findings and review evidence are recorded in
-`docs/delivery/acceptance.md` and `.artifacts/cp12-validation.json`. CP12 is not
-ready to advance until the new exact-head gates finish; no publication is
-authorized.
+The first hosted attempt on `2f9819ce1f223ef9e6a7a6d6bc585e9bdd6b5278` failed
+Android strict lint because the current rule requires Gradle9.8.2; the verified
+9.8.2 wrapper correction kept lint enabled. Both corrected hosted workflows
+passed on exact head `3dfae315289f629d64ccb6a4b9d6c2b682c6ef39`: push run
+`39429711727` and PR run `39429718367`, with Android and contracts/discovery
+passing in both. Reviewer and red team passed the exact local source/APK and
+separately confirmed the exact hosted head. CP12 development checkpoint outcome:
+PASS. The APK and test APK are compiled and packaged, but Android SQLite
+instrumentation was not executed because no device/emulator is attached; hardware
+runtime checks remain open. Exact commands, logs, review evidence and artifact
+hashes are recorded in `docs/delivery/acceptance.md` and
+`.artifacts/cp12-validation.json`. The branch remains a draft; no main merge,
+production signing or publication is authorized.

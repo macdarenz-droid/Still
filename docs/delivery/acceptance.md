@@ -1511,3 +1511,32 @@ checksums, local test results, app/test APK identities and development-only scop
 Fresh hosted checks and hosted role confirmations are pending on the corrected
 wrapper. No device is attached, so Android SQLite instrumentation is still not
 executed.
+
+## CP12 final hosted gate and development outcome
+
+The corrected source/build commit `99e1e119da2921d66e5d74fd1918f12c7c3f30d0`
+was pushed with tracked head `3dfae315289f629d64ccb6a4b9d6c2b682c6ef39`.
+Both exact-head hosted workflows passed: push run `39429711727` and pull-request
+run `39429718367`; each passed Android and contracts/discovery. Their ordinary
+logs show Gradle 9.8.2, Android assemble, JVM tests and strict lint completed
+successfully, plus the TypeScript/backend/discovery/SQL checks. The retained logs
+are `.artifacts/cp12-hosted-run-39429711727.log`
+(`6f860e2d2e9cc003f80bb33bc3a90c4c874fcdd45ae32d89ad3d4cd4164e0ddf`) and
+`.artifacts/cp12-hosted-run-39429718367.log`
+(`06bd1f95cc9baccfc8af339118e9a5016700b9d244090a8e8f51d97bc4190deb`).
+
+The independent reviewer and red team both passed the exact hosted head and run
+pair. Their records are `/tmp/still-cp12-reviewer-hosted.json` and
+`/tmp/still-cp12-red-team-hosted.json`. The hosted evidence was fetched as ordinary
+logs; no hosted APK was substituted for the local artifact. The PR remains open
+and draft. Earlier hosted failures on `2f9819c` remain recorded above and were
+caused by the outdated Gradle 9.8.1 pin; the corrected wrapper uses the verified
+9.8.2 distribution checksum without disabling lint.
+
+CP12 development checkpoint outcome: PASS for source/build `99e1e119` and local
+APK SHA-256 `a7ae032a02191c2555d57c39295decb5ebc49642f3da477174a25d40efed7c5d`.
+Android SQLite instrumentation is compiled and packaged but was not executed:
+there is no attached device or installed emulator. Provider-generation,
+large-library, process-death, thermal, accessibility and access-revocation runtime
+checks remain open. This development checkpoint does not grant main merge,
+production signing or publication.
