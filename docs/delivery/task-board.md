@@ -615,11 +615,15 @@ digit/page and screen state), and missed crop and unsupported-alpha cases. It ma
 no broad accuracy claim. Corpus, labels, old-policy proof and fixed run are retained
 under `/tmp/still-cp12-s42-evidence/`.
 
-The integrated root JVM suite now passes321 cases with no failures, including the
-nine independent retrieval tests and two root regressions; root `npm run check`
-passes74 backend tests, TypeScript,11 discovery checks,18 catalogue probes and7
-similarity-index SQL probes. The Android instrumentation suite for the actual
-`SimilarityIndexStore` compiles, but is not executed: no device or emulator is
-attached/installed. The host SQL probes and compiled instrumentation cases do not
-substitute for that runtime check. S43 exact-source/APK review, the real-store run,
-hosted confirmation and final acceptance remain pending.
+The exact local candidate `28c1dc6d38ee7215ddd3e5164a73d3ef60a8f85` passes the full
+Android build,327 JVM cases, strict lint and instrumentation-source compilation;
+`npm run check` passes TypeScript,74 backend tests,11 discovery checks,18 catalogue
+probes and7 similarity-index SQL probes. Reviewer and red team passed the exact
+source/local APK and rechecked all prior findings. The Android instrumentation
+suite for `SimilarityIndexStore` is compiled but not executed: no device or
+emulator is attached/installed, so actual Android SQLite behavior remains
+unverified. Hosted checks and both hosted role confirmations remain pending on
+the draft PR. Exact APK, logs, findings and review evidence are recorded in
+`docs/delivery/acceptance.md` and `.artifacts/cp12-validation.json`. CP12 is not
+ready to advance until the pushed-head gates finish; no production publication
+is authorized.

@@ -1403,3 +1403,65 @@ identified Android phone or accelerated emulator was available; native provider,
 codec/EXIF, memory, large-library, thermal, accessibility, input and power-loss
 acceptance remain unverified. The selected-photo appearance index remains
 session-only; durable full-library incremental indexing remains unfinished.
+
+## CP12 local development gate
+
+The exact local source candidate is `28c1dc6d38ee7215ddd3e5164a73d3ef60a8f85`
+on `build/still-foundation`, based on accepted CP11 `20dd35358302363ad2efccad5c3f636e73acf845`.
+Fetched `origin/main` (`b31a7abd54c382bdc3dbf4a4efa00d14f30cdfca`) is an ancestor.
+This candidate adds the explicitly started local similarity index and the
+review-driven recovery path for a damaged but still owned index. It does not
+change library media, upload descriptors or include the database in backup.
+
+The final local command was
+`./gradlew --no-daemon --rerun-tasks :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:compileDebugAndroidTestKotlin`
+from `apps/android/`, with `/workspace/still-jdk` and `/workspace/android-sdk`.
+It passed assembly, all327 JVM tests across36 suites (zero failures, errors or
+skips), strict lint, and Android instrumentation-source compilation. Lint reports
+zero errors and warnings with one informational `AutoboxingStateCreation` hint at
+the unchanged `SimilarityIndexCoordinator.kt:70`. The instrumented SQLite cases
+were not executed: there is no connected Android device or installed emulator.
+The candidate `npm run check` passed TypeScript,74 backend tests,11 discovery
+checks,18 catalogue SQL probes and7 similarity-index SQL probes. Logs and hashes:
+`.artifacts/cp12-final-lintfix-gradle.log`
+(`d673dd3789505b9fb7006967c5fc48c0af7cf8ece35d09e4e5d7e44560ddcd42`) and
+`.artifacts/cp12-final-lintfix-npm.log`
+(`f91d168017d1a8770522de0413939b9b794f608c0a4f5f5e7084ff9f69f1cadd`).
+
+The actual local debug APK is
+`.artifacts/deliveries/still-cp12-28c1dc6.apk`,12,531,998 bytes, SHA-256
+`a7ae032a02191c2555d57c39295decb5ebc49642f3da477174a25d40efed7c5d`. Its v2
+debug signature and alignment pass. APK inspection confirms no Internet
+permission, existing media-read and biometric permissions, `allowBackup=false`,
+database backup/transfer exclusions, all9 SQL assets matching source, and the
+compiled index, clear-only recovery and coverage-display wiring. No hosted binary
+was substituted for this local artifact.
+
+The first exact-source gate at `1b35afcc77699e0884003efdd6f798675ceaeaff` was
+blocked by reviewer and red-team findings covering retained cancellation workers,
+mislabelled pair-check counts, buffer retention, work-budget accounting, missing
+retrieval buckets, stale namespace maintenance and coverage for sources lacking
+stable identities. Fixes were committed at `4d434f65cf13f44054473daa7bfa1ae1b73009af`.
+Both roles then found a P2 at that exact source: strict semantic open validation
+also prevented the user from clearing a damaged owned index. `30f13189d595b5f8a5ffa719dbb58205bfef52fb`
+added a narrow clear-only store that keeps application-ID, exact-DDL and metadata
+checks, then deletes only derived rows transactionally. The full check on that
+commit found a strict-lint `UseKtx` error; `28c1dc6` switched the clear transaction
+to the AndroidX KTX wrapper and passed the full final run.
+
+On exact source `28c1dc6` and the APK above, the independent reviewer passed
+(`/tmp/still-cp12-reviewer-local.json`) and the separate red team passed
+(`/tmp/still-cp12-red-team-28c1dc6-local.json`). Both rechecked all prior blockers,
+the clear recovery/foreign-database boundary and the exact local APK. Fifty
+focused JVM cases pass in addition to the full suite. The red-team host SQLite
+bridge confirms rollback and known-owned clear behavior, but it does not establish
+Android SQLite runtime behavior. The SEO copy audit found no AI wording or
+material overclaim; its optional observation that Settings does not lead with the
+16 MiB/photo and256 MiB/run limits remains a copy improvement, not a test result.
+
+At this record's commit, hosted checks and hosted reviewer/red-team confirmations
+are pending on the draft PR. Device SQLite, provider-generation, large-library,
+process-death, thermal, accessibility and access-revocation behavior remain
+unverified. Final hosted evidence is bound to its exact pushed head in
+`.artifacts/cp12-validation.json`; the branch remains a draft development PR. No
+main merge, release signing or publication is included.
