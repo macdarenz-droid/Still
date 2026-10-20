@@ -1710,3 +1710,45 @@ upload, byte verification, restore, original fidelity or deletion safety. Google
 OAuth setup and physical-device chooser/consent testing remain blocked. CP15 does
 not finish selected backup or Stage 2. The draft PR remains unmerged; no production
 signing, main merge, release or publication is authorized.
+
+## CP16 — Bounded source snapshot acquisition proof
+
+CP16 adds an isolated generated-stream proof for complete, coherent capture before
+a future transfer. The fixture permits source bytes and component inventories to
+change while acquisition runs. Only the complete, private, exact-length, SHA-256
+checked generated snapshot can be described; partial or stale results are denied.
+The focused suite passes **40/40**, including stalled-read and stalled-close timeouts,
+late cancellation, silent byte mutation with unchanged metadata, component
+inventory changes, and retained ownership until unsettled I/O actually settles.
+
+Exact source commit `55da3f080f62b34c69fadf615215bc223bb2f385` follows the initial
+source commit `723a9a3938043f8990f0e88db75886bfc61c01c4`; root integrated them as
+`0ebbab7` and `029f985`. Reviewer and red team independently passed the fixed exact
+source commit. The first reviewer pass found a P2: a pending read or close could
+outlive `timeoutMs` without returning to the caller. The fix now returns
+`snapshot_timeout` promptly while the original worker and allocation remain owned;
+reacquisition stays blocked until the old stream actually settles. Regression and
+counterfactual evidence is under `/tmp/still-cp16-snapshot-fix-evidence/`, including
+the unchanged-policy probe that fails both timeout cases. The red-team and reviewer
+exact-source verdicts confirm silent source-byte changes are caught even when the
+fixture metadata fingerprint is deliberately unchanged. Fourteen acquisition and
+four contract counterfactuals were detected.
+
+Root added `tests/backup-source/` to the required backend suite and added
+`npm run test:backup-source`. The integrated local `npm run check` passes: **213
+Node tests** (including the 40 focused cases), 11 discovery checks, 18 catalogue
+SQL probes, and 7 similarity-index SQL probes. Android assembleDebug, strict lint
+and all **341 JVM tests** pass (38 suites; zero failures/errors/skips). The APK
+SHA-256 remains
+`0e740c76441c0db0b854efd12778d1b83eec6eb3a2a992f0596082a45d9ba488`. Logs:
+`/tmp/still-cp16-integrated-npm-check.log` and
+`/tmp/still-cp16-integrated-android.log`.
+
+CP16 is still synthetic and memory-only. Android's source-row identifiers do not
+prove immutable original bytes or complete motion/sidecar relationships. There is
+no Android media capture, durable staging, OAuth change, Drive API, network,
+upload/download, verification, restore, deletion, backup UI, or new production
+capability. OAuth configuration, real account chooser/consent, original-fidelity
+evidence, Android component discovery and provider transfer remain later gates.
+Exact integrated reviewer/red-team and hosted CI confirmation are required before
+CP16 is accepted; PR1 remains draft and unmerged.
