@@ -291,7 +291,16 @@ export class TransferRecoveryLedger {
         ensure(status.ownerId === op.owner_id && status.attemptId === op.attempt_id && same(status.binding, previous.binding) && previous.pending?.requestId === status.requestId);
         if (descriptor.action === "acknowledge") ensure(previous.state === "in_flight" && !previous.stopRequested && !previous.fenceReason && !previous.leaseExpired && previous.revision === previous.pending!.intentRevision);
         else ensure(previous.stopRequested === entry.record.stopRequested);
-        const expected = clone(previous); if (descriptor.action === "reconcile") { expected.fenceReason = entry.record.fenceReason; expected.stopRequested = entry.record.stopRequested; expected.leaseExpired = entry.record.leaseExpired; }
+        const expected = clone(previous);
+        if (descriptor.action === "reconcile") {
+          expected.fenceReason ??= entry.record.fenceReason;
+          // Current high-water may postdate this historical observation. It can
+          // justify newly recorded expiry, never erase expiry already observed.
+          if (entry.record.leaseExpired) {
+            ensure(previous.pending && Number(meta[0].high_water) >= previous.pending.leaseExpiresAt);
+            expected.leaseExpired = true;
+          }
+        }
         this.apply(expected, status, descriptor.action === "reconcile"); expected.revision++;
         ensure(same(expected, entry.record));
       } else ensure(descriptor.status === null);

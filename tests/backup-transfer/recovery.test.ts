@@ -455,3 +455,38 @@ test("S54 attested nested binding and object data remain immutable through autho
   assert.equal(accepted.acknowledgedOffset, 10); assert.equal(accepted.object!.sessionId, initial.object!.sessionId);
   assert.equal(f.world.accepts(structuredClone(status)), false);
 });
+
+test("S54 unresolved reconciliation cannot clear prior expiry through matching row and event corruption", async t => {
+  for (const outcome of ["in_flight", "unknown"] as const) {
+    const f = fixture(t), initial = f.create(), issued = f.dispatch(initial, "create"), waiting = f.world.launch(issued.dispatch!);
+    if (outcome === "unknown") { f.world.settle(issued.attempt.pending!.requestId, "applied", "unknown"); await waiting; }
+    f.clock.at += 2000; const expired = f.ledger.get(OWNER, initial.id);
+    const reconciled = f.ledger.reconcile(OWNER, initial.id, f.command(expired)).attempt;
+    assert.equal(expired.leaseExpired, true); assert.equal(reconciled.leaseExpired, true);
+    assert.deepEqual(reconciled.pending, expired.pending);
+    f.ledger.close(); const changed = structuredClone(reconciled); changed.leaseExpired = false;
+    inspectTransferJournalForTest(f.file, db => {
+      const text = canonical(changed);
+      db.prepare("UPDATE transfer_proof_attempts SET record_json=? WHERE attempt_id=?").run(text, changed.id);
+      db.prepare("UPDATE transfer_proof_events SET record_json=? WHERE attempt_id=? AND revision=?").run(text, changed.id, changed.revision);
+    });
+    const before = transferJournalBytesForTest(f.file);
+    fails(() => f.open(), "transfer_journal_invalid_retain_for_investigation");
+    assert.deepEqual(transferJournalBytesForTest(f.file), before);
+  }
+});
+
+test("S54 a valid pre-expiry reconciliation survives later expiry and clears it only after settlement", async t => {
+  const f = fixture(t), initial = f.create(), issued = f.dispatch(initial, "create"), waiting = f.world.launch(issued.dispatch!);
+  const early = f.ledger.reconcile(OWNER, initial.id, f.command(issued.attempt)).attempt;
+  assert.equal(early.state, "uncertain"); assert.equal(early.leaseExpired, false);
+  f.clock.at += 2000; const expired = f.ledger.get(OWNER, initial.id);
+  assert.equal(expired.leaseExpired, true); f.ledger.close();
+  const reopened = f.open(), current = reopened.get(OWNER, initial.id);
+  assert.equal(current.leaseExpired, true); assert.deepEqual(current.pending, early.pending);
+  f.world.settle(issued.attempt.pending!.requestId, "applied"); await waiting;
+  const settled = reopened.reconcile(OWNER, initial.id, f.command(current)).attempt;
+  assert.equal(settled.state, "ready"); assert.equal(settled.leaseExpired, false); assert.equal(settled.pending, null);
+  assert.equal(f.world.countsForTest().objects, 1);
+  reopened.close(); assert.deepEqual(f.open().get(OWNER, initial.id), settled);
+});
