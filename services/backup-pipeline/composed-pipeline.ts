@@ -13,6 +13,10 @@ import type { SyntheticTransferredSet } from "../backup-transfer/synthetic-world
 import { SyntheticObjectStore } from "../backup/synthetic-store.ts";
 
 function assert(value: unknown, code: string): asserts value { if (!value) throw new BackupRecoveryError(code); }
+// Successful fixture-wide claims outlive handles, journals and worlds. A new
+// coordinator is not authorization to create another copy of the same source.
+// There is no release/reset operation until an explicit duplicate-copy policy exists.
+const reservedSources = new Map<string, symbol>();
 interface Request { issued: TransferAttempt; completion: Promise<SyntheticTransferStatus> }
 export interface ComposedPipelineOptions { world?: SyntheticTransferWorld; now?: () => number }
 
@@ -29,11 +33,16 @@ export class ComposedSyntheticPipeline {
   private archive: PortableBackupArchive | null = null; private released = false; private cancelled = false; private disposed = false;
   private constructor(ownerId: string, snapshots: SourceSnapshotAcquisition, handle: SourceSnapshotHandle, options: ComposedPipelineOptions) {
     this.ownerId = backupId(ownerId); this.snapshots = snapshots; this.handle = handle;
-    this.borrow = snapshots.borrowForSyntheticPipeline(ownerId, handle);
-    this.world = options.world ?? new SyntheticTransferWorld(); this.now = options.now ?? Date.now;
+    const accepted = snapshots.describe(this.ownerId, handle);
+    const sourceKeys = accepted.components.map(item => JSON.stringify([this.ownerId, accepted.source.sourceId, accepted.source.versionId, accepted.source.sourceRevision,
+      accepted.source.componentSetRevision, item.componentId, item.componentRevision])).sort();
+    assert(sourceKeys.every(key => !reservedSources.has(key)), "pipeline_source_already_tracked");
+    const claim = Symbol(); for (const key of sourceKeys) reservedSources.set(key, claim);
     this.ledger = null; this.bindings = [];
-    let file: TransferJournalFile | undefined, store: SyntheticObjectStore | undefined;
+    let file: TransferJournalFile | undefined, store: SyntheticObjectStore | undefined, borrow: SyntheticSnapshotBorrow | undefined;
     try {
+      this.borrow = borrow = snapshots.borrowForSyntheticPipeline(ownerId, handle);
+      this.world = options.world ?? new SyntheticTransferWorld(); this.now = options.now ?? Date.now;
       this.readbackStore = store = new SyntheticObjectStore(); this.file = file = createTransferJournalFile();
       this.bindings = this.world.bindSnapshotForSyntheticPipeline(ownerId, this.borrow);
       this.ledger = new TransferRecoveryLedger(this.file, { world: this.world, now: this.now });
@@ -42,7 +51,15 @@ export class ComposedSyntheticPipeline {
         this.ids.set(binding.source.componentId, record.id);
       }
     } catch (error) {
-      this.ledger?.close(); if (file) disposeTransferJournalFile(file); releaseSyntheticSnapshotBorrow(ownerId, this.borrow); store?.disposeForTest(); throw error;
+      // Construction never dispatches. Only a fully cleaned pre-effect failure
+      // may roll back its own provisional claims; returned pipelines never do.
+      let cleaned = true;
+      for (const cleanup of [() => this.ledger?.close(), () => { if (file) disposeTransferJournalFile(file); },
+        () => { if (borrow) releaseSyntheticSnapshotBorrow(ownerId, borrow); }, () => store?.disposeForTest()]) {
+        try { cleanup(); } catch { cleaned = false; }
+      }
+      if (cleaned) for (const key of sourceKeys) if (reservedSources.get(key) === claim) reservedSources.delete(key);
+      throw error;
     }
   }
   static fromSnapshot(ownerId: string, snapshots: SourceSnapshotAcquisition, handle: SourceSnapshotHandle, options: ComposedPipelineOptions = {}): ComposedSyntheticPipeline {

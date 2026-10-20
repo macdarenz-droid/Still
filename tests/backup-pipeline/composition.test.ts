@@ -45,6 +45,97 @@ async function fixture(t: TestContext) {
   return { source, ref, clock, snapshots, handle, pipeline, ids, upload, cleanup };
 }
 
+test("S65 one immutable source cannot create a second coordinator or world while ready uncertain or completed", async t => {
+  const f = await fixture(t);
+  const denySecond = () => {
+    const counts = f.pipeline.world.countsForTest(); let worldAccesses = 0, duplicate: ComposedSyntheticPipeline | undefined;
+    try {
+      fails(() => { duplicate = ComposedSyntheticPipeline.fromSnapshot(OWNER, f.snapshots, f.handle); }, "pipeline_source_already_tracked");
+      fails(() => {
+        duplicate = ComposedSyntheticPipeline.fromSnapshot(OWNER, f.snapshots, f.handle, {
+          get world() { worldAccesses++; return new SyntheticTransferWorld(); }, now: () => f.clock.at,
+        });
+      }, "pipeline_source_already_tracked");
+      assert.equal(worldAccesses, 0, "deny before evaluating or allocating a second world");
+      assert.deepEqual(f.pipeline.world.countsForTest(), counts);
+    } finally { duplicate?.disposeForTest(); }
+  };
+  denySecond();
+  const uncertain = await f.pipeline.complete(f.ids[0], "create", 0, "unknown");
+  assert.equal(uncertain.state, "uncertain"); denySecond();
+  assert.deepEqual(f.pipeline.world.countsForTest(), { requests: 1, objects: 1 });
+  f.pipeline.world.reveal(uncertain.pending!.requestId); f.pipeline.reconcile(f.ids[0]);
+  await f.upload(); denySecond();
+});
+
+test("S65 completed or cancelled source reservation survives snapshot release disposal and same-source reacquisition", async t => {
+  for (const state of ["created", "cancelled"] as const) {
+    const f = await fixture(t), original = f.snapshots.describe(OWNER, f.handle);
+    if (state === "created") await f.pipeline.complete(f.ids[0], "create");
+    else f.pipeline.cancel();
+    const counts = f.pipeline.world.countsForTest(); f.cleanup();
+    const snapshots = new SourceSnapshotAcquisition({ source: f.source, now: () => f.clock.at });
+    const handle = await snapshots.acquire(snapshots.begin(OWNER, { source: f.ref, timeoutMs: 30_000 }, () => true));
+    let duplicate: ComposedSyntheticPipeline | undefined, worldAccesses = 0;
+    try {
+      const accepted = snapshots.describe(OWNER, handle);
+      assert.notEqual(accepted.snapshotId, original.snapshotId);
+      assert.deepEqual(accepted.source, original.source); assert.deepEqual(accepted.components, original.components);
+      fails(() => { duplicate = ComposedSyntheticPipeline.fromSnapshot(OWNER, snapshots, handle); }, "pipeline_source_already_tracked");
+      fails(() => {
+        duplicate = ComposedSyntheticPipeline.fromSnapshot(OWNER, snapshots, handle, {
+          get world() { worldAccesses++; return new SyntheticTransferWorld(); }, now: () => f.clock.at,
+        });
+      }, "pipeline_source_already_tracked");
+      assert.equal(worldAccesses, 0, "no second world or journal is allocated after handle recreation");
+      assert.deepEqual(f.pipeline.world.countsForTest(), counts);
+    } finally { if (duplicate) duplicate.disposeForTest(); else snapshots.release(OWNER, handle); snapshots.dispose(); }
+  }
+});
+
+test("S65 any overlapping immutable component denies replacement after inventory add remove reorder or sibling revision change", async t => {
+  for (const change of ["add", "remove", "reorder", "component"] as const) {
+    const f = await fixture(t), original = f.snapshots.describe(OWNER, f.handle);
+    await f.pipeline.complete(f.ids[0], "create"); const counts = f.pipeline.world.countsForTest(); f.cleanup();
+    f.source.changeForTest(OWNER, f.ref, change);
+    const snapshots = new SourceSnapshotAcquisition({ source: f.source, now: () => f.clock.at });
+    const handle = await snapshots.acquire(snapshots.begin(OWNER, { source: f.ref, timeoutMs: 30_000 }, () => true));
+    let duplicate: ComposedSyntheticPipeline | undefined, worldAccesses = 0;
+    try {
+      const accepted = snapshots.describe(OWNER, handle);
+      assert.deepEqual(accepted.source, original.source, "fixture keeps the same source and component-set revisions");
+      assert.ok(accepted.components.some(item => original.components.some(old => old.componentId === item.componentId && old.componentRevision === item.componentRevision)));
+      fails(() => {
+        duplicate = ComposedSyntheticPipeline.fromSnapshot(OWNER, snapshots, handle, {
+          get world() { worldAccesses++; return new SyntheticTransferWorld(); }, now: () => f.clock.at,
+        });
+      }, "pipeline_source_already_tracked");
+      assert.equal(worldAccesses, 0); assert.deepEqual(f.pipeline.world.countsForTest(), counts);
+    } finally { if (duplicate) duplicate.disposeForTest(); else snapshots.release(OWNER, handle); snapshots.dispose(); }
+  }
+});
+
+test("S65 a fully cleaned constructor failure releases only provisional pre-effect claims", async () => {
+  for (const stage of ["world", "binding"] as const) {
+    const source = new MutableSyntheticSource(), ref = source.generate(OWNER, DEFINITIONS);
+    const snapshots = new SourceSnapshotAcquisition({ source, now: () => 10_000 });
+    const handle = await snapshots.acquire(snapshots.begin(OWNER, { source: ref, timeoutMs: 30_000 }, () => true));
+    const world = new SyntheticTransferWorld(), bind = world.bindSnapshotForSyntheticPipeline.bind(world);
+    world.bindSnapshotForSyntheticPipeline = (...args) => { bind(...args); throw new Error("injected binding failure"); };
+    let pipeline: ComposedSyntheticPipeline | undefined;
+    try {
+      assert.throws(() => ComposedSyntheticPipeline.fromSnapshot(OWNER, snapshots, handle, {
+        get world() { if (stage === "world") throw new Error("injected world failure"); return world; }, now: () => 10_000,
+      }), new RegExp(`injected ${stage} failure`));
+      assert.deepEqual(world.countsForTest(), { requests: 0, objects: 0 });
+      pipeline = ComposedSyntheticPipeline.fromSnapshot(OWNER, snapshots, handle, { now: () => 10_000 });
+      assert.deepEqual(pipeline.world.countsForTest(), { requests: 0, objects: 0 });
+      fails(() => ComposedSyntheticPipeline.fromSnapshot(OWNER, snapshots, handle), "pipeline_source_already_tracked");
+    } finally { if (pipeline) pipeline.disposeForTest(); else snapshots.release(OWNER, handle); snapshots.dispose(); }
+    assert.equal(snapshots.retainedBytesForTest(), 0);
+  }
+});
+
 test("S65 exact acquired primary motion and sidecar bytes survive async transfer and CP13 restore", async t => {
   const f = await fixture(t), description = f.snapshots.describe(OWNER, f.handle), bindings = f.pipeline.componentBindings();
   assert.equal(new Set(bindings.map(item => item.source.sourceId)).size, 1);
