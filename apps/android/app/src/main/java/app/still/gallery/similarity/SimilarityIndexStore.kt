@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteDatabaseCorruptException
 import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
 import android.os.Looper
+import androidx.core.database.sqlite.transaction
 import java.security.MessageDigest
 import java.util.Locale
 import java.util.UUID
@@ -266,13 +267,11 @@ class SimilarityIndexClearStore(context: Context) : SimilarityIndexClearSession 
 }
 
 private fun clearDerivedIndexRows(database: SQLiteDatabase) {
-    database.beginTransaction()
-    try {
+    database.transaction {
         database.delete("similarity_hash_buckets", null, null)
         database.delete("similarity_features", null, null)
         database.delete("similarity_index_namespaces", null, null)
-        database.setTransactionSuccessful()
-    } finally { database.endTransaction() }
+    }
 }
 
 /** Eleven disjoint blocks guarantee a shared block for every hash at Hamming distance≤10. */
