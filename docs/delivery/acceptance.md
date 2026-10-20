@@ -1878,3 +1878,35 @@ push run `39489109505` and draft PR run `39489116931` both passed Android and
 contracts/discovery on the exact acceptance-document head
 `449217a97ddf7d82320e4081df8b83d1d2f57f9e`. The implementation and APK remain
 those recorded above; no source changed for this hosted-check evidence update.
+
+## CP20 — Google Drive resumable transfer protocol proof
+
+CP20 adds a pure Kotlin proof of one generated binary object's Drive resumable
+upload protocol. An injected fake transport exercises bounded session URLs,
+aligned chunks, `308` acknowledgement and status queries, ambiguous outcomes,
+completion metadata, expiration and exact generated-byte readback. Session URLs
+are redacted and held only in memory. The protocol has no production caller,
+HTTP transport, OAuth input, Android UI, media source, or persistent transfer
+state. Its `VERIFIED` state applies only to generated fixture bytes; it is not a
+product backup result.
+
+Exact source commit: `248d7e778a854ad4a44dc4349ede0c4a5734ffde`, containing only
+the protocol, response parser and their two JVM test files on top of the CP20
+design commit. All four source-file SHA-256 values match
+`/tmp/still-cp20-builder-evidence/summary.json`. The focused protocol suite passes
+**31/31** tests. The full Android suite passes **412/412** across 44 suites, the
+debug assembly succeeds, and strict lint reports no errors or warnings and one
+pre-existing hint in `SimilarityIndexCoordinator.kt`. The integrated debug APK
+has SHA-256
+`7157e34f775723d521e51bc7706c2adfc257177f7f24654883dc8388e0c21dd4`.
+`npm run check` and `git diff --check` pass. Evidence is also retained in
+`/tmp/still-cp20-builder-evidence/`, including the eight detected counterfactual
+mutations; the integrated checkout independently reran the full Android suite.
+
+The frontend and SEO audits passed the exact source commit and confirm that no
+user-facing control or backup claim was added. Independent reviewer and red-team
+gates are pending. No account, OAuth token, live Drive request, network transfer,
+user media, physical-device test, actual backup, or restore was used. CP20 does
+not prove original media fidelity, complete motion/sidecar capture, durable or
+cross-process recovery, or live Drive behavior. These remain prerequisites for
+a selected-photo backup flow. The draft PR remains unmerged.
