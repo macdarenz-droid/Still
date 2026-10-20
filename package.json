@@ -12,6 +12,7 @@
     "test:backup": "node scripts/test-backup-recovery.mjs",
     "test:backup-transfer": "node scripts/test-backup-transfer-recovery.mjs",
     "test:backup-source": "node scripts/test-backup-source-snapshot.mjs",
+    "test:backup-pipeline": "node scripts/test-backup-pipeline.mjs",
     "dev:api": "node --watch services/api/src/server.ts",
     "start:api": "node services/api/src/server.ts",
     "check:site": "python3 scripts/check-site.py",

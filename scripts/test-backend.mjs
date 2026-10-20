@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const suites = ['tests/contracts', 'tests/faults', 'tests/backup', 'tests/backup-transfer', 'tests/backup-source'];
+const suites = ['tests/contracts', 'tests/faults', 'tests/backup', 'tests/backup-transfer', 'tests/backup-source', 'tests/backup-pipeline'];
 const files = [];
 for (const suite of suites) {
   let entries;
