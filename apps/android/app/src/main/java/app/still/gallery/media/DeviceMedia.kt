@@ -31,6 +31,17 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
+/** Applied to collection enumeration and exact probes, including app-owned pending rows. */
+internal data class DeviceMediaQuerySelection(val selection: String?, val arguments: List<String>?)
+
+/** Pure SQL selection policy: API 26–28 providers do not have IS_PENDING. */
+internal fun deviceMediaQueryPolicy(sdk: Int, rowId: Long? = null): DeviceMediaQuerySelection {
+    val predicates = mutableListOf<String>()
+    if (sdk >= 29) predicates += "${MediaStore.MediaColumns.IS_PENDING} = 0"
+    if (rowId != null) predicates += "${MediaStore.MediaColumns._ID} = ?"
+    return DeviceMediaQuerySelection(predicates.takeIf { it.isNotEmpty() }?.joinToString(" AND "), rowId?.let { listOf(it.toString()) })
+}
+
 fun Context.mediaAccess(): MediaAccess {
     fun granted(permission: String) = ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
     return MediaAccess(
@@ -245,7 +256,8 @@ class DeviceMedia(private val context: Context) {
         val projection = mutableListOf(MediaStore.MediaColumns._ID, MediaStore.MediaColumns.VOLUME_NAME, MediaStore.MediaColumns.DATE_ADDED)
         if (Build.VERSION.SDK_INT >= 30) projection += MediaStore.MediaColumns.GENERATION_ADDED
         return try {
-            resolver.query(reference.key.toUri(), projection.toTypedArray(), null, null, null)?.use { cursor ->
+            val query = deviceMediaQueryPolicy(Build.VERSION.SDK_INT)
+            resolver.query(reference.key.toUri(), projection.toTypedArray(), query.selection, query.arguments?.toTypedArray(), null)?.use { cursor ->
                 if (cursor.count != 1 || !cursor.moveToFirst()) return@use null
                 fun number(column: String): Long? {
                     val index = cursor.getColumnIndex(column)
@@ -304,7 +316,8 @@ class DeviceMedia(private val context: Context) {
             projection += MediaStore.MediaColumns.GENERATION_MODIFIED
         }
         val items = mutableListOf<MediaItem>()
-        val queried = resolver.query(collection, projection.toTypedArray(), if (rowId == null) null else "${MediaStore.MediaColumns._ID} = ?", rowId?.let { arrayOf(it.toString()) }, "${MediaStore.MediaColumns.DATE_ADDED} DESC")
+        val query = deviceMediaQueryPolicy(Build.VERSION.SDK_INT, rowId)
+        val queried = resolver.query(collection, projection.toTypedArray(), query.selection, query.arguments?.toTypedArray(), "${MediaStore.MediaColumns.DATE_ADDED} DESC")
             ?: throw IllegalStateException("Media provider returned no cursor")
         queried.use { cursor ->
             fun number(column: String): Long {
