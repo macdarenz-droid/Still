@@ -401,8 +401,8 @@
     <string name="drive_connection_setup_help">Setup instructions</string>
     <string name="drive_connection_setup_title">Set up Google Drive sign-in</string>
     <string name="drive_connection_setup_intro">The account chooser is unavailable until the build is configured with a Google OAuth Web client ID. Settings cannot configure an installed copy.</string>
-    <string name="drive_connection_setup_project">1. In a Google Cloud project you control, enable the Google Drive API and configure the consent screen and permitted test users.</string>
+    <string name="drive_connection_setup_project">1. In a Google Cloud project you control, enable the Google Drive API. Configure consent and permitted test users, and register the drive.file scope.</string>
     <string name="drive_connection_setup_android_client">2. Create an Android OAuth client for app.still.gallery.dev and the SHA-1 signing certificate of the APK you will install. In apps/android, run ./gradlew :app:signingReport to find the local debug certificate SHA-1.</string>
     <string name="drive_connection_setup_web_client">3. Create a Web application OAuth client in the same project. Supply its public ID as STILL_GOOGLE_WEB_CLIENT_ID when building Still, then rebuild and install the configured APK. Never put a client secret in the app.</string>
-    <string name="drive_connection_setup_limits">Connecting chooses a Drive account and grants access only. Backup and restore are not available yet. Google Drive files do not appear in Google Photos.</string>
+    <string name="drive_connection_setup_limits">Connecting authorizes Google Drive only; it does not connect Google Photos. Backup and restore are not available yet.</string>
 </resources>
