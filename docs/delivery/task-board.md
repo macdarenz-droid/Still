@@ -855,3 +855,25 @@ only: it does not establish Android original/component fidelity, durable device
 staging, real Drive object semantics, account recovery, transfer, verification,
 restore, local removal, automatic policy, or free-space eligibility. Real Google
 chooser/consent remains blocked on owner OAuth configuration and a device.
+
+## CP19 — Read-only Google Drive access readiness (Stage 2 / architecture §10)
+
+The current connection flow authorizes `drive.file` but does not confirm that the
+selected account's Drive API is reachable. Add one explicit read-only readiness
+check before any file transfer work. ADR0016 defines the narrow request and its
+state boundary.
+
+| Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S68 Readiness design | supervisor; `docs/decisions/0016-drive-access-readiness.md`, this section | Freeze a manual `about.get` request, minimal quota fields, transient connection-bound grant lease, stale-result fencing, bounds, and no-media/no-file boundaries | CP14 connection + CP17 setup help; official API documents `drive.file`; quota is transient local display only |
+| S69 Readiness implementation | backend; new `apps/android/app/src/main/java/app/still/gallery/backup/DriveReadinessPolicy.kt`, `DriveReadinessController.kt`, `AndroidDriveReadiness.kt` and focused tests; narrow edits to connection holder/session/controller, Settings and Drive strings | Explicit Settings check performs one bounded HTTPS `about.get`; token remains in memory and out of UI, preferences and logs; current connection revision alone may publish; unknown quota stays unknown; no file/folder/media operation or new dependency | S68; fake transport only in automated tests; no OAuth secret or live account required |
+| S70 Copy and interaction audit | frontend and seo; read only | Ensure check is available only for a connected account, accessible/cancellable, and says access/quota was checked without implying upload, backup, verification, or available capacity when unknown; no AI wording | Frozen S68 and proposed UI; no edits/publication |
+| S71 CP19 independent gates | reviewer and red_team; read only | Review exact source/tests; attack stale grants, account switch/disconnect races, token leakage, redirect/host confusion, oversized/malformed responses, HTTP errors and misleading quota state. Both pass exact integrated source | Root Android unit tests, strict lint/build, hosted exact-head workflows; live account and device behavior explicitly blocked until configured |
+
+Root owns ADR/task-board/acceptance integration, Settings wiring, full checks,
+and final acceptance. S69 must use the official `about.get` endpoint and existing
+network permission; do not add a dependency or any file/media operation. OAuth
+Web client configuration and a Google Play services device are required for live
+account/endpoint validation, but not for fake-transport unit tests. CP19 does not
+implement backup; real single-photo copy remains blocked on source fidelity,
+provider transfer/reconciliation, readback and restore proofs.

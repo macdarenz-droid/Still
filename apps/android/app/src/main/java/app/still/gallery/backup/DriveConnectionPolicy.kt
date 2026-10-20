@@ -32,7 +32,11 @@ internal fun driveScopesAllowed(scopes: Set<String>): Boolean = DRIVE_FILE_SCOPE
 /** No tokens, raw Google subjects, or authenticated state are serialized by this policy. */
 class DriveConnectionSession(private val configured: Boolean, saved: SavedDriveAccount?,
     private val save: (SavedDriveAccount?) -> Boolean) {
+    private class Authorization(val token: String, val epoch: String, val revision: Long)
     private var token: String? = null
+    private var connectedEpoch: String? = null
+    private var authorizationRevision = 0L
+    @Volatile private var authorization: Authorization? = null
     private var pending: DriveConnectionAttempt? = null
     private var alive = true
     var state by mutableStateOf(DriveConnectionState(
@@ -42,6 +46,7 @@ class DriveConnectionSession(private val configured: Boolean, saved: SavedDriveA
 
     fun begin(expected: DriveConnectionAction): DriveConnectionAttempt? {
         if (!alive || !configured || state.action !== expected || state.busy) return null
+        authorization = null
         return DriveConnectionAttempt(state).also {
             pending = it
             state = state.copy(phase = DriveConnectionPhase.CONNECTING, action = DriveConnectionAction(), error = null)
@@ -55,19 +60,20 @@ class DriveConnectionSession(private val configured: Boolean, saved: SavedDriveA
         if (account.display.email.isBlank() || account.display.email.length > 320 ||
             account.display.email.any { it.isWhitespace() } || account.display.name.length > 512 ||
             !Regex("[a-f0-9]{64}").matches(account.subjectBinding) ||
-            grant.token.isBlank() || grant.token.length > 32_768 || !driveScopesAllowed(grant.scopes)) {
+            grant.token.isBlank() || grant.token.length > 32_768 || grant.token.any { it <= ' ' || it > '~' } || !driveScopesAllowed(grant.scopes)) {
             fail(attempt, DriveConnectionError.PERMISSION_DENIED)
             return false
         }
         val saved = SavedDriveAccount(account.display, UUID.randomUUID().toString())
         if (!try { save(saved) } catch (_: RuntimeException) { false }) {
-            token = null; pending = null
+            authorization = null; token = null; connectedEpoch = null; pending = null
             state = DriveConnectionState(DriveConnectionPhase.REAUTH_REQUIRED, attempt.previous.account, DriveConnectionAction(), DriveConnectionError.STORAGE_FAILED)
             return false
         }
-        token = grant.token
+        token = grant.token; connectedEpoch = saved.epoch
         pending = null
         state = DriveConnectionState(DriveConnectionPhase.CONNECTED, account.display, DriveConnectionAction())
+        renewAuthorization()
         return true
     }
 
@@ -77,6 +83,7 @@ class DriveConnectionSession(private val configured: Boolean, saved: SavedDriveA
         val previous = attempt.previous
         state = previous.copy(phase = if (token != null) DriveConnectionPhase.CONNECTED else if (previous.account != null) DriveConnectionPhase.REAUTH_REQUIRED else DriveConnectionPhase.DISCONNECTED,
             action = DriveConnectionAction(), error = reason)
+        renewAuthorization()
     }
 
     fun cancel(expected: DriveConnectionAction): Boolean {
@@ -89,7 +96,7 @@ class DriveConnectionSession(private val configured: Boolean, saved: SavedDriveA
     /** Disconnect is local-only; it never revokes a remote Google grant. */
     fun disconnect(expected: DriveConnectionAction): Boolean {
         if (!alive || state.action !== expected || state.busy || state.account == null) return false
-        token = null
+        authorization = null; token = null; connectedEpoch = null
         pending = null
         if (!try { save(null) } catch (_: RuntimeException) { false }) {
             state = state.copy(phase = if (configured) DriveConnectionPhase.REAUTH_REQUIRED else DriveConnectionPhase.UNAVAILABLE,
@@ -101,5 +108,20 @@ class DriveConnectionSession(private val configured: Boolean, saved: SavedDriveA
         return true
     }
 
-    fun dispose() { alive = false; token = null; pending = null }
+    /** A lease cannot be reconstructed from saved labels or a matching email. */
+    fun accessLease(expected: DriveConnectionAction): DriveAccessLease? {
+        if (!alive || state.action !== expected || state.phase != DriveConnectionPhase.CONNECTED) return null
+        val held = authorization ?: return null
+        return DriveAccessLease(held.token, held.epoch, held.revision) { authorization === held }
+    }
+
+    private fun renewAuthorization() {
+        authorization = null
+        val heldToken = token ?: return
+        val epoch = connectedEpoch ?: return
+        if (!alive || state.phase != DriveConnectionPhase.CONNECTED || authorizationRevision == Long.MAX_VALUE) return
+        authorization = Authorization(heldToken, epoch, ++authorizationRevision)
+    }
+
+    fun dispose() { authorization = null; alive = false; token = null; connectedEpoch = null; pending = null }
 }

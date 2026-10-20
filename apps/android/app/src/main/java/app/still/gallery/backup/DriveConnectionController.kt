@@ -14,12 +14,13 @@ interface DriveConnectionGateway {
 
 /** Interactive Google work can survive the gallery being hidden, but never unlocks Still. */
 class DriveConnectionController(private val session: DriveConnectionSession, private val gateway: DriveConnectionGateway,
-    private val scope: CoroutineScope) {
+    private val scope: CoroutineScope, private val onAccessWithdraw: () -> Unit = {}) {
     private var worker: Job? = null
     val state: DriveConnectionState get() = session.state
 
     fun connect(expected: DriveConnectionAction) {
         val attempt = session.begin(expected) ?: return
+        onAccessWithdraw()
         val next = scope.launch(start = CoroutineStart.LAZY) {
             try {
                 val account = gateway.chooseAccount()
@@ -40,7 +41,10 @@ class DriveConnectionController(private val session: DriveConnectionSession, pri
 
     fun cancel(expected: DriveConnectionAction) { if (session.cancel(expected)) worker?.cancel() }
 
-    fun disconnect(expected: DriveConnectionAction) { session.disconnect(expected) }
+    fun disconnect(expected: DriveConnectionAction) {
+        if (state.action === expected && !state.busy && state.account != null) onAccessWithdraw()
+        session.disconnect(expected)
+    }
 
-    fun dispose() { session.dispose(); worker?.cancel() }
+    fun dispose() { onAccessWithdraw(); session.dispose(); worker?.cancel() }
 }

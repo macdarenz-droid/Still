@@ -14,15 +14,23 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.still.gallery.R
 
 @Composable
@@ -30,6 +38,19 @@ fun DriveConnectionSettings(holder: DriveConnectionHolder?, canAct: () -> Boolea
     val controller = holder?.controller
     val state = controller?.state
     val phase = state?.phase ?: DriveConnectionPhase.UNAVAILABLE
+    val readiness = holder?.readiness
+    val access = readiness?.state
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val currentCanAct by rememberUpdatedState(canAct)
+    DisposableEffect(readiness, lifecycle) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) readiness?.hide() }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer); readiness?.hide() }
+    }
+    val visible = canAct()
+    LaunchedEffect(readiness, phase, visible, canAct) {
+        if (phase != DriveConnectionPhase.CONNECTED || !visible) readiness?.hide() else readiness?.revalidateVisibility()
+    }
     val showSetupHelp = remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(stringResource(R.string.drive_connection_title), Modifier.semantics { heading() }, style = MaterialTheme.typography.titleLarge)
@@ -55,6 +76,38 @@ fun DriveConnectionSettings(holder: DriveConnectionHolder?, canAct: () -> Boolea
                 DriveConnectionError.PERMISSION_DENIED -> R.string.drive_connection_permission_denied
                 DriveConnectionError.STORAGE_FAILED -> R.string.drive_connection_storage_failed
             }), Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+        }
+        if (phase == DriveConnectionPhase.CONNECTED && readiness != null && access != null && state != null) {
+            OutlinedButton(onClick = {
+                val origin = currentCanAct
+                if (origin()) readiness.check(state.action, access.action, origin)
+            },
+                enabled = visible && access.phase != DriveReadinessPhase.CHECKING,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.drive_access_check))
+            }
+            when (access.phase) {
+                DriveReadinessPhase.CHECKING -> {
+                    Text(stringResource(R.string.drive_access_checking), Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                    TextButton(onClick = { if (currentCanAct()) readiness.cancel(access.action) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+                DriveReadinessPhase.CHECKED -> {
+                    Text(stringResource(R.string.drive_access_checked), Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+                    access.quota?.let { quota -> DriveQuotaText(quota) }
+                }
+                DriveReadinessPhase.FAILED -> Text(stringResource(when (access.error) {
+                    DriveReadinessError.NEEDS_SIGN_IN -> R.string.drive_access_needs_sign_in
+                    DriveReadinessError.PERMISSION_DENIED -> R.string.drive_access_denied
+                    DriveReadinessError.RATE_LIMITED -> R.string.drive_access_rate_limited
+                    DriveReadinessError.INVALID_RESPONSE -> R.string.drive_access_invalid
+                    DriveReadinessError.CANCELLED -> R.string.drive_access_cancelled
+                    else -> R.string.drive_access_failed
+                }), Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+                DriveReadinessPhase.IDLE -> Unit
+            }
         }
         if (phase == DriveConnectionPhase.UNAVAILABLE) {
             TextButton(onClick = { if (canAct()) showSetupHelp.value = true }, enabled = canAct(),
@@ -101,4 +154,17 @@ fun DriveConnectionSettings(holder: DriveConnectionHolder?, canAct: () -> Boolea
             },
         )
     }
+}
+
+@Composable
+private fun DriveQuotaText(quota: DriveStorageQuota) {
+    val context = LocalContext.current
+    val usage = quota.usageBytes?.let { android.text.format.Formatter.formatShortFileSize(context, it) }
+    val limit = quota.limitBytes?.let { android.text.format.Formatter.formatShortFileSize(context, it) }
+    Text(when {
+        usage != null && limit != null -> stringResource(R.string.drive_access_quota, usage, limit)
+        usage != null -> stringResource(R.string.drive_access_usage_only, usage)
+        limit != null -> stringResource(R.string.drive_access_limit_only, limit)
+        else -> stringResource(R.string.drive_access_quota_unknown)
+    })
 }

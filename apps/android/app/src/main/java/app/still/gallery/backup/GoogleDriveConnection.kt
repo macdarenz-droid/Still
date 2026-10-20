@@ -63,7 +63,8 @@ class DriveConnectionHolder(application: Application) : ViewModel() {
         }
         return editor.commit()
     }
-    val controller = DriveConnectionController(session, gateway, scope)
+    val readiness = DriveReadinessController(session::accessLease, AndroidDriveReadiness(), scope)
+    val controller = DriveConnectionController(session, gateway, scope, readiness::hide)
     fun bind(activity: ComponentActivity) { gateway.bind(activity) }
 
     private fun readSaved(): SavedDriveAccount? = try {
@@ -75,7 +76,7 @@ class DriveConnectionHolder(application: Application) : ViewModel() {
         else SavedDriveAccount(DriveAccountDisplay(email, name), epoch)
     } catch (_: RuntimeException) { null }
 
-    override fun onCleared() { controller.dispose(); gateway.dispose(); scope.cancel() }
+    override fun onCleared() { readiness.dispose(); controller.dispose(); gateway.dispose(); scope.cancel() }
 }
 
 @Composable

@@ -382,7 +382,7 @@
     <plurals name="similarity_exact_omitted"><item quantity="one">%1$d pair with matching readable data was left out.</item><item quantity="other">%1$d pairs with matching readable data were left out.</item></plurals>
     <plurals name="similarity_pairs_omitted"><item quantity="one">%1$d additional pair was not shown because this review is limited to 50 pairs.</item><item quantity="other">%1$d additional pairs were not shown because this review is limited to 50 pairs.</item></plurals>
     <string name="drive_connection_title">Google Drive</string>
-    <string name="drive_connection_scope">Choose a Google account and allow Still to access files it creates or that you choose in Google Drive. This build connects your account only. Backup and restore are not available yet.</string>
+    <string name="drive_connection_scope">Choose a Google account and allow Still to access files it creates or that you choose in Google Drive. Connecting does not start a backup. Backup and restore are not available yet.</string>
     <string name="drive_connection_unavailable">Google Drive sign-in isn’t configured for this build.</string>
     <string name="drive_connection_disconnected">No Google Drive account is connected.</string>
     <string name="drive_connection_reauth">Sign in again to reconnect Google Drive. Account access is not kept after the app restarts.</string>
@@ -405,4 +405,17 @@
     <string name="drive_connection_setup_android_client">2. Create an Android OAuth client for app.still.gallery.dev and the SHA-1 signing certificate of the APK you will install. In apps/android, run ./gradlew :app:signingReport to find the local debug certificate SHA-1.</string>
     <string name="drive_connection_setup_web_client">3. Create a Web application OAuth client in the same project. Supply its public ID as STILL_GOOGLE_WEB_CLIENT_ID when building Still, then rebuild and install the configured APK. Never put a client secret in the app.</string>
     <string name="drive_connection_setup_limits">Connecting authorizes Google Drive only; it does not connect Google Photos. Backup and restore are not available yet.</string>
+    <string name="drive_access_check">Check Drive access</string>
+    <string name="drive_access_checking">Checking Drive access…</string>
+    <string name="drive_access_checked">Drive access checked.</string>
+    <string name="drive_access_quota">Google-reported account storage: %1$s used of %2$s.</string>
+    <string name="drive_access_usage_only">Google-reported account storage used: %1$s. Total storage was not provided.</string>
+    <string name="drive_access_limit_only">Google-reported account storage limit: %1$s. Usage was not provided.</string>
+    <string name="drive_access_quota_unknown">Google did not provide storage quota information.</string>
+    <string name="drive_access_needs_sign_in">Sign in again to check Drive access.</string>
+    <string name="drive_access_denied">Google refused the access check. Review Drive permissions and API configuration.</string>
+    <string name="drive_access_rate_limited">Google limited requests. Try again later.</string>
+    <string name="drive_access_invalid">Google returned an unexpected response. Try again later.</string>
+    <string name="drive_access_failed">Couldn’t check Drive access. Try again.</string>
+    <string name="drive_access_cancelled">Access check cancelled.</string>
 </resources>
