@@ -1404,7 +1404,7 @@ codec/EXIF, memory, large-library, thermal, accessibility, input and power-loss
 acceptance remain unverified. The selected-photo appearance index remains
 session-only; durable full-library incremental indexing remains unfinished.
 
-## CP12 local development gate
+## CP12 first local gate (superseded by toolchain recheck)
 
 The exact local source candidate is `28c1dc6d38ee7215ddd3e5164a73d3ef60a8f85b`
 on `build/still-foundation`, based on accepted CP11 `20dd35358302363ad2efccad5c3f636e73acf845`.
@@ -1465,3 +1465,44 @@ process-death, thermal, accessibility and access-revocation behavior remain
 unverified. Final hosted evidence is bound to its exact pushed head in
 `.artifacts/cp12-validation.json`; the branch remains a draft development PR. No
 main merge, release signing or publication is included.
+
+## CP12 hosted lint finding and toolchain recheck
+
+The first pushed acceptance head was
+`2f9819ce1f223ef9e6a7a6d6bc585e9bdd6b5278`. Its push workflow
+`39426036542` and pull-request workflow `39426042854` both passed
+contracts/discovery and both failed Android strict lint on the same
+`AndroidGradlePluginVersion` finding: hosted lint had advanced and required Gradle
+9.8.2 while the wrapper still pinned9.8.1. Android assembly and all327 unit tests
+completed before lint failed. The ordinary failed-run logs are preserved in
+`.artifacts/cp12-hosted-run-39426036542-failure.log`
+(`44cd046e3a4c859f828f62e68ab7755cc6d3f73e1235078ff9fbc52c6bb52659`) and
+`.artifacts/cp12-hosted-run-39426042854-failure.log`
+(`208a5e6d60e5a1eac88852f40bbbc1d5cb73c045c6d0012d25637d972de03ed2`).
+
+On2026-10-20 the official Gradle current-version endpoint reported9.8.2 with
+distribution SHA-256
+`21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607`. The matching
+archive was downloaded and verified against that checksum. The wrapper pin and
+toolchain records now use9.8.2; no lint check was suppressed. Source/build commit
+`99e1e119da2921d66e5d74fd1918f12c7c3f30d0` passes the complete local Gradle run
+with327/36 JVM results (zero failures/errors/skips), assemble, strict lint and
+instrumentation-source compilation, plus `npm run check` (TypeScript,74 backend,
+11 discovery,18 catalogue SQL and7 similarity-index SQL). The Gradle log is
+`.artifacts/cp12-final-9.8.2-gradle.log`
+(`22ece92b99c8e8080e0891738dbf4ebf6aa05a8a52181e870cafc3af16a378d0`); the npm
+log is `.artifacts/cp12-final-9.8.2-npm.log`
+(`7d58fced602841228c9db5e7c0ab490e908b336eaaff0ff537c5e3adb3de41ae`). A separate
+`:app:assembleDebugAndroidTest` run also packages the instrumented store tests.
+Lint now passes with zero errors/warnings and one informational
+`AutoboxingStateCreation` hint at the unchanged `SimilarityIndexCoordinator.kt:70`.
+
+The exact candidate APK is
+`.artifacts/deliveries/still-cp12-99e1e11.apk`,12,531,998 bytes, SHA-256
+`a7ae032a02191c2555d57c39295decb5ebc49642f3da477174a25d40efed7c5d`. The companion
+instrumentation APK is `.artifacts/deliveries/still-cp12-99e1e11-androidTest.apk`,
+54,488 bytes, SHA-256
+`a75cfb3cc3953c37c9a4671db94bdc5a9f68f67dfed5733e29f4445d7a56aff0`. Both debug
+signatures and alignment verify. The new source has not yet received independent
+source/APK re-review, and fresh hosted checks/role confirmations are pending. No
+device is attached, so Android SQLite instrumentation is still not executed.

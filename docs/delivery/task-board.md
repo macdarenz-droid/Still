@@ -615,15 +615,18 @@ digit/page and screen state), and missed crop and unsupported-alpha cases. It ma
 no broad accuracy claim. Corpus, labels, old-policy proof and fixed run are retained
 under `/tmp/still-cp12-s42-evidence/`.
 
-The exact local candidate `28c1dc6d38ee7215ddd3e5164a73d3ef60a8f85b` passes the full
-Android build,327 JVM cases, strict lint and instrumentation-source compilation;
-`npm run check` passes TypeScript,74 backend tests,11 discovery checks,18 catalogue
-probes and7 similarity-index SQL probes. Reviewer and red team passed the exact
-source/local APK and rechecked all prior findings. The Android instrumentation
-suite for `SimilarityIndexStore` is compiled but not executed: no device or
-emulator is attached/installed, so actual Android SQLite behavior remains
-unverified. Hosted checks and both hosted role confirmations remain pending on
-the draft PR. Exact APK, logs, findings and review evidence are recorded in
+The exact local candidate `99e1e119da2921d66e5d74fd1918f12c7c3f30d0` passes the
+full Android build,327 JVM cases, strict lint, instrumentation-source compilation
+and instrumentation APK packaging; `npm run check` passes TypeScript,74 backend
+tests,11 discovery checks,18 catalogue probes and7 similarity-index SQL probes.
+Hosted run `39426036542` failed Android lint because its newer
+`AndroidGradlePluginVersion` rule requires Gradle9.8.2; contracts/discovery passed.
+The wrapper pin was upgraded to9.8.2 with the official verified checksum, keeping
+lint enabled. The exact final source/APK reviewer and red-team passes and fresh
+hosted checks remain pending. The Android instrumentation suite for
+`SimilarityIndexStore` is compiled and packaged but not executed: no device or
+emulator is attached, so actual Android SQLite behavior remains unverified. Exact
+artifacts, logs, findings and review evidence are recorded in
 `docs/delivery/acceptance.md` and `.artifacts/cp12-validation.json`. CP12 is not
-ready to advance until the pushed-head gates finish; no production publication
-is authorized.
+ready to advance until the new exact-head gates finish; no publication is
+authorized.
