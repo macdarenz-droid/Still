@@ -678,5 +678,29 @@ The full local `npm run check` passes all 120 backend cases, 11 discovery checks
 runner passes 46/46. Reviewer and red team independently passed the exact component commit.
 Final integrated-head and hosted results are tracked on the draft PR and in its
 ignored validation artifact before any later release step.
+
+## CP14 — Connect a chosen Google Drive account (Stage 2 / architecture §10)
+
+The owner has chosen the architecture's recommended first destination, Google
+Drive, and specified that Still must let them choose and sign into the Google
+account they want to use. CP14 is only the account-connection step. It does not
+start a backup or transfer media. ADR0012 selects the narrow `drive.file` scope,
+a visible Drive folder for later Still-created files, explicit account switching
+and disconnect, and a connection epoch so later jobs cannot change accounts.
+
+| Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S48 Account and OAuth design | root; `docs/decisions/0012-google-drive-account-connection.md`, this section | Select Google Drive; use a supported account chooser and Drive authorization flow; request only `drive.file`; distinguish Drive files from Google Photos; define account switch/disconnect, token handling, OAuth project setup and no-transfer boundary | CP13 synthetic proof; owner specified Drive account choice |
+| S49 Native account connection | frontend; new Android `backup/drive/` source and matching tests, narrow `StillApp.kt` Settings wiring, new strings, required manifest/build configuration, Android README OAuth setup | Explicitly choose/sign in to a Google account, confirm the selected account, switch account and locally disconnect. Tokens are transient. Clearly say local disconnect does not revoke Google's account-level grant. Do not auto-backup, read user media, upload/download, create files, schedule work or delete anything. Missing OAuth configuration is clearly unavailable, never a fake connection | S48; official Android APIs and currently valid dependency verified; no user credentials or cloud transfer |
+| S50 Account binding checks | backend; focused pure contract/tests only if S49 needs a shared account epoch contract | Account change fences the old connection; any future job is bound to its creation account/epoch; late or cancelled authorization cannot overwrite newer state; email is display-only, not the stable account key | S49 interface first; no Drive API or provider writes |
+| S51 Copy review | seo; read only | Plain labels for choosing/signing into an account, scope, selected account, switch/disconnect and account-vs-backup distinction. State that connecting does not start backup and Drive files are not Google Photos items. No storage, verification, privacy or upload promise | Frozen source and strings; no publication |
+| S52 CP14 independent gates | reviewer and red_team; read only | Review exact source, OAuth scope and account-binding flow, token persistence/logging, cancellation/revocation, configuration gate, lock/lifecycle return, tests and hosted checks. No real account or media required for automated gates | Root full checks and exact-head hosted runs; physical-device OAuth check only after OAuth configuration is supplied |
+
+OAuth cannot complete until the owner configures a Google Cloud project, registers
+the app package and signing SHA-1, enables the Drive API and adds the required
+client ID through local build configuration. No OAuth secret is to be committed.
+Until then, connection must show that this build needs setup. Real backup/restore,
+transfer recovery, deletion and free-space actions remain later, separately gated
+work.
 This proof does not authorize source deletion or claim original fidelity, provider
 recovery, cross-process recovery, phone durability or new-device restore.

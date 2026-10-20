@@ -21,7 +21,7 @@ unsupported files, empty and large libraries, and removable storage where presen
 | All | Favorite/unfavorite, restart app, change system favorites | Only Still favorites persist; original/system metadata untouched | Blocked |
 | All | Long press/select mixed images and videos; cancel; share to two apps | Reversible selection, correct URI grant/MIME, recipients receive only selected media | Blocked |
 | All | Delete/change media in another app, then return | Library reconciles without crashes or treating access loss as deletion | Blocked |
-| All | Enable airplane mode; inspect manifest/network behavior | All local gallery functions work; app has no internet permission or uploads | Blocked |
+| All | Enable airplane mode; inspect manifest/network behavior | Local gallery functions work offline; Google account connection requires internet; no photos or library metadata are uploaded | Blocked |
 | All | TalkBack, keyboard/switch navigation, 200% font, dark theme, RTL | Labels and selection conveyed, touch targets usable, no essential text/action clipped | Blocked |
 | Reference device | Scroll at least 10,000 permitted items, rapidly open/close, revoke during load | Record cold-start/scroll memory and responsiveness; fix or document limits before release | Blocked |
 
@@ -174,3 +174,18 @@ Use synthetic/consented fixtures; keep private evaluation media outside git.
 | All | Refresh, navigate, background, lock/unlock, rotate/recreate or kill process during analysis/review/Compare | Immediate withdrawal, no saved features/tickets/auto-resume, admitted cleanup finishes independently; CP10 cache policy preserved | Blocked |
 | All | TalkBack, keyboard/switch, 200%font, RTL,320dp width/landscape/split-screen and animator scale0 | Reachable selection/Start/Stop/Compare/Close/retry and truthful textual coverage, with current-source previews and no retained exit images | Blocked |
 | Reference device | Repeated200-photo batches, maximal encoded inputs, crowded50-pair results and17k-row metadata mapping; measure actual heap/read/CPU/thermal/cancel/frame behavior | Record identified workload and timings; hard request bounds are not measured heap/throughput/accuracy guarantees | Blocked |
+
+
+## CP14 Google Drive connection (all unverified)
+
+| Device/setup | Action | Expected result | Status |
+| --- | --- | --- | --- |
+| Unconfigured build | Open Settings → Google Drive | Plain unavailable reason; no Google chooser or request; saved account clearly marked as requiring sign-in | Blocked |
+| Configured Google Play services device | Connect; choose existing or another Google account | Official chooser/sign-in; separate account-bound `drive.file` permission with prior resource scopes excluded; no uploads or backup controls | Blocked |
+| Configured device | Cancel chooser or deny Drive permission | No new connected account; previous authorized session retained on cancelled switch | Blocked |
+| Configured device, two authorized test accounts | Switch A → B; cancel/retry; replay old result | Only successful current attempt changes account; old callbacks cannot retarget B | Blocked |
+| Connected device | Restart process | Only saved display remains; fresh explicit sign-in required | Blocked |
+| Lock enabled | Complete Google handoff; return/rotate/home/screen-off | Gallery remains gated; Google connection never unlocks Still; interruption may require a new attempt | Blocked |
+| Connected device, then offline/revoked access | Disconnect; retry sign-in | Local token and saved account clear immediately; Google permission remains until removed in Google Account settings; Drive files are kept | Blocked |
+| Small window, large text, TalkBack | Navigate Drive section and all states/actions | Wrapped text, headings/status announcements, labelled 48dp controls; no colour-only state | Blocked |
+| Configured/unconfigured APK | Inspect preferences/backup rules/logs and merged manifest | Only display/email/random epoch persisted; no token/subject/ID token; no media writes, app-owned service, worker or upload surface. Google SDK's exported `RevocationBoundService` is guarded by its `REVOCATION_NOTIFICATION` permission | Blocked |

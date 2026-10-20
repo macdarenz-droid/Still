@@ -121,10 +121,10 @@ these also are not pinned immutable AssetVersions. Canonical asset integration
 remains future work. Neither URIs nor these observations may authorize backend
 jobs, deletion or verified backup.
 
-This build declares no internet or write/delete permission. There are no cloud
-transfers, AI providers, analytics, deletion, verified backup or generated
-outputs. Those remain in the product plan and are described as future work in
-Settings. Favorites and search do not infer anything about inaccessible media.
+This build uses internet access for explicit Google account sign-in and Drive
+authorization. It declares no write/delete permission and has no media uploads,
+analytics, deletion, verified backup or generated outputs. Backup and restore
+remain future work. Favorites and search do not infer anything about inaccessible media.
 Android auto-backup is off so local preference data is not silently backed up.
 
 ## Gallery controls and local catalogue (S09/S10)
@@ -408,3 +408,74 @@ as a release candidate. Large-library indexing and performance remain unmeasured
 the current foundation reads permitted metadata in the background into memory.
 
 The two-frame logo and Still name remain provisional until brand/store checks.
+
+## Google Drive account connection
+
+CP14 adds account connection in Settings only. It does not upload, read media for
+backup, restore, schedule background work, or delete files. Google sign-in and
+Drive permission are separate steps; a successful sign-in alone is not a Drive
+grant. The app requests only `https://www.googleapis.com/auth/drive.file`, explicitly
+opts out of including prior granted scopes, rejects other resource scopes in
+the result, and binds
+the authorization request to the account chosen in Google's official interface.
+There is no Google Photos integration. The Google SDK adds sign-in/credential
+components, including an exported `RevocationBoundService` guarded by Google's
+`REVOCATION_NOTIFICATION` permission. Still does not call the SDK's remote revoke
+operation, and this build adds no app-owned backup service or worker.
+
+Builds without a valid public Web OAuth client ID show that sign-in is not
+configured. No chooser or authorization request starts in that state. To configure
+an authorized development build:
+
+1. Use a Google Cloud project that you control. Enable the Google Drive API and
+   configure its OAuth consent screen, including permitted test users while the
+   project is in testing. Register the requested `drive.file` scope. Check the
+   current Google consent/publishing requirements before wider distribution.
+2. Create an **Android** OAuth client for application ID `app.still.gallery.dev`
+   (not the Kotlin namespace `app.still.gallery`) and the SHA-1 of the certificate
+   that signs the installed APK. Run `./gradlew :app:signingReport` from
+   `apps/android` to obtain the actual debug signing SHA-1. Register each separately
+   authorized package/signing certificate; a release/Play signing certificate is
+   different. This change does not create or alter release signing.
+3. Create a **Web application** OAuth client in the same project. Supply its
+   public client ID as `STILL_GOOGLE_WEB_CLIENT_ID`, either as a Gradle property
+   (`-PSTILL_GOOGLE_WEB_CLIENT_ID=YOUR_WEB_CLIENT_ID.apps.googleusercontent.com`)
+   or an environment variable for that build. An Android client ID or client
+   secret is not the server/Web client ID. Never put a client secret in the app.
+4. Build/install that configured APK on an identified Google Play services device.
+   Open Settings → Google Drive → Connect Google Drive. Choose an account, sign in
+   if needed, and complete Google's Drive permission screen. No account was
+   connected during cloud build or unit validation; this flow remains a device
+   check until observed with authorized test accounts.
+
+Still persists only account display name/email and a fresh random connection
+epoch in backup-excluded app preferences. Access tokens and the hashed subject
+binding remain memory-only; no raw Google subject or ID token is retained by the
+app. Reopening a new process shows the saved account as requiring sign-in and does
+not automatically authorize it. Google Play services manages its own account and
+token caches; this does not promise that Google's caches are memory-only.
+
+Switching uses a new explicit Google chooser and a new account-bound Drive grant.
+A cancelled/failed switch keeps an existing session unchanged unless local storage
+failed, in which case the app discards active access. Disconnect is local-only:
+it immediately clears Still's in-memory access token and saved account display /
+connection epoch. It does not call Google revocation or credential-picker clearing.
+Google permission remains until the user removes it in Google Account settings;
+files in Drive are kept. Switching and disconnecting do not upload or delete files.
+
+The connection owner is scoped to the Activity, not the gallery composition, so
+Google's expected handoff can finish while Still is locked. It never unlocks Still
+or enables a media action. App-lock behavior stays intact. Each pending result is
+bound to an in-memory attempt and one-use registry key; process restart cannot
+restore an authenticated attempt. Native chooser, interruption, account-switch,
+lock-return and local disconnect behavior remains unverified until the device checks
+are performed.
+
+Official references verified for this implementation: [Credential Manager Google
+sign-in](https://developer.android.com/identity/sign-in/credential-manager-siwg),
+[Drive authorization](https://developers.google.com/identity/authorization/android/authorize),
+[AuthorizationClient](https://developers.google.com/android/reference/com/google/android/gms/auth/api/identity/AuthorizationClient),
+[grant revocation](https://developer.android.com/identity/authorization#revoke_permissions_to_user_data_or_resources),
+and Google's Maven metadata for Credentials 1.6.0, Google ID 1.2.1 and Play services
+Auth 22.0.0. The implementation avoids deprecated GoogleSignIn APIs and the
+now-deprecated `GoogleIdTokenCredential.id` field.

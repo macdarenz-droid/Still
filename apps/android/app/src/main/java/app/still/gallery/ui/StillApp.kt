@@ -1,5 +1,8 @@
 package app.still.gallery.ui
 
+import app.still.gallery.backup.DriveConnectionSettings
+import app.still.gallery.backup.DriveConnectionHolder
+import app.still.gallery.backup.rememberDriveConnection
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
@@ -143,6 +146,7 @@ private enum class Destination(val label: Int, val mark: Mark) {
 @Composable
 fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, securitySettings: () -> Unit, canAccessGallery: () -> Boolean) {
     val context = LocalContext.current
+    val driveConnection = rememberDriveConnection()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val device = remember { DeviceMedia(context.applicationContext) }
     val actionLifetime = remember { GalleryActionLifetime(canAccessGallery) }
@@ -598,6 +602,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                 )
             } else if (destination == Destination.SETTINGS) {
                 val indexState = similarityIndex.state
+                val driveView = viewRevision
                 SettingsContent(access, ::changeAccess, ::settings, ::reload, lockState,
                     { if (actionLifetime.isActive) authenticateLock(it) },
                     { if (actionLifetime.isActive) securitySettings() }, indexState,
@@ -622,7 +627,8 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     },
                     onIndexStop = { similarityIndex.stop() },
                     onIndexRetry = { expected -> similarityIndex.retryClose(expected) },
-                    onIndexClear = { expected -> similarityIndex.clear(expected) })
+                    onIndexClear = { expected -> similarityIndex.clear(expected) },
+                    driveConnection = driveConnection, canUseDrive = { actionLifetime.isActive && destinationName == Destination.SETTINGS.name && viewRevision == driveView })
             } else if (access.level == AccessLevel.NONE) {
                 MessagePanel(R.string.access_title, R.string.access_body) {
                     Button(onClick = ::changeAccess) { Text(stringResource(R.string.choose_access)) }
@@ -904,6 +910,7 @@ private fun SettingsContent(
     indexState: SimilarityIndexUiState, canStartIndex: Boolean, canClearIndex: Boolean,
     onIndexStart: (SimilarityIndexAction) -> Unit, onIndexStop: () -> Unit,
     onIndexRetry: (SimilarityIndexAction) -> Unit, onIndexClear: (SimilarityIndexAction) -> Unit,
+    driveConnection: DriveConnectionHolder?, canUseDrive: () -> Boolean,
 ) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.development_title), style = MaterialTheme.typography.titleLarge)
@@ -919,6 +926,8 @@ private fun SettingsContent(
             onStart = onIndexStart, onStop = onIndexStop, onRetryClose = onIndexRetry, onClear = onIndexClear)
         HorizontalDivider(Modifier.padding(vertical = 12.dp))
         AppLockSettings(lockState, authenticateLock, securitySettings)
+        HorizontalDivider(Modifier.padding(vertical = 12.dp))
+        DriveConnectionSettings(driveConnection, canUseDrive)
         HorizontalDivider(Modifier.padding(vertical = 12.dp))
         Text(stringResource(R.string.privacy_title), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(R.string.privacy_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
