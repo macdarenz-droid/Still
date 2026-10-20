@@ -79,7 +79,7 @@ object BackupSourceEligibilityPolicy {
             return SyntheticSourceEligibilityDecision(blockers)
         }
         if (!valid(evidence.identity)) blockers += SyntheticEligibilityBlocker.INVALID_SOURCE_IDENTITY
-        if (!exactSelection || evidence.identity != requested?.identity)
+        if (!exactSelection || evidence.identity != requested.identity)
             blockers += SyntheticEligibilityBlocker.SOURCE_EVIDENCE_MISMATCH
         when (evidence.fidelity) {
             SyntheticFidelity.ORIGINAL_BYTES -> Unit
