@@ -1689,6 +1689,12 @@ mutations. Exact commands, hashes, logs, probes and unchanged-byte corruption
 evidence are retained under `/tmp/still-cp15-fix-evidence/` and
 `/tmp/still-cp15-reconcile-fix-evidence/`.
 
+Both roles also passed the integrated local head
+`c9f0d79b3b27a72228a5a79de759d2ae471aa7ff`. Reviewer evidence is
+`/tmp/still-cp15-reviewer-c9f0d79-local.json`; the integrated red-team gate
+confirmed the added docs/test wiring does not expand runtime scope. Hosted run
+`39462791526` on that exact head was pending at the time of this entry.
+
 On the integrated development candidate, `npm run check` passes: 173 backend
 tests, 11 discovery checks, 18 catalogue SQL probes and 7 similarity-index SQL
 probes. The focused transfer runner passes 53/53. Android `assembleDebug`, all

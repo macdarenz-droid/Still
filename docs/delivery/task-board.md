@@ -779,5 +779,6 @@ history, and mutable attested response objects. Root integrated the source and
 wired the focused suite into `npm test`. The integrated local repository and
 Android checks pass (173 Node tests, 53 focused transfer cases, 11 discovery
 checks, 18 catalogue SQL probes, 7 similarity SQL probes, 341 Android JVM tests,
-strict lint and debug APK build). Exact root integrated-head review and hosted CI
-confirmation remain pending; provider/OAuth/device transfers remain excluded.
+strict lint and debug APK build). Reviewer and red-team also passed integrated
+local head `c9f0d79b3b27a72228a5a79de759d2ae471aa7ff`; hosted run `39462791526`
+was pending at last check. Provider/OAuth/device transfers remain excluded.
