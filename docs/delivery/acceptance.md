@@ -1784,3 +1784,41 @@ OAuth Web client remains unconfigured, so native account chooser/consent, device
 layout, TalkBack and lock-return behavior remain blocked for device verification.
 No client secret, account, media, network request, upload, backup or restore
 capability was added. CP17 is accepted; PR1 remains draft and unmerged.
+
+## CP18 — Composed synthetic backup and recovery proof
+
+CP18 carries one generated primary, motion and sidecar inventory from the CP16
+snapshot through CP15's asynchronous transfer model into CP13's exact-byte
+manifest verification and restore path. This joins the previously separate
+proofs without adding a provider, product setting or Android flow.
+
+Independent review of the first integrated candidate `207edca1d868375d50576b5fb2cfdbc7957577e6`
+found that two coordinators could bind one captured component to separate
+fixture worlds and create two distinct objects. The red team reproduced the same
+path after source release and reacquisition. The fix reserves each exact
+per-component CP15 owner, source ID, version ID, source revision, component-set
+revision, component ID and component revision atomically before borrowing or
+creating a world or journal. Claims from a returned coordinator survive ambiguity,
+cancellation, completion, disposal and snapshot reacquisition. A constructor
+failure can roll back only its own provisional claim after all pre-effect cleanup
+succeeds. Regressions cover same-handle coordinators, changed inventories with
+overlapping component identities, and safe constructor rollback.
+
+The fixed integrated implementation is `6e8fa937abbefbd18c5165fca5b4feabf29e28de`.
+On this exact head, the reviewer and red team passed; frontend and SEO audits were
+clear. `npm run test:backup-pipeline` passes **22/22**. `npm run check` passes
+typecheck, **235 Node tests**, 11 discovery checks, 18 catalogue SQL probes and
+7 similarity-index SQL probes. `git diff --check` is clean. The backend mutation
+campaign detected **16/16** retained counterfactuals; the old-policy probe made
+two objects and the fixed policy denies the second before allocating its world.
+Evidence: `/tmp/still-cp18-reservation-fix-evidence/summary.json` and
+`/tmp/still-cp18-builder-evidence/summary.json`.
+
+This is process-local, generated-fixture protection only; it does not establish
+cross-process duplicate prevention, Drive transfer, provider readback, original
+media fidelity or phone recovery. Android files and settings are unchanged. The
+Google OAuth client remains unconfigured and no device was available, so chooser
+consent and device transfer remain unverified. Hosted Foundation push run
+`39481721204` and draft PR run `39481729554` both passed Android and
+contracts/discovery on the exact implementation head. CP18 is accepted as a
+synthetic proof; PR1 remains draft and unmerged.

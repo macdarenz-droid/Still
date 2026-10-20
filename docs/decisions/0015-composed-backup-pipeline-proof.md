@@ -36,6 +36,16 @@ uses CP13's manifest and restore verification path. After verification, remove
 the generated source and release the snapshot before restoring all component
 bytes and comparing them against the accepted manifest.
 
+The composition coordinator also enforces CP15 source uniqueness across
+independent fixture instances. Before borrowing bytes or creating a transfer
+world/journal, atomically reserve every exact per-component CP15 tuple (owner,
+source ID, version ID, source revision, component-set revision, component ID and
+component revision). A returned coordinator retains those claims through
+cancellation, uncertainty, completion, disposal and snapshot reacquisition. A
+constructor that fails before dispatch may roll back its own provisional claims
+only after all owned resources are cleaned. This reservation is process-local
+fixture behavior; it does not prove deduplication across process death.
+
 ## Scope and exclusions
 
 No Android source read, permission, user media, OAuth account, Google API call,
