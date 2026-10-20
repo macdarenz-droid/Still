@@ -622,8 +622,13 @@ tests,11 discovery checks,18 catalogue probes and7 similarity-index SQL probes.
 Hosted run `39426036542` failed Android lint because its newer
 `AndroidGradlePluginVersion` rule requires Gradle9.8.2; contracts/discovery passed.
 The wrapper pin was upgraded to9.8.2 with the official verified checksum, keeping
-lint enabled. The exact final source/APK reviewer and red-team passes and fresh
-hosted checks remain pending. The Android instrumentation suite for
+lint enabled. The exact
+`99e1e119da2921d66e5d74fd1918f12c7c3f30d0` source and APK passed fresh local
+reviewer and red-team checks at tracked head
+`604ade897dd324d353c14be97368da680ddb8b81`; both roles verified the local
+build, APK identities and scope. Fresh hosted checks and hosted role
+confirmations remain pending on the corrected wrapper. The Android
+instrumentation suite for
 `SimilarityIndexStore` is compiled and packaged but not executed: no device or
 emulator is attached, so actual Android SQLite behavior remains unverified. Exact
 artifacts, logs, findings and review evidence are recorded in

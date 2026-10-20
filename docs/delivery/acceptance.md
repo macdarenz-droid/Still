@@ -1503,6 +1503,11 @@ The exact candidate APK is
 instrumentation APK is `.artifacts/deliveries/still-cp12-99e1e11-androidTest.apk`,
 54,488 bytes, SHA-256
 `a75cfb3cc3953c37c9a4671db94bdc5a9f68f67dfed5733e29f4445d7a56aff0`. Both debug
-signatures and alignment verify. The new source has not yet received independent
-source/APK re-review, and fresh hosted checks/role confirmations are pending. No
-device is attached, so Android SQLite instrumentation is still not executed.
+signatures and alignment verify. The exact
+`99e1e119da2921d66e5d74fd1918f12c7c3f30d0` source and app APK passed fresh
+local independent reviewer and red-team checks at tracked head
+`604ade897dd324d353c14be97368da680ddb8b81`. Both verified the official wrapper
+checksums, local test results, app/test APK identities and development-only scope.
+Fresh hosted checks and hosted role confirmations are pending on the corrected
+wrapper. No device is attached, so Android SQLite instrumentation is still not
+executed.
