@@ -704,3 +704,14 @@ transfer recovery, deletion and free-space actions remain later, separately gate
 work.
 This proof does not authorize source deletion or claim original fidelity, provider
 recovery, cross-process recovery, phone durability or new-device restore.
+
+CP14 implementation is integrated at `565a68dc17759ee66c274001c81bea03bcfc7402`
+on the existing draft branch/PR1; it is not merged. Local `assembleDebug`, all 341
+Android JVM tests, and strict lint pass. Push run `39453758006` and draft PR run
+`39453764889` pass both Android and contracts/discovery jobs. The independent
+reviewer and red team passed this exact commit and local APK; see
+`docs/delivery/acceptance.md` for findings, rechecks, artifact hash and evidence.
+OAuth client setup and physical-device Google chooser/consent testing remain open;
+the default build reports setup required. Disconnect is local-only and states that
+the Google account-level grant remains until the owner removes it in Google Account
+settings. No media is uploaded, restored or removed.

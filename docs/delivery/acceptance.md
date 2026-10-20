@@ -1578,3 +1578,75 @@ remains the latest local build; no device/emulator is attached. Final integrated
 head checks and hosted status are recorded in the ignored CP13 validation artifact
 and draft PR1. The branch remains development-only; no merge, release signing or
 publication is authorized.
+
+## CP14 — User-selected Google Drive account connection
+
+CP14 implements the Android Settings flow to choose/sign in to a Google account,
+grant Drive `drive.file`, display the selected account, switch accounts and
+disconnect locally. It does not upload, restore, create Drive files, schedule
+work, read media for backup or delete files. The connected session token stays in
+memory; only account display/email and a fresh random connection epoch are saved,
+and a new process requires sign-in. OAuth is configuration-gated: without the
+public Web client ID the app reports setup required and does not launch sign-in.
+Disconnect clears local Still state; Google's account-level grant remains until
+the user removes it in Google Account settings.
+
+Exact integrated commit: `565a68dc17759ee66c274001c81bea03bcfc7402` on
+`build/still-foundation`, based on current `origin/main` `b31a7abd54c382bdc3dbf4a4efa00d14f30cdfca`.
+It adds four Android account-connection source files and two focused JVM test
+files, Settings/build/manifest/string wiring, Android OAuth/device documentation,
+ADR0012 and CP14 task-board scope. Prior Android tests remain unchanged. The merged
+manifest adds INTERNET and Google's sign-in/credential components; the SDK's
+exported `RevocationBoundService` is guarded by Google's
+`REVOCATION_NOTIFICATION` permission. Still does not invoke remote revoke and adds
+no app-owned backup service or worker. Android auto-backup remains disabled.
+
+The integrated local command
+`JAVA_HOME=/workspace/still-jdk ANDROID_HOME=/workspace/android-sdk ANDROID_SDK_ROOT=/workspace/android-sdk PATH=/workspace/still-jdk/bin:$PATH apps/android/gradlew -p apps/android --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --max-workers=4`
+passes. XML reports 341 JVM tests across 38 suites, zero failures/errors/skips;
+assembleDebug and strict lint pass, with one existing informational lint hint.
+The debug APK SHA-256 is
+`0e740c76441c0db0b854efd12778d1b83eec6eb3a2a992f0596082a45d9ba488`.
+Separate evidence at the frozen source patch
+`eb4b192b8af9e0ea2994a0f51b900b49c2eaeff50918d291134153057bb18a1a` includes the
+exact command log at `/tmp/still-cp14-evidence/v6/full.log`, XML, and a real compiled
+Google SDK request-builder probe: only `drive.file`, previous grants excluded;
+its opt-out=false counterfactual fails. The broad-Drive policy counterfactual also
+fails. Local integrated artifact/manifest/DEX audit is recorded in
+`/tmp/still-cp14-red-team-local.json` and `/tmp/still-cp14-reviewer-v6-source.json`.
+
+The source review first found a non-cancellable remote-revocation race: a pending
+revoke could complete after reconnect and invalidate the new grant. The fix is to
+make Disconnect local-only and state that Google permission remains. Review also
+found the old README's no-internet claim contradicted CP14's manifest; it now
+describes the sign-in network use. Red team found that Google authorization
+included prior grants by default; the request now opts out and returned resource
+scopes are allowlisted, with a broad-scope regression and SDK builder probe. Strict
+lint also caught a missing Credential Manager exception, a ViewModel context
+field, and a preference KTX false-success risk; the fixes preserve global strict
+lint and checked preference-commit failure. A final regression keeps an
+unconfigured app unavailable when clearing old settings fails.
+
+Independent reviewer: PASS on frozen source v6 and exact integrated commit
+`565a68dc17759ee66c274001c81bea03bcfc7402`; evidence
+`/tmp/still-cp14-reviewer-v6-source.json`. Independent red team: PASS on frozen
+source and the same integrated commit/local APK; evidence
+`/tmp/still-cp14-red-team-v6-source.json` and
+`/tmp/still-cp14-red-team-local.json`. Both confirmed prior tests are intact,
+scope/revoke findings are resolved, and no app-owned upload or backup service is
+present.
+
+Hosted checks pass on source commit `565a68dc17759ee66c274001c81bea03bcfc7402`:
+push run [`39453758006`](https://github.com/macdarenz-droid/Still/actions/runs/39453758006)
+and draft PR run [`39453764889`](https://github.com/macdarenz-droid/Still/actions/runs/39453764889),
+with Android and contracts/discovery passing in both. PR1 remains open and draft,
+unmerged.
+No Google OAuth client is configured, account was connected, or physical Android
+device exercised. Thus the native chooser, actual consent, account switching,
+lock/rotation return and live disconnect behavior remain unverified. To enable the
+flow, configure the Android package `app.still.gallery.dev`, its installed APK's
+signing SHA-1 `4C:D6:B4:F7:0B:A5:B9:D6:68:69:A3:69:5E:2E:2F:5C:17:9D:64:C0`,
+Drive API/consent and a Web OAuth client ID using the instructions in
+`apps/android/README.md`. Real backup/restore, automatic backup and remote
+permission revocation remain outside CP14; no release, main merge or publication
+is authorized by this acceptance record.

@@ -437,6 +437,9 @@ an authorized development build:
    `apps/android` to obtain the actual debug signing SHA-1. Register each separately
    authorized package/signing certificate; a release/Play signing certificate is
    different. This change does not create or alter release signing.
+   The debug keystore used for the checked local APK reports SHA-1
+   `4C:D6:B4:F7:0B:A5:B9:D6:68:69:A3:69:5E:2E:2F:5C:17:9D:64:C0`; another build
+   machine or keystore may report a different value.
 3. Create a **Web application** OAuth client in the same project. Supply its
    public client ID as `STILL_GOOGLE_WEB_CLIENT_ID`, either as a Gradle property
    (`-PSTILL_GOOGLE_WEB_CLIENT_ID=YOUR_WEB_CLIENT_ID.apps.googleusercontent.com`)
