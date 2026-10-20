@@ -1755,3 +1755,32 @@ Integrated reviewer and red-team both passed exact head
 that head in both push run `39470020427` and pull-request run `39470025631`, each
 including Android and contracts/discovery jobs. CP16 is accepted; PR1 remains
 draft and unmerged.
+
+## CP17 — Google Drive build setup help
+
+The unavailable Google Drive connection state now offers a scrollable setup-help
+dialog. It explains the Google Cloud/Drive API and consent requirements, the
+`drive.file` scope, the Android application ID and installed APK signing SHA-1,
+the same-project Web OAuth client, `STILL_GOOGLE_WEB_CLIENT_ID`, and the need to
+rebuild and install. Settings still cannot configure an installed APK. Connect
+remains disabled without valid build configuration; the dialog does not start
+authentication or change connection state. It states that this connects to Drive,
+not Google Photos, and that backup and restore are not available yet.
+
+Implementation head `80a32cc0f47fada0f578f59c46b37c4b29b520ae` passed independent
+reviewer and red-team checks; frontend and SEO audits were clear. The reviewer
+reran `:app:testDebugUnitTest` on this exact head: **341 tests across 38 suites,
+zero failures, errors, or skips**. The local Android command
+`./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --no-daemon`
+completed successfully on JDK 21 / Android SDK 37; strict lint passed. Debug APK
+SHA-256:
+`7d6b930aa2bf4f37da3d6e7eef772fc5dce1bd14ec6330d4048b4544fb5aa08f`.
+Evidence: `/tmp/still-cp17-setup-help-evidence/summary.json`.
+
+Hosted Foundation checks passed on the exact implementation head in push run
+`39474282729` and pull-request run `39474292048`; both Android and
+contracts/discovery jobs succeeded. No Android device was attached and the
+OAuth Web client remains unconfigured, so native account chooser/consent, device
+layout, TalkBack and lock-return behavior remain blocked for device verification.
+No client secret, account, media, network request, upload, backup or restore
+capability was added. CP17 is accepted; PR1 remains draft and unmerged.
