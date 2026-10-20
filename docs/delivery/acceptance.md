@@ -1969,12 +1969,19 @@ query filter caused three query-policy assertions to fail. Evidence is retained
 under `/tmp/still-cp22-builder-evidence/` and
 `/tmp/still-s82-builder-evidence/`.
 
-Frontend, SEO, independent reviewer and red-team gates pass exact head
+Frontend, SEO, independent reviewer and red-team gates pass integrated head
+`a330fdcf733045be5ea1f8b6d59d72a118d76814`; the implementation/task-board
+candidate reviewed by all four gates was
 `8dbba04711abbde69fdaa3b2208d178790e97252`. The reviewer-confirmed pending-row
-visibility issue is addressed by S82. No phone or emulator was attached; the
-instrumentation APK was built but not run. No MediaStore row, permission grant,
-user photo, Google account, network request, transfer, backup, or restore was
-used. Host tests establish query-string construction, not a device provider's
+visibility issue is addressed by S82. Hosted push run
+[39501167832](https://github.com/macdarenz-droid/Still/actions/runs/39501167832)
+and pull-request run
+[39501173097](https://github.com/macdarenz-droid/Still/actions/runs/39501173097)
+both pass on integrated head `a330fdcf733045be5ea1f8b6d59d72a118d76814`,
+including Android and contracts/discovery jobs. No phone or emulator was
+attached; the instrumentation APK was built but not run. No MediaStore row,
+permission grant, user photo, Google account, network request, transfer, backup,
+or restore was used. Host tests establish query-string construction, not a device provider's
 behavior. This probe does not establish third-party original fidelity,
 complete motion/sidecar inventory, source stability, backup eligibility, or
 restore. PR #1 remains draft and unmerged.
