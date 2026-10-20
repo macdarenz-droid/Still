@@ -20,7 +20,7 @@ The SDK manager's platform package is named `platforms;android-37.0`.
 
 The wrapper verifies its Gradle distribution against the official SHA-256 recorded
 in `gradle/wrapper/gradle-wrapper.properties`.
-The Gradle 9.8.1 wrapper JAR's official SHA-256 is
+The Gradle 9.8.2 wrapper JAR's official SHA-256 is
 `3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98`.
 The debug APK is `app/build/outputs/apk/debug/app-debug.apk`. Standard local debug
 signing is used; no production signing identity or release distribution is set up.
