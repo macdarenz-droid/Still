@@ -10,8 +10,9 @@ CREATE TABLE transfer_proof_meta (
 ) STRICT;
 INSERT INTO transfer_proof_meta VALUES(1,'still-synthetic-async-transfer',1,0,0,0,0);
 CREATE TABLE transfer_proof_attempts (
-  owner_id TEXT NOT NULL, attempt_id TEXT NOT NULL, revision INTEGER NOT NULL CHECK(revision>0),
-  record_json TEXT NOT NULL, PRIMARY KEY(owner_id,attempt_id)
+  owner_id TEXT NOT NULL, attempt_id TEXT NOT NULL, source_key TEXT NOT NULL,
+  revision INTEGER NOT NULL CHECK(revision>0), record_json TEXT NOT NULL,
+  PRIMARY KEY(owner_id,attempt_id), UNIQUE(owner_id,source_key)
 ) STRICT;
 CREATE TABLE transfer_proof_events (
   owner_id TEXT NOT NULL, attempt_id TEXT NOT NULL, revision INTEGER NOT NULL CHECK(revision>0),

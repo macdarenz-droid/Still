@@ -338,3 +338,120 @@ test("S54 reopen binds dispatched range and lease to original command despite ma
     assert.deepEqual(transferJournalBytesForTest(f.file), before);
   }
 });
+
+test("S54 a new intent or account epoch cannot replace the retained source attempt", async t => {
+  const f = fixture(t), first = await f.complete(f.create(), "create", 0, "applied", "unknown");
+  assert.equal(first.attempt.state, "uncertain"); assert.equal(first.attempt.object, null);
+  fails(() => f.create(f.ledger, "replacement_key"), "transfer_source_already_tracked");
+  f.ledger.close(); const reopened = f.open();
+  fails(() => f.create(reopened, "replacement_after_reopen"), "transfer_source_already_tracked");
+  f.world.reauthorize(OWNER); const rebound = f.world.rebindForTest(OWNER, f.binding);
+  assert.notEqual(rebound.connectionEpoch, f.binding.connectionEpoch);
+  assert.notEqual(rebound.destinationId, f.binding.destinationId);
+  assert.deepEqual(rebound.source, f.binding.source); assert.equal(f.world.reason(OWNER, rebound), null);
+  fails(() => reopened.create(OWNER, { idempotencyKey: "replacement_new_epoch", binding: rebound }), "transfer_source_already_tracked");
+  f.world.reveal(first.attempt.pending!.requestId);
+  let original = reopened.get(OWNER, first.attempt.id);
+  original = reopened.reconcile(OWNER, original.id, f.command(original)).attempt;
+  assert.equal(original.state, "fenced"); assert.ok(original.lastObservation!.object);
+  fails(() => reopened.create(OWNER, { idempotencyKey: "replacement_known_object", binding: rebound }), "transfer_source_already_tracked");
+  assert.deepEqual(f.world.countsForTest(), { requests: 1, objects: 1 });
+  const other = f.world.generate("another_owner", 30);
+  assert.equal(reopened.create("another_owner", { idempotencyKey: "independent_owner", binding: other }).attempt.state, "ready");
+});
+
+test("S54 settled not-applied and pre-dispatch cancellation retain the original source intent", async t => {
+  const f = fixture(t), initial = f.create();
+  fails(() => f.create(f.ledger, "replacement_before_dispatch"), "transfer_source_already_tracked");
+  const noChange = await f.complete(initial, "create", 0, "not_applied");
+  fails(() => f.create(f.ledger, "replacement_no_change"), "transfer_source_already_tracked");
+  const retry = await f.complete(noChange.attempt, "create");
+  assert.equal(retry.issued.attempt.pending!.operationId, noChange.issued.attempt.pending!.operationId);
+  assert.deepEqual(f.world.countsForTest(), { requests: 2, objects: 1 });
+  fails(() => f.create(f.ledger, "replacement_after_create"), "transfer_source_already_tracked");
+  const g = fixture(t), cancelled = g.ledger.cancel(OWNER, g.create().id, { idempotencyKey: "cancel_before_dispatch", expectedRevision: 1 }).attempt;
+  assert.equal(cancelled.state, "cancelled");
+  fails(() => g.create(g.ledger, "replacement_cancelled"), "transfer_source_already_tracked");
+  assert.deepEqual(g.world.countsForTest(), { requests: 0, objects: 0 });
+});
+
+test("S54 durable source uniqueness and source-key binding fail closed without database repair", t => {
+  const f = fixture(t), record = f.create(); f.ledger.close();
+  inspectTransferJournalForTest(f.file, db => {
+    assert.throws(() => db.exec("INSERT INTO transfer_proof_attempts SELECT owner_id,'duplicate_attempt',source_key,revision,record_json FROM transfer_proof_attempts"), /UNIQUE constraint failed/);
+    db.prepare("UPDATE transfer_proof_attempts SET source_key=? WHERE attempt_id=?").run("unrelated_source_key", record.id);
+  });
+  const before = transferJournalBytesForTest(f.file);
+  fails(() => f.open(), "transfer_journal_invalid_retain_for_investigation");
+  assert.deepEqual(transferJournalBytesForTest(f.file), before);
+});
+
+test("S54 dispatch cannot introduce a never-issued observation through matching row and event corruption", async t => {
+  const f = fixture(t), initial = await f.object(), issued = f.dispatch(initial, "append", 10); f.ledger.close();
+  const changed = structuredClone(issued.attempt);
+  changed.lastObservation = { requestId: "never_issued", outcome: "applied", offset: 30, object: { objectId: "never_created", sessionId: "never_session", objectRevision: "never_revision" }, finalized: true };
+  inspectTransferJournalForTest(f.file, db => {
+    const text = canonical(changed);
+    db.prepare("UPDATE transfer_proof_attempts SET record_json=? WHERE attempt_id=?").run(text, changed.id);
+    db.prepare("UPDATE transfer_proof_events SET record_json=? WHERE attempt_id=? AND revision=?").run(text, changed.id, changed.revision);
+  });
+  const before = transferJournalBytesForTest(f.file);
+  fails(() => f.open(), "transfer_journal_invalid_retain_for_investigation");
+  assert.deepEqual(transferJournalBytesForTest(f.file), before);
+  assert.deepEqual(f.world.countsForTest(), { requests: 1, objects: 1 });
+});
+
+test("S54 fence history cannot regress expiry or append an observation with no state change", t => {
+  for (const change of ["clear_expiry", "no_change", "erase_stop"] as const) {
+    const f = fixture(t), record = f.create(), issued = f.dispatch(record, "create");
+    f.clock.at += 2000; let expired = f.ledger.get(OWNER, record.id);
+    assert.equal(expired.leaseExpired, true);
+    if (change === "erase_stop") expired = f.ledger.cancel(OWNER, record.id, f.command(expired)).attempt;
+    f.ledger.close(); const changed = structuredClone(expired); changed.revision++;
+    if (change === "clear_expiry") changed.leaseExpired = false;
+    if (change === "erase_stop") changed.stopRequested = false;
+    inspectTransferJournalForTest(f.file, db => {
+      db.prepare("UPDATE transfer_proof_attempts SET revision=?,record_json=? WHERE attempt_id=?").run(changed.revision, canonical(changed), changed.id);
+      db.prepare("INSERT INTO transfer_proof_events VALUES(?,?,?,'fence',NULL,?)").run(OWNER, changed.id, changed.revision, canonical(changed));
+      db.exec("UPDATE transfer_proof_meta SET event_count=event_count+1");
+    });
+    const before = transferJournalBytesForTest(f.file);
+    fails(() => f.open(), "transfer_journal_invalid_retain_for_investigation");
+    assert.deepEqual(transferJournalBytesForTest(f.file), before);
+    assert.equal(issued.attempt.pending!.requestId, changed.pending!.requestId);
+  }
+});
+
+test("S54 an attested in-flight status cannot swap root accessors into a forged applied receipt", async t => {
+  const f = fixture(t), initial = f.create(), issued = f.dispatch(initial, "create"), waiting = f.world.launch(issued.dispatch!);
+  const status = f.world.status(OWNER, initial.id, f.binding, issued.attempt.pending!);
+  const forged = { outcome: "applied", settled: true, offset: 0, object: { objectId: "forged_object", sessionId: "forged_session", objectRevision: "forged_revision" } };
+  let getterReads = 0;
+  for (const key of Object.keys(forged) as (keyof typeof forged)[]) {
+    const original = status[key]; let reads = 0;
+    try { Object.defineProperty(status, key, { enumerable: true, configurable: true, get() { getterReads++; return ++reads === 1 ? original : forged[key]; } }); } catch (error) { assert.ok(error instanceof TypeError); }
+  }
+  const observed = f.ledger.acknowledge(OWNER, initial.id, f.command(issued.attempt), status).attempt;
+  assert.equal(observed.state, "uncertain"); assert.ok(observed.pending); assert.equal(observed.object, null);
+  assert.equal(getterReads, 0); assert.ok(Object.isFrozen(status));
+  assert.deepEqual(f.world.countsForTest(), { requests: 1, objects: 0 });
+  f.world.settle(issued.attempt.pending!.requestId, "applied"); await waiting;
+  const settled = f.ledger.reconcile(OWNER, initial.id, f.command(observed)).attempt;
+  assert.equal(settled.state, "ready"); assert.notEqual(settled.object!.objectId, "forged_object");
+});
+
+test("S54 attested nested binding and object data remain immutable through authority and parsing", async t => {
+  const f = fixture(t), initial = await f.object(), issued = f.dispatch(initial, "append", 10), waiting = f.world.launch(issued.dispatch!);
+  f.world.settle(issued.attempt.pending!.requestId, "applied"); const status = await waiting;
+  const fields: [object, string][] = [[status.binding, "connectionEpoch"], [status.binding.source, "versionId"], [status.binding.source, "componentSetRevision"], [status.before!, "sessionId"], [status.object!, "sessionId"], [status.object!, "objectRevision"]];
+  let getterReads = 0;
+  for (const [object, key] of fields) {
+    assert.equal(Reflect.set(object, key, "forged_identity"), false);
+    assert.throws(() => Object.defineProperty(object, key, { enumerable: true, configurable: true, get() { getterReads++; return "forged_identity"; } }), TypeError);
+    assert.ok(Object.isFrozen(object));
+  }
+  assert.equal(getterReads, 0);
+  const accepted = f.ledger.acknowledge(OWNER, initial.id, f.command(issued.attempt), status).attempt;
+  assert.equal(accepted.acknowledgedOffset, 10); assert.equal(accepted.object!.sessionId, initial.object!.sessionId);
+  assert.equal(f.world.accepts(structuredClone(status)), false);
+});

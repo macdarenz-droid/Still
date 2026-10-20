@@ -13,6 +13,10 @@ export interface SyntheticDispatch { readonly scope: typeof TRANSFER_PROOF_SCOPE
 interface Packet { ownerId: string; attemptId: string; binding: TransferBinding; pending: TransferPending }
 const dispatches = new WeakMap<object, { world: SyntheticTransferWorld; packet: Packet; checkAdmitted: () => boolean }>();
 const attestations = new WeakMap<object, { world: SyntheticTransferWorld; fingerprint: string }>();
+function freezeOwned<T>(value: T): T {
+  if (value !== null && typeof value === "object") { for (const item of Object.values(value)) freezeOwned(item); Object.freeze(value); }
+  return value;
+}
 interface RemoteObject { identity: TransferObject; offset: number; finalized: boolean; binding: TransferBinding }
 interface Job {
   packet: Packet; outcome: "in_flight" | "applied" | "not_applied";
@@ -37,6 +41,14 @@ export class SyntheticTransferWorld {
     return binding;
   }
   reauthorize(ownerId: string): string { transferId(ownerId); const epoch = randomUUID(); this.epochs.set(ownerId, epoch); return epoch; }
+  /** Generated fixture rebinding only; a new connection/destination is not a new source. */
+  rebindForTest(ownerId: string, original: TransferBinding): TransferBinding {
+    const value = this.bindings.get(original.source.sourceId);
+    transferAssert(value?.ownerId === ownerId && same(value.binding.source, original.source) && value.binding.totalBytes === original.totalBytes, "transfer_fixture_binding_denied");
+    const epoch = this.epochs.get(ownerId); transferAssert(epoch, "transfer_fixture_binding_denied");
+    const binding = { ...structuredClone(original), connectionEpoch: epoch, destinationId: randomUUID() };
+    value.binding = structuredClone(binding); return binding;
+  }
   disconnect(ownerId: string): void { transferId(ownerId); this.epochs.set(ownerId, null); }
   changeSource(ownerId: string, binding: TransferBinding, field: keyof TransferBinding["source"]): void {
     const value = this.bindings.get(binding.source.sourceId); transferAssert(value?.ownerId === ownerId);
@@ -112,6 +124,11 @@ export class SyntheticTransferWorld {
     if (status === null || typeof status !== "object") return false;
     const proof = attestations.get(status); return proof?.world === this && proof.fingerprint === fingerprint(status);
   }
-  private attest(value: SyntheticTransferStatus): SyntheticTransferStatus { attestations.set(value, { world: this, fingerprint: fingerprint(value) }); return value; }
+  private attest(value: SyntheticTransferStatus): SyntheticTransferStatus {
+    // Own every nested field before attestation; callers cannot swap accessors
+    // between the authority check and the ledger's strict data parsing.
+    const snapshot = freezeOwned(structuredClone(value));
+    attestations.set(snapshot, { world: this, fingerprint: fingerprint(snapshot) }); return snapshot;
+  }
   countsForTest(): { requests: number; objects: number } { return { requests: this.issued, objects: this.objects.size }; }
 }

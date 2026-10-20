@@ -9,7 +9,7 @@ import {
   transferObject, transferProviderObject,
 } from "../../packages/contracts/src/backup-transfer-recovery.ts";
 import type { SyntheticTransferStatus, TransferAttempt, TransferObservation, TransferPending, TransferResult } from "../../packages/contracts/src/backup-transfer-recovery.ts";
-import { canonical, same, SyntheticTransferWorld } from "./synthetic-world.ts";
+import { canonical, fingerprint, same, SyntheticTransferWorld } from "./synthetic-world.ts";
 import type { SyntheticDispatch } from "./synthetic-world.ts";
 
 export interface TransferJournalFile { readonly scope: "generated_async_transfer_journal" }
@@ -26,8 +26,8 @@ export function transferJournalBytesForTest(value: TransferJournalFile): Uint8Ar
 export function disposeTransferJournalFile(value: TransferJournalFile): void { const file = location(value); transferAssert(file.open === 0, "transfer_journal_busy"); rmSync(file.directory, { recursive: true }); locations.delete(value); }
 export interface TransferLedgerOptions { world?: SyntheticTransferWorld; now?: () => number }
 export interface DispatchResult extends TransferResult { dispatch: SyntheticDispatch | null }
-type RecordRow = { owner_id: string; attempt_id: string; revision: number; record_json: string };
-type EventRow = RecordRow & { kind: string; operation_key: string | null };
+type RecordRow = { owner_id: string; attempt_id: string; source_key: string; revision: number; record_json: string };
+type EventRow = Omit<RecordRow, "source_key"> & { kind: string; operation_key: string | null };
 type OperationRow = { owner_id: string; operation_key: string; descriptor_json: string; attempt_id: string; result_revision: number };
 type Descriptor = { action: "create" | "dispatch" | "acknowledge" | "cancel" | "reconcile"; attemptId: string | null; command: unknown; status: SyntheticTransferStatus | null };
 const DDL = readFileSync(new URL("../../db/backup/002_transfer_attempts.sql", import.meta.url), "utf8");
@@ -104,6 +104,9 @@ export class TransferRecoveryLedger {
     return this.transaction(at => {
       const replay = this.replay(ownerId, command.idempotencyKey, descriptor); if (replay) return replay;
       transferAssert(this.authority().reason(ownerId, command.binding) === null, "transfer_authority_denied");
+      // A new key/epoch/destination is not explicit authority for a second copy.
+      // Continue the retained original attempt, including after settled no-change.
+      transferAssert(!this.db.prepare("SELECT 1 FROM transfer_proof_attempts WHERE owner_id=? AND source_key=?").get(ownerId, fingerprint(command.binding.source)), "transfer_source_already_tracked");
       ensure(Number(this.db.prepare("SELECT attempt_count FROM transfer_proof_meta").get()!.attempt_count) < 1000);
       const record: TransferAttempt = { schemaVersion: 1, scope: TRANSFER_PROOF_SCOPE, testOnly: true, productionCapability: false, ownerId: transferId(ownerId), id: randomUUID(), revision: 1, binding: command.binding, creationOperationId: randomUUID(), state: "ready", acknowledgedOffset: 0, object: null, pending: null, stopRequested: false, fenceReason: null, leaseExpired: false, lastObservation: null };
       this.append(record, "create", command.idempotencyKey, null); this.operation(ownerId, command.idempotencyKey, descriptor, record); return this.result(record, false);
@@ -213,7 +216,7 @@ export class TransferRecoveryLedger {
   }
   private append(record: TransferAttempt, kind: string, key: string | null, previous: number | null): void {
     decode(record); const text = canonical(record);
-    if (previous === null) this.db.prepare("INSERT INTO transfer_proof_attempts VALUES(?,?,?,?)").run(record.ownerId, record.id, record.revision, text);
+    if (previous === null) this.db.prepare("INSERT INTO transfer_proof_attempts VALUES(?,?,?,?,?)").run(record.ownerId, record.id, fingerprint(record.binding.source), record.revision, text);
     else ensure(this.db.prepare("UPDATE transfer_proof_attempts SET revision=?,record_json=? WHERE owner_id=? AND attempt_id=? AND revision=?").run(record.revision, text, record.ownerId, record.id, previous).changes === 1);
     this.db.prepare("INSERT INTO transfer_proof_events VALUES(?,?,?,?,?,?)").run(record.ownerId, record.id, record.revision, kind, key, text);
     this.db.prepare("UPDATE transfer_proof_meta SET event_count=event_count+1,attempt_count=attempt_count+? WHERE singleton=1").run(previous === null ? 1 : 0);
@@ -240,7 +243,7 @@ export class TransferRecoveryLedger {
     ensure(meta[0].attempt_count === rows.length && meta[0].event_count === events.length && meta[0].operation_count === operations.length && rows.length <= 1000);
     const address = (owner: string, id: string) => canonical([owner, id]), current = new Map<string, TransferAttempt>(), history = new Map<string, { event: EventRow; record: TransferAttempt }[]>();
     const opMap = new Map(operations.map(op => [address(op.owner_id, op.operation_key), op]));
-    for (const row of rows) { const record = decodeText(row.record_json); ensure(record.ownerId === row.owner_id && record.id === row.attempt_id && record.revision === row.revision); current.set(address(row.owner_id, row.attempt_id), record); }
+    for (const row of rows) { const record = decodeText(row.record_json); ensure(record.ownerId === row.owner_id && record.id === row.attempt_id && record.revision === row.revision && row.source_key === fingerprint(record.binding.source)); current.set(address(row.owner_id, row.attempt_id), record); }
     for (const event of events) {
       const record = decodeText(event.record_json), key = address(event.owner_id, event.attempt_id), entries = history.get(key) ?? [], previous = entries.at(-1)?.record;
       ensure(current.has(key) && record.ownerId === event.owner_id && record.id === event.attempt_id && record.revision === event.revision && record.revision === entries.length + 1);
@@ -248,10 +251,21 @@ export class TransferRecoveryLedger {
       else {
         ensure(same(record.binding, previous.binding) && record.creationOperationId === previous.creationOperationId && (!previous.stopRequested || record.stopRequested) && (!previous.fenceReason || previous.fenceReason === record.fenceReason) && record.acknowledgedOffset >= previous.acknowledgedOffset);
         if (previous.object) ensure(record.object && record.object.objectId === previous.object.objectId && record.object.sessionId === previous.object.sessionId);
-        if (event.kind === "dispatch") ensure(!previous.pending && previous.state === "ready" && record.pending?.intentRevision === record.revision && same(record.pending.before, previous.object) && record.acknowledgedOffset === previous.acknowledgedOffset && record.state === "in_flight");
+        if (event.kind === "dispatch") {
+          ensure(!previous.pending && previous.state === "ready" && record.pending?.intentRevision === record.revision && same(record.pending.before, previous.object));
+          const expected = clone(previous); expected.revision++; expected.pending = clone(record.pending); expected.state = "in_flight"; expected.leaseExpired = false;
+          ensure(same(expected, record));
+        }
         if (event.kind === "cancel" || event.kind === "fence") ensure(same(record.pending, previous.pending) && same(record.object, previous.object) && record.acknowledgedOffset === previous.acknowledgedOffset && same(record.lastObservation, previous.lastObservation));
         if (event.kind === "cancel") { const expected = clone(previous); expected.revision++; expected.stopRequested = true; expected.state = expected.pending ? "uncertain" : "cancelled"; ensure(same(expected, record)); }
-        if (event.kind === "fence") ensure(record.stopRequested === previous.stopRequested && (!record.leaseExpired || record.pending && Number(meta[0].high_water) >= record.pending.leaseExpiresAt));
+        if (event.kind === "fence") {
+          const expected = clone(previous); expected.revision++; expected.fenceReason = record.fenceReason;
+          ensure(!previous.leaseExpired || record.leaseExpired);
+          if (record.leaseExpired) ensure(record.pending && Number(meta[0].high_water) >= record.pending.leaseExpiresAt);
+          expected.leaseExpired = record.leaseExpired;
+          expected.state = expected.pending ? "uncertain" : expected.stopRequested ? "cancelled" : expected.fenceReason ? "fenced" : previous.state;
+          ensure(same(expected, record) && !same({ ...expected, revision: previous.revision }, previous));
+        }
         if (event.kind === "acknowledge" || event.kind === "reconcile") ensure(previous.pending && (record.pending ? same(record.pending, previous.pending) && record.acknowledgedOffset === previous.acknowledgedOffset : record.lastObservation?.requestId === previous.pending.requestId));
       }
       if (event.operation_key === null) ensure(event.kind === "fence");
