@@ -1750,5 +1750,8 @@ no Android media capture, durable staging, OAuth change, Drive API, network,
 upload/download, verification, restore, deletion, backup UI, or new production
 capability. OAuth configuration, real account chooser/consent, original-fidelity
 evidence, Android component discovery and provider transfer remain later gates.
-Exact integrated reviewer/red-team and hosted CI confirmation are required before
-CP16 is accepted; PR1 remains draft and unmerged.
+Integrated reviewer and red-team both passed exact head
+`0e070df51fb705991beb000386104605f953f1fa`. Hosted Foundation checks passed on
+that head in both push run `39470020427` and pull-request run `39470025631`, each
+including Android and contracts/discovery jobs. CP16 is accepted; PR1 remains
+draft and unmerged.
