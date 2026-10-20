@@ -19,7 +19,7 @@ data class SimilarityIndexCandidates(val sourceKeys: List<String>, val omitted: 
 
 /** Local, rebuildable descriptors only. Every operation runs off the UI thread. */
 class SimilarityIndexStore(context: Context) : SimilarityIndexStoreSession {
-    private val helper = SimilarityIndexOpenHelper(context.applicationContext)
+    private val helper = SimilarityIndexOpenHelper(context.applicationContext, checkFeatureIntegrityOnOpen = true)
     private val lock = similarityIndexProcessLock
     private var closed = false
 
@@ -223,11 +223,7 @@ class SimilarityIndexStore(context: Context) : SimilarityIndexStoreSession {
 
     override fun clear() = synchronized(lock) {
         checkOpen(); workerThread()
-        helper.writableDatabase.beginTransaction()
-        try {
-            helper.writableDatabase.delete("similarity_index_namespaces", null, null)
-            helper.writableDatabase.setTransactionSuccessful()
-        } finally { helper.writableDatabase.endTransaction() }
+        clearDerivedIndexRows(helper.writableDatabase)
     }
 
     override fun count(): Int = synchronized(lock) {
@@ -249,6 +245,36 @@ class SimilarityIndexStore(context: Context) : SimilarityIndexStoreSession {
     private fun workerThread() { check(Looper.myLooper() != Looper.getMainLooper()) { "Similarity index access must run on an IO dispatcher" } }
 }
 
+/**
+ * A deliberately narrow recovery path for the user's explicit Clear action. The
+ * helper still checks ownership, exact DDL and metadata, while this session exposes
+ * no reads or indexing operations that could use damaged descriptor rows.
+ */
+class SimilarityIndexClearStore(context: Context) : SimilarityIndexClearSession {
+    private val helper = SimilarityIndexOpenHelper(context.applicationContext, checkFeatureIntegrityOnOpen = false)
+    private var closed = false
+
+    override fun clear() = synchronized(similarityIndexProcessLock) {
+        check(!closed) { "The local similarity index clear session is closed" }
+        check(Looper.myLooper() != Looper.getMainLooper()) { "Similarity index access must run on an IO dispatcher" }
+        clearDerivedIndexRows(helper.writableDatabase)
+    }
+
+    override fun close() = synchronized(similarityIndexProcessLock) {
+        if (!closed) { closed = true; helper.close() }
+    }
+}
+
+private fun clearDerivedIndexRows(database: SQLiteDatabase) {
+    database.beginTransaction()
+    try {
+        database.delete("similarity_hash_buckets", null, null)
+        database.delete("similarity_features", null, null)
+        database.delete("similarity_index_namespaces", null, null)
+        database.setTransactionSuccessful()
+    } finally { database.endTransaction() }
+}
+
 /** Eleven disjoint blocks guarantee a shared block for every hash at Hamming distance≤10. */
 fun similarityHashBuckets(hash: Long): List<Int> {
     var shift = 0
@@ -260,7 +286,10 @@ fun similarityHashBuckets(hash: Long): List<Int> {
     }
 }
 
-private class SimilarityIndexOpenHelper(private val application: Context) : SQLiteOpenHelper(
+private class SimilarityIndexOpenHelper(
+    private val application: Context,
+    private val checkFeatureIntegrityOnOpen: Boolean,
+) : SQLiteOpenHelper(
     application, "still-similarity-index.db", null, SIMILARITY_INDEX_SCHEMA_VERSION,
     DatabaseErrorHandler { throw SQLiteDatabaseCorruptException("The similarity index is corrupt; existing data was retained") },
 ) {
@@ -300,7 +329,7 @@ private class SimilarityIndexOpenHelper(private val application: Context) : SQLi
         check(metadata == mapOf("application" to "still-local-similarity-index-v1", "schema-version" to "1")) {
             "The similarity index belongs to another application or schema"
         }
-        validateFeatureIntegrity(database)
+        if (checkFeatureIntegrityOnOpen) validateFeatureIntegrity(database)
     }
 
     /** A missing or altered retrieval bucket can hide a source while falsely claiming full coverage. */

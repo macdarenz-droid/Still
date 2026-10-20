@@ -8,6 +8,8 @@ import app.still.gallery.similarity.SimilarityFailure as AnalysisFailure
 import app.still.gallery.similarity.SimilarityIndexProgress
 import app.still.gallery.similarity.SimilarityIndexStore
 import app.still.gallery.similarity.SimilarityIndexStoreSession
+import app.still.gallery.similarity.SimilarityIndexClearSession
+import app.still.gallery.similarity.SimilarityIndexClearStore
 import app.still.gallery.similarity.SimilarityIndexRunControl
 import app.still.gallery.similarity.SimilarityLibraryIndexWork
 import app.still.gallery.similarity.SimilaritySettleResult
@@ -45,6 +47,7 @@ class SimilarityIndexCoordinator(
     private val scope: CoroutineScope,
     private val allowed: () -> Boolean,
     private val openStore: () -> SimilarityIndexStoreSession,
+    private val openClearStore: () -> SimilarityIndexClearSession,
     private val createWork: (CleanupSourceReader, SimilarityIndexStoreSession, Set<String>, () -> Unit) -> SimilarityIndexRunControl,
     private val publicationDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -57,6 +60,7 @@ class SimilarityIndexCoordinator(
         scope = scope,
         allowed = allowed,
         openStore = { SimilarityIndexStore(context.applicationContext) },
+        openClearStore = { SimilarityIndexClearStore(context.applicationContext) },
         createWork = { reader, store, favorites, checkCurrent -> SimilarityLibraryIndexWork(reader, store, favorites, checkCurrent) },
         publicationDispatcher = publicationDispatcher,
     )
@@ -213,7 +217,7 @@ class SimilarityIndexCoordinator(
         phase = SimilarityIndexPhase.CLEARING; failure = null; action = SimilarityIndexAction()
         val identity = Any().also { runIdentity = it }
         scope.launch {
-            val cleared = try { withContext(ioDispatcher) { openStore().use { it.clear() } }; true }
+            val cleared = try { withContext(ioDispatcher) { openClearStore().use { it.clear() } }; true }
                 catch (_: Exception) { false }
             withContext(publicationDispatcher) {
                 if (!disposed && runIdentity === identity) {

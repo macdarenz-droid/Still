@@ -5,6 +5,7 @@ import app.still.gallery.media.CleanupSourceSnapshot
 import app.still.gallery.media.MediaItem
 import app.still.gallery.similarity.SimilarityFeature
 import app.still.gallery.similarity.SimilarityIndexCandidates
+import app.still.gallery.similarity.SimilarityIndexClearSession
 import app.still.gallery.similarity.SimilarityIndexEntry
 import app.still.gallery.similarity.SimilarityIndexNamespace
 import app.still.gallery.similarity.SimilarityIndexProgress
@@ -33,6 +34,7 @@ class SimilarityIndexCoordinatorTest {
             scope = scope,
             allowed = { true },
             openStore = { FakeStore().also(stores::add) },
+            openClearStore = { FakeStore() },
             createWork = { _, _, _, _ -> work },
             publicationDispatcher = Dispatchers.Unconfined,
             ioDispatcher = Dispatchers.Unconfined,
@@ -67,7 +69,7 @@ class SimilarityIndexCoordinatorTest {
         val stores = mutableListOf<FakeStore>()
         val work = FakeRun()
         val coordinator = SimilarityIndexCoordinator(
-            scope, { true }, { FakeStore().also(stores::add) }, { _, _, _, _ -> work },
+            scope, { true }, { FakeStore().also(stores::add) }, { FakeStore() }, { _, _, _, _ -> work },
             Dispatchers.Unconfined, Dispatchers.Unconfined, Dispatchers.Unconfined,
         )
         try {
@@ -102,7 +104,7 @@ class SimilarityIndexCoordinatorTest {
         override suspend fun settle(): SimilaritySettleResult { settleCalls++; return SimilaritySettleResult.CLEAN }
     }
 
-    private class FakeStore : SimilarityIndexStoreSession {
+    private class FakeStore : SimilarityIndexStoreSession, SimilarityIndexClearSession {
         var closed = false
         override fun revisions(): Map<String, String> = emptyMap()
         override fun candidates(feature: SimilarityFeature, maximum: Int) = SimilarityIndexCandidates(emptyList(), false)

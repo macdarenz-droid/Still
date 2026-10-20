@@ -158,6 +158,9 @@ class SimilarityIndexStoreInstrumentedTest : InstrumentationTestCase() {
         val foreignStore = SimilarityIndexStore(target)
         assertTrue(runCatching { foreignStore.count() }.isFailure)
         runCatching { foreignStore.close() }
+        val foreignClear = SimilarityIndexClearStore(target)
+        assertTrue("Clear must refuse a foreign application ID", runCatching { foreignClear.clear() }.isFailure)
+        runCatching { foreignClear.close() }
         var inspect = SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READONLY)
         try {
             assertEquals(1234, inspect.rawQuery("PRAGMA application_id", null).use { it.moveToFirst(); it.getInt(0) })
@@ -175,6 +178,9 @@ class SimilarityIndexStoreInstrumentedTest : InstrumentationTestCase() {
         val damaged = SimilarityIndexStore(target)
         assertTrue(runCatching { damaged.count() }.isFailure)
         runCatching { damaged.close() }
+        val unknownClear = SimilarityIndexClearStore(target)
+        assertTrue("Clear must refuse unknown schema objects", runCatching { unknownClear.clear() }.isFailure)
+        runCatching { unknownClear.close() }
         inspect = SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READONLY)
         try { assertEquals("preserve", inspect.rawQuery("SELECT value FROM unrelated", null).use { it.moveToFirst(); it.getString(0) }) }
         finally { inspect.close() }
@@ -229,6 +235,41 @@ class SimilarityIndexStoreInstrumentedTest : InstrumentationTestCase() {
         try {
             assertEquals(1, inspect.rawQuery("SELECT count(*) FROM similarity_features WHERE source_key = ?", arrayOf(identity.sourceKey)).use { it.moveToFirst(); it.getInt(0) })
             assertEquals(10, inspect.rawQuery("SELECT count(*) FROM similarity_hash_buckets WHERE source_key = ?", arrayOf(identity.sourceKey)).use { it.moveToFirst(); it.getInt(0) })
+        } finally { inspect.close() }
+    }
+
+    fun testExplicitClearRecoversKnownSchemaIndexWithMalformedFeatureAndMissingBucket() = worker {
+        val store = SimilarityIndexStore(target)
+        val incarnation = store.reconcileNamespaces(listOf(similarityIndexNamespace(namespace()))).values.single()
+        val identity = requireNotNull(similarityIndexIdentity(item(), incarnation))
+        store.upsertPage(listOf(SimilarityIndexEntry(identity, feature())))
+        store.close()
+
+        val database = SQLiteDatabase.openDatabase(target.getDatabasePath(databaseName).path, null, SQLiteDatabase.OPEN_READWRITE)
+        try {
+            database.execSQL("PRAGMA ignore_check_constraints = ON")
+            database.update("similarity_features", ContentValues().apply { put("descriptor", ByteArray(135)) },
+                "source_key = ?", arrayOf(identity.sourceKey))
+            database.delete("similarity_hash_buckets", "source_key = ? AND block_number = ?",
+                arrayOf(identity.sourceKey, "10"))
+        } finally { database.close() }
+
+        val damaged = SimilarityIndexStore(target)
+        assertTrue("Normal use must fail closed on damaged feature data", runCatching { damaged.count() }.isFailure)
+        runCatching { damaged.close() }
+
+        SimilarityIndexClearStore(target).use { it.clear() }
+        val reopened = SimilarityIndexStore(target)
+        assertEquals(0, reopened.count())
+        assertTrue(reopened.revisions().isEmpty())
+        reopened.close()
+
+        val inspect = SQLiteDatabase.openDatabase(target.getDatabasePath(databaseName).path, null, SQLiteDatabase.OPEN_READONLY)
+        try {
+            assertEquals(0, inspect.rawQuery("SELECT count(*) FROM similarity_index_namespaces", null).use { it.moveToFirst(); it.getInt(0) })
+            assertEquals(0, inspect.rawQuery("SELECT count(*) FROM similarity_features", null).use { it.moveToFirst(); it.getInt(0) })
+            assertEquals(0, inspect.rawQuery("SELECT count(*) FROM similarity_hash_buckets", null).use { it.moveToFirst(); it.getInt(0) })
+            assertEquals(2, inspect.rawQuery("SELECT count(*) FROM similarity_index_meta", null).use { it.moveToFirst(); it.getInt(0) })
         } finally { inspect.close() }
     }
 

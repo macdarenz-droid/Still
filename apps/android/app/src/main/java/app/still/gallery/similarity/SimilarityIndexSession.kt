@@ -8,6 +8,11 @@ interface SimilarityIndexStoreSession : SimilarityIndexRepository, AutoCloseable
     fun clear()
 }
 
+/** Recovery-only session that can clear a known index without reading damaged descriptors. */
+interface SimilarityIndexClearSession : AutoCloseable {
+    fun clear()
+}
+
 interface SimilarityIndexRunControl {
     fun invalidate()
     suspend fun run(
