@@ -974,6 +974,23 @@ No official/provider/device behavior is measured by host JVM tests.
 | S80 Boundary audit | frontend and seo; read only | No app-visible control/status, production caller, user URI input, media byte logging, backup eligibility, fidelity/completeness or stability claim | Frozen S79 source; no edits |
 | S81 CP22 independent gates | reviewer and red_team; read only | Both inspect exact candidate and exercise ownership, bounds, fixture-only admission, lost authority, failed/suppressed close, timeout, cleanup and manifest/source-set isolation. Compileable device tests are not device results | Focused/new plus all existing JVM tests, debug app + instrumentation assembly, strict lint, effective counterfactuals; root integration/acceptance and exact hosted checks |
 
+### S82 — Keep app-owned pending fixtures out of the gallery query
+
+The S81 review found that Android hides an `IS_PENDING` row from other apps but
+allows its owner to query it. Still's MediaStore query must therefore exclude
+pending rows before the debug probe can be accepted; otherwise a surviving
+generated fixture could enter the gallery after an interrupted cleanup.
+
+| Card | Owner and exact allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S82 Pending-row query filter | backend; this S82 card; `apps/android/app/src/main/java/app/still/gallery/media/DeviceMedia.kt`; new `apps/android/app/src/test/java/app/still/gallery/media/DeviceMediaQueryPolicyTest.kt` only | Every image/video query on API 29+ adds `IS_PENDING = 0`; optional `_ID = ?` uses a bound argument and is conjoined with that filter. API 26–28 behavior is unchanged. Test both API gates and combined targeted-query selection. No query returns an app-owned pending generated fixture to Still's gallery or cleanup candidate flow | S79/S81 review finding; no permission/UI/reader changes, no device/media/network execution. Run focused + full JVM, debug and instrumentation assembly, strict lint, one query-filter removal counterfactual, then repeat frontend/SEO/reviewer/red-team exact-head gates |
+
+This follow-up is narrowly scoped to the shared gallery query because the same
+query feeds browsing and exact cleanup probes. The debug-only generator remains
+the only writer of the pending fixture. The query filter does not publish or
+delete media and does not establish original fidelity, companion completeness,
+source stability, backup eligibility, or device behavior.
+
 This card authorizes code and generated host fixtures only; no physical/emulated
 device, MediaStore row operation, user photo, account, provider request or network
 is used in this implementation session. The only Android call surface generates
