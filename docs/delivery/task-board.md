@@ -1037,3 +1037,57 @@ is declared only in debug, with no application prompt or release declaration.
 Revert these debug/test files to remove the probe. Encrypted durable recovery,
 real-source completeness, Drive transport/verification, manifest/restore, automatic
 work, deletion and free-space behavior remain later separately scoped gates.
+
+
+## CP23 — Host-only selected-source eligibility policy
+
+Implement only the smallest pure decision model from ADR0018 before any Android
+acquisition adapter. CP22's generated original-request probe does not establish
+complete companion inventory or stable source versions.
+
+| Card | Owner and exact allowed implementation files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S83 Source-eligibility policy | backend; new `apps/android/app/src/main/java/app/still/gallery/backup/source/BackupSourceEligibilityPolicy.kt` and new `apps/android/app/src/test/java/app/still/gallery/backup/source/BackupSourceEligibilityPolicyTest.kt` only | Pure Kotlin, deterministic metadata-only evaluation of exactly one current selected photo. Explicit structured blockers; default denial for readable-only, original-request flag alone, unknown/unsupported fidelity, unknown/partial/unsupported inventory, missing required companions, invalid/duplicate components, stale or mismatched selection/source evidence. All-or-nothing result; no per-component eligibility or usable handle. Positive complete synthetic scenarios exercise satisfied model requirements while actual backup eligibility/capability stays false | ADR0018 and CP22; exact base `34c7791e5cff00099a59cd21d83ca263eeaf9250`, branch `build/cp23-source-eligibility-policy`, isolated worktree assigned by supervisor. No Android imports/calls, existing model/reader edits, dependency, wiring or other file |
+| S84 Boundary audit | frontend and seo; read only | Confirm the model adds no app-visible UI/status or backup wording, keeps synthetic facts distinct from Android/provider evidence, and introduces no AI wording | Frozen S83 implementation; no edits |
+| S85 Independent gates | reviewer and red_team; read only | Inspect the exact integrated implementation, test quality, all-or-nothing decisions, immutability, constant non-authority and each retained counterfactual; report findings and exact-SHA verdicts | S83 tests/build/lint and root integration; no device/media/provider work |
+
+The model uses only bounded synthetic source/selection/component descriptions:
+one photo, one to eight components, exactly one primary, every declared required
+motion/sidecar component present once with matching identity/revision evidence.
+Missing/ambiguous evidence is a blocker, not a default complete/original value.
+`setRequireOriginal` being requested is distinct from evidenced original fidelity
+and never proves companions or source stability. Exact selection and captured
+source evidence must match; empty/multiple selections, video and stale/replaced
+references are blocked as a whole. Defensively own input/output collections so a
+caller's later metadata mutation cannot change a returned decision.
+
+Keep the synthetic decision model explicit: fixtures supply hypothetical facts,
+not trusted Android/provider attestations. Report satisfied model requirements
+separately from real acquisition/backup authority. Every result, including a
+positive synthetic scenario, retains `productionCapability = false` and
+`backupEligible = false`; no caller field, copied descriptor, enum value or
+serialized decision may mint a provider proof, ticket, snapshot or capability.
+No device/provider proof is installed or accepted by this checkpoint. A future
+real adapter still requires a separately reviewed attestation boundary and the
+recorded device/provider evidence required by ADR0018.
+
+Tests must include complete primary-only and primary/motion/sidecar synthetic
+positives; readable-only and original-request-only negatives; each unknown,
+partial and unsupported fidelity/inventory case; missing/extra/duplicate or
+revision-mismatched required components; selection count/type/currentness and
+foreign-source mismatches; collection mutation after evaluation; and constant
+non-authority on every path. Retain effective isolated counterfactuals removing
+fidelity, companion-completeness and exact-selection guards, plus a capability
+constant mutant. Each must fail unchanged assertions, with exact patches/logs.
+Run focused JVM tests, all existing JVM tests, debug assembly and strict lint on
+the frozen source. Independent reviewer and separate red team inspect the exact
+integrated candidate; frontend/SEO audit confirms no app-visible capability or
+wording changed. Host tests prove policy decisions only, never Android fidelity,
+component discovery, source stability or device behavior.
+
+No Android adapter, source URI/path input or open, media bytes/hashes, filesystem
+staging, permission/manifest, UI/production caller, Drive/OAuth/account, network,
+real media, database, persistence, transfer or restore is added. No schema or
+stored/transmitted data change; rollback removes the two isolated policy/test
+files. All staging/actual-I/O ownership, device evidence, encrypted durable
+recovery, real Drive verification and restore remain later gates.
