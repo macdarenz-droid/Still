@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { setImmediate as nextTurn } from "node:timers/promises";
 import test from "node:test";
 import type { TestContext } from "node:test";
 import { SOURCE_SNAPSHOT_LIMITS as LIMITS, SourceSnapshotError } from "../../packages/contracts/src/backup-source-snapshot.ts";
@@ -232,4 +233,85 @@ test("S58 immutable inventory and snapshot descriptors reject accessor replaceme
   assert.equal(Reflect.set(description.source, "versionId", "forged"), false);
   assert.equal(Reflect.set(description.components[0], "sha256", "forged"), false);
   assert.equal(reads, 0); assert.deepEqual(f.controller.verifyContentsForTest(OWNER, handle), description);
+});
+
+test("S58 same-metadata byte mutation after an earlier component closed denies the whole snapshot", async t => {
+  for (const timing of ["later_read", "publication"] as const) {
+    const f = fixture(t), metadata = f.source.metadataFingerprintForTest(OWNER, f.ref); let changed = false;
+    const mutate = () => {
+      assert.equal(f.source.countsForTest().closes >= 1, true);
+      f.source.changeForTest(OWNER, f.ref, "silent_bytes"); changed = true;
+      assert.equal(f.source.metadataFingerprintForTest(OWNER, f.ref), metadata, "all source/component revisions, lengths and hashes deliberately unchanged");
+    };
+    f.source.hooksForTest({
+      read(event) { if (timing === "later_read" && event.componentIndex === 1 && event.readIndex === 0) mutate(); },
+      inspect(stage) { if (timing === "publication" && stage === "before_publication") mutate(); },
+    });
+    await assert.rejects(f.controller.acquire(f.begin()), code("snapshot_source_bytes_changed"));
+    assert.equal(changed, true); assert.equal(f.source.countsForTest().unsettled, 0);
+    assert.equal(f.controller.retainedBytesForTest(), 0);
+  }
+});
+
+test("S58 a deadline promptly rejects a stalled read while keeping its old worker owned", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const f = fixture(t), entered = deferred(), leave = deferred(); let outcome: string | null = null;
+  f.source.hooksForTest({ async read(event) { if (event.readIndex === 0) { entered.resolve(); await leave.promise; } } });
+  const session = f.begin(f.controller, () => true, 50);
+  const observed = f.controller.acquire(session).then(() => { outcome = "published"; }, error => { outcome = error.code; });
+  try {
+    await entered.promise; f.clock.at += 50; t.mock.timers.tick(50); await nextTurn();
+    assert.equal(outcome, "snapshot_timeout"); assert.deepEqual(f.source.countsForTest(), { opens: 1, closes: 0, unsettled: 1 });
+    const recreated = f.open(); fails(() => f.begin(recreated), "snapshot_busy");
+    await assert.rejects(recreated.settle(OWNER), code("snapshot_busy"));
+    assert.equal(recreated.retainedBytesForTest(), DEFINITIONS[0].byteLength);
+  } finally { f.source.hooksForTest({}); leave.resolve(); await nextTurn(); await observed; }
+  assert.deepEqual(f.source.countsForTest(), { opens: 1, closes: 1, unsettled: 0 });
+  assert.equal(f.controller.retainedBytesForTest(), 0);
+  const fresh = f.begin(); await assert.rejects(f.controller.acquire(session), code("snapshot_session_denied")); f.controller.cancel(fresh);
+});
+
+test("S58 a deadline promptly rejects a stalled close without authorizing early settlement", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const f = fixture(t), entered = deferred(), leave = deferred(); let outcome: string | null = null;
+  f.source.hooksForTest({ async close() { entered.resolve(); await leave.promise; } });
+  const observed = f.controller.acquire(f.begin(f.controller, () => true, 50)).then(() => { outcome = "published"; }, error => { outcome = error.code; });
+  try {
+    await entered.promise; f.clock.at += 50; t.mock.timers.tick(50); await nextTurn();
+    assert.equal(outcome, "snapshot_timeout"); assert.deepEqual(f.source.countsForTest(), { opens: 1, closes: 0, unsettled: 1 });
+    f.controller.dispose(); const recreated = f.open(); fails(() => f.begin(recreated), "snapshot_busy");
+    await assert.rejects(recreated.settle(OWNER), code("snapshot_busy"));
+  } finally { f.source.hooksForTest({}); leave.resolve(); await nextTurn(); await observed; }
+  assert.deepEqual(f.source.countsForTest(), { opens: 1, closes: 1, unsettled: 0 });
+  assert.equal(f.controller.retainedBytesForTest(), 0);
+});
+
+test("S58 a timeout followed by late close failure retains the original resource for explicit retry", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const f = fixture(t), entered = deferred(), leave = deferred(); let outcome: string | null = null;
+  f.source.hooksForTest({ async read() { entered.resolve(); await leave.promise; }, close() { throw new Error("late close remains uncertain"); } });
+  const observed = f.controller.acquire(f.begin(f.controller, () => true, 50)).then(() => { outcome = "published"; }, error => { outcome = error.code; });
+  try {
+    await entered.promise; f.clock.at += 50; t.mock.timers.tick(50); await nextTurn();
+    assert.equal(outcome, "snapshot_timeout");
+    leave.resolve(); await nextTurn(); await observed;
+    assert.deepEqual(f.source.countsForTest(), { opens: 1, closes: 0, unsettled: 1 });
+    f.controller.dispose(); const recreated = f.open(); fails(() => f.begin(recreated), "snapshot_busy");
+    await assert.rejects(recreated.settle(OWNER), code("snapshot_close_unsettled"));
+    f.source.hooksForTest({}); assert.equal(await recreated.settle(OWNER), "released");
+    assert.equal(recreated.retainedBytesForTest(), 0);
+  } finally { f.source.hooksForTest({}); leave.resolve(); await nextTurn(); await observed; }
+});
+
+test("S58 completed acquisition clears its timer instead of later withdrawing a completed handle", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const f = fixture(t), handle = await f.controller.acquire(f.begin(f.controller, () => true, 50));
+  // Advance scheduled time independently of the injected source-authority clock.
+  // A capture deadline must no longer be armed after capture has completed.
+  t.mock.timers.tick(50); await nextTurn();
+  assert.equal(f.controller.verifyContentsForTest(OWNER, handle).components.length, 3);
+  f.controller.release(OWNER, handle);
+  const next = await f.controller.acquire(f.begin(f.controller, () => true, 50));
+  t.mock.timers.tick(50); await nextTurn();
+  assert.equal(f.controller.verifyContentsForTest(OWNER, next).components.length, 3);
 });

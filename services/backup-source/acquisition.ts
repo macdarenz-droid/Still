@@ -41,6 +41,19 @@ export class SourceSnapshotAcquisition {
     const holder = this.session(session);
     snapshotAssert(!holder.started && !holder.working, "snapshot_busy");
     holder.started = true; holder.working = true;
+    // A deadline ends the caller's wait, never the actual ownership of I/O.
+    // Promise.race observes late worker rejection; capture owns all cleanup.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        holder.active = false;
+        reject(new SourceSnapshotError("snapshot_timeout"));
+      }, Math.max(0, holder.deadline - this.time()));
+    });
+    try { return await Promise.race([this.capture(holder), timeout]); }
+    finally { clearTimeout(timer); }
+  }
+  private async capture(holder: Holder): Promise<SourceSnapshotHandle> {
     try {
       this.check(holder);
       const inventory = inspectGeneratedInventory(holder.source, holder.ownerId, holder.request.source, "initial");

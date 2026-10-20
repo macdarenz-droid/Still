@@ -66,10 +66,14 @@ export class MutableSyntheticSource {
     return structuredClone(ref);
   }
   inventoryForTest(ownerId: string, ref: BackupSourceRef): CompleteGeneratedInventory { return inspectGeneratedInventory(this, ownerId, ref, "test"); }
+  metadataFingerprintForTest(ownerId: string, ref: BackupSourceRef): string {
+    const value = fixture(this, ownerId, ref);
+    return createHash("sha256").update(canonical({ source: value.source, completeness: value.completeness, components: value.components })).digest("hex");
+  }
   hooksForTest(hooks: GeneratedStreamHooks): void { state(this).hooks = { ...hooks }; }
   faultForTest(componentIndex: number, fault: "short" | "extra" | "corrupt" | "io" | "zero"): void { state(this).faults.set(backupInteger(componentIndex, 0, LIMITS.components - 1), fault); }
   completenessForTest(ownerId: string, ref: BackupSourceRef, completeness: Fixture["completeness"]): void { fixture(this, ownerId, ref).completeness = completeness; }
-  changeForTest(ownerId: string, ref: BackupSourceRef, change: "source" | "version" | "set" | "component" | "remove" | "add" | "reorder" | "bytes"): void {
+  changeForTest(ownerId: string, ref: BackupSourceRef, change: "source" | "version" | "set" | "component" | "remove" | "add" | "reorder" | "bytes" | "silent_bytes"): void {
     const value = fixture(this, ownerId, ref);
     if (change === "source") value.source.sourceRevision = randomUUID();
     else if (change === "version") value.source.versionId = randomUUID();
@@ -77,6 +81,7 @@ export class MutableSyntheticSource {
     else if (change === "component") value.components[0].componentRevision = randomUUID();
     else if (change === "remove") { const removed = value.components.pop()!; value.bytes.delete(removed.componentId); }
     else if (change === "reorder") value.components.reverse();
+    else if (change === "silent_bytes") value.bytes.get(value.components[0].componentId)![0] ^= 255;
     else if (change === "bytes") {
       const component = value.components[0], bytes = value.bytes.get(component.componentId)!;
       bytes[0] ^= 255; component.sha256 = sha256(bytes); component.componentRevision = randomUUID();
@@ -95,6 +100,12 @@ export function inspectGeneratedInventory(source: MutableSyntheticSource, ownerI
   const value = fixture(source, ownerId, ref);
   snapshotAssert(value.completeness === "complete", "snapshot_inventory_incomplete");
   snapshotAssert(value.components.length >= 1 && value.components.length <= LIMITS.components && value.components.filter(item => item.role === "primary").length === 1 && new Set(value.components.map(item => item.componentId)).size === value.components.length, "snapshot_inventory_incomplete");
+  // The generated authority can inspect the complete private byte inventory.
+  // Unchanged metadata alone is never evidence that a mutable source stayed put.
+  snapshotAssert(value.bytes.size === value.components.length && value.components.every(component => {
+    const bytes = value.bytes.get(component.componentId);
+    return bytes && bytes.length === component.byteLength && sha256(bytes) === component.sha256;
+  }), "snapshot_source_bytes_changed");
   const inventory: CompleteGeneratedInventory = freezeOwned(structuredClone({ ownerId, source: value.source, completeness: "complete" as const, components: value.components }));
   inventories.set(inventory, { source, fingerprint: canonical(inventory) }); return inventory;
 }
