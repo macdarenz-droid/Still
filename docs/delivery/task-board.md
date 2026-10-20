@@ -632,3 +632,36 @@ runtime checks remain open. Exact commands, logs, review evidence and artifact
 hashes are recorded in `docs/delivery/acceptance.md` and
 `.artifacts/cp12-validation.json`. The branch remains a draft; no main merge,
 production signing or publication is authorized.
+
+
+## CP13 provider-neutral backup and restore proof (Stage 2 / architecture §§10, 19.1)
+
+Continue in architecture order after CP12. Selected backup, verified restore and
+the find→review→backup→remove-local→restore journey are Stage 2 prerequisites to
+Stage 3 screenshot/search work. Existing backup policy/job contracts remain
+unconfigured; CP10 temporary readable copies and CP12 appearance descriptors do
+not prove original bytes are recoverable. ADR0011 freezes this checkpoint as an
+isolated contract and recovery-journal proof using synthetic bytes only.
+
+| Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S44 Backup identity and transfer contract | backend; new `packages/contracts/src/backup-recovery.ts`, `services/backup/`, `db/backup/001_recovery.sql`, and `tests/backup/` only | Trusted immutable-input/fidelity verifier defaults to denial; typed opaque source/version/component references; portable versioned manifest binds representation, component roles, byte lengths and SHA-256. New separate revisioned/idempotent journal distinguishes uploaded-unverified, verified, restore-verified and uncertain outcomes; current object identity/revision and reconciliation required. Test adapter accepts synthetic bytes only. No HTTP/native route, provider, account, network, real media, or production bootstrap | CP12; ADR0011 first; no edits to existing control-plane/catalogue/cleanup schema or production provider seams |
+| S45 Recovery fault evidence | backend; matching new backup tests and one new `scripts/test-backup-recovery.mjs` only | Prove exact synthetic multi-component restore when original source is absent; reopen/resume and duplicate intent; ambiguous outcome blocks blind retry; stale revision, changed source/components, wrong length/hash, missing component, collision, disk-full, close failure and concurrent revisions fail closed. Test receipts explicitly test-only; preserve existing assertions | S44 contract; temp databases/fixtures only; no user files/media |
+| S46 Interface and copy review | frontend and seo; read-only | Define later selected-photo review, destination/status, cancellation/retry, verification, restore/conflict and accessibility states; review truthful plain labels and existing discovery claims. No UI controls or implementation promise while provider remains unconfigured; no AI wording, provider, quota, free-storage, verified-backup or space-savings claims | S44 contract shape and ADR0011; no publication or edits |
+| S47 CP13 independent gates | reviewer and red_team; read only | Exact source/test review, adversarial identity/fidelity/manifest/journal/reopen/retry/corruption/concurrency probes, ensure test-only adapter cannot produce production authority, and both role verdicts on hosted checks | Root integration and full checks; provider/account/device action remains excluded |
+
+Root owns task board, ADR, package check wiring, integration and acceptance. Backend
+works on a named branch from the exact CP12 accepted development head and returns
+an isolated new-file diff; root owns any shared entry-point or scripts changes.
+No schema migration may touch existing stores. No new runtime dependency is allowed.
+No selected provider, OAuth app, credential, account, payment, cloud transfer or
+personal-photo test is included. The synthetic contract does not complete Stage 2
+backup acceptance and does not enable deletion or “Free up space.”
+
+The next user-facing backup action waits for a provider decision and authorization
+of its account/scopes/credentials; a local export probe, if later chosen, must be
+labelled as a local copy. Screenshot OCR stays a later Stage 3 design item with
+its own engine/language, source scope, sensitive-text retention, exclusions and
+correction decisions. All CP13 code changes require the repository checks, exact
+reviewer and red-team passes, and an open development-only PR; no main merge,
+production release or publication is authorized.
