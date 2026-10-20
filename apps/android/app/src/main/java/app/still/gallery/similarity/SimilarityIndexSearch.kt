@@ -67,12 +67,12 @@ fun searchSimilarityIndex(
         val queryKey = identity(query.item)?.sourceKey ?: continue
         for (chunk in usable.chunked(128)) {
             val features = store.features(currentRevisions, chunk)
-            searchedPhotos += features.keys
             for ((key, feature) in features.toSortedMap()) {
                 if (checks % 128 == 0) checkCurrent()
                 val item = currentByKey[key] ?: continue
                 if (key == queryKey) continue
                 if (checks == maximumPairChecks) { omitted = true; break@query }
+                searchedPhotos += key
                 checks++
                 val distance = similarityDistance(query.feature, feature) ?: continue
                 pairs += SimilarityPair(query.item, item, distance)

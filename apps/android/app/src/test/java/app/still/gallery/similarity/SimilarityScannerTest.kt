@@ -41,6 +41,7 @@ class SimilarityScannerTest {
         assertEquals(0, result.coverage.exactPairsOmitted)
         assertEquals(3, fixture.reader.validations)
         assertTrue(fixture.reader.probes.values.all { it == 3 })
+        assertTrue("Captured media bytes must be erased when analysis returns", buffer!!.all { it == 0.toByte() })
         fixture.assertFree()
     }
     @Test fun equalCompleteReadableBytesAreOmittedSeparatelyFromAppearanceCandidates() = runBlocking {
@@ -219,6 +220,28 @@ class SimilarityScannerTest {
             assertEquals(SimilaritySettleResult.BUSY, fixture.replacement().settle())
             assertNull(fixture.lane.tryEnter())
         } finally { release.countDown(); running.cancelAndJoin() }
+        fixture.assertFree()
+    }
+    @Test fun encodedPhotoBytesAreNotClearedUntilBlockedDecoderActuallyReturns() = runBlocking {
+        val fixture = Fixture()
+        val entered = CountDownLatch(1); val release = CountDownLatch(1)
+        var buffer: ByteArray? = null
+        fixture.decode = { bytes, _, check ->
+            buffer = bytes
+            entered.countDown()
+            check(release.await(5, TimeUnit.SECONDS))
+            check()
+            SimilarityPixelResult.Accepted(SimilarityPolicyTest.feature())
+        }
+        val running = async { fixture.scan() }
+        try {
+            assertTrue(withContext(Dispatchers.IO) { entered.await(5, TimeUnit.SECONDS) })
+            fixture.scanner.invalidate(fixture.ticket)
+            running.cancel()
+            assertFalse(running.isCompleted)
+            assertTrue(requireNotNull(buffer).any { it != 0.toByte() })
+        } finally { release.countDown(); running.cancelAndJoin() }
+        assertTrue(requireNotNull(buffer).all { it == 0.toByte() })
         fixture.assertFree()
     }
     @Test fun cancellationBeforeIoBodyAndRetryCannotPublishAStalePair() = runBlocking {

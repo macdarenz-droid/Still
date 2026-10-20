@@ -76,6 +76,7 @@ class DeviceMedia(private val context: Context) {
     suspend fun readAndIndex(access: MediaAccess, favoriteReferences: Set<String>, onLoaded: (List<MediaItem>, Map<String, String>) -> Unit): Boolean {
         val expected = scanEpoch.snapshot()
         return withContext(Dispatchers.IO) {
+            val caller = currentCoroutineContext()
             var catalogue: LocalCatalogue? = null
             var indexed = false
             try {
@@ -90,8 +91,17 @@ class DeviceMedia(private val context: Context) {
                     scan = database?.beginScan()
                 }) throw CancellationException("Library refresh was invalidated")
                 val snapshot = read(access, favoriteReferences)
-                maintainSimilarityIndex(snapshot.items, snapshot.namespaces)
-                currentCoroutineContext().ensureActive()
+                var maintenanceChecks = 0
+                val checkCurrent = {
+                    caller.ensureActive()
+                    if (!scanEpoch.commitIfCurrent(expected) { } || (++maintenanceChecks % 128 == 0 && context.mediaAccess() != access))
+                        throw CancellationException("Library refresh was invalidated")
+                }
+                checkCurrent()
+                if (context.mediaAccess() != access) throw CancellationException("Media access changed")
+                maintainSimilarityIndex(snapshot.items, snapshot.namespaces, checkCurrent)
+                checkCurrent()
+                if (context.mediaAccess() != access) throw CancellationException("Media access changed")
                 withContext(Dispatchers.Main) {
                     if (!scanEpoch.commitIfCurrent(expected) { onLoaded(snapshot.items, snapshot.legacyFavoriteMatches) }) {
                         throw CancellationException("Library refresh was invalidated")
@@ -119,19 +129,24 @@ class DeviceMedia(private val context: Context) {
     }
 
     /** Purge rebuildable visual descriptors outside the fresh authorized source/revision scope. */
-    private fun maintainSimilarityIndex(items: List<MediaItem>, namespaces: List<CatalogueNamespace>) {
+    private fun maintainSimilarityIndex(items: List<MediaItem>, namespaces: List<CatalogueNamespace>, checkCurrent: () -> Unit) {
         val available = try {
+            checkCurrent()
             val unique = cleanupUniqueSources(items).first.filterNot { it.isVideo }
             SimilarityIndexStore(context).use { store ->
-                val incarnations = store.reconcileNamespaces(namespaces.map(::similarityIndexNamespace))
+                checkCurrent()
+                val incarnations = store.reconcileNamespaces(namespaces.map(::similarityIndexNamespace), checkCurrent)
                 val rows = unique.mapNotNull { item ->
+                    checkCurrent()
                     val incarnation = incarnations[similarityIndexNamespaceKey(item.providerAuthority, item.volumeName)] ?: return@mapNotNull null
                     similarityIndexIdentity(item, incarnation)?.let { it.sourceKey to it.sourceRevision }
                 }
                 check(rows.map { it.first }.toSet().size == rows.size && rows.size <= CleanupBounds.MAX_SOURCES)
-                store.retainCurrent(rows.toMap())
+                store.retainCurrent(rows.toMap(), checkCurrent)
             }
             true
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (_: Exception) { false }
         similarityIndexMaintenanceAvailable.set(available)
     }

@@ -102,7 +102,7 @@
     <string name="similarity_index_status_stopping">Stopping. A photo read may need to finish first.</string>
     <string name="similarity_index_status_stopped">Indexing stopped. You can continue later.</string>
     <string name="similarity_index_status_complete">Index update complete.</string>
-    <string name="similarity_index_status_partial">This update did not finish. You can continue later.</string>
+    <string name="similarity_index_status_partial">Some photos were left out. You can continue any that remain or start another update later.</string>
     <string name="similarity_index_status_clearing">Clearing the local index…</string>
     <string name="similarity_index_status_failed">The local index could not be opened.</string>
     <string name="similarity_index_status_busy">Waiting for an earlier media read to finish.</string>
@@ -342,6 +342,10 @@
     <plurals name="similarity_index_skipped_unsupported">
         <item quantity="one">%d photo used an unsupported format</item>
         <item quantity="other">%d photos used an unsupported format</item>
+    </plurals>
+    <plurals name="similarity_index_skipped_identity">
+        <item quantity="one">%d photo could not be safely identified for indexing</item>
+        <item quantity="other">%d photos could not be safely identified for indexing</item>
     </plurals>
     <plurals name="similarity_index_skipped_unreadable">
         <item quantity="one">%d photo could not be read</item>

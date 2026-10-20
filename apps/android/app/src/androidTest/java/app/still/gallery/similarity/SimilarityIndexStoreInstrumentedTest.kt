@@ -193,33 +193,81 @@ class SimilarityIndexStoreInstrumentedTest : InstrumentationTestCase() {
         db.close()
 
         val reopened = SimilarityIndexStore(target)
-        assertTrue(runCatching { reopened.features(reopened.revisions(), listOf(identity.sourceKey)) }.isFailure)
-        assertEquals(1, reopened.count())
-        reopened.close()
+        assertTrue(runCatching { reopened.count() }.isFailure)
+        runCatching { reopened.close() }
+        val inspect = SQLiteDatabase.openDatabase(target.getDatabasePath(databaseName).path, null, SQLiteDatabase.OPEN_READONLY)
+        try { assertEquals(1, inspect.rawQuery("SELECT count(*) FROM similarity_features", null).use { it.moveToFirst(); it.getInt(0) }) }
+        finally { inspect.close() }
+    }
+
+    fun testMissingRequiredRetrievalBucketFailsClosedAndPreservesTheDescriptor() = worker {
+        val queryHash = 0L
+        val changedBits = listOf(0, 6, 12, 18, 24, 30, 36, 42, 48, 54)
+        val targetHash = changedBits.fold(queryHash) { hash, bit -> hash or (1L shl bit) }
+        val query = feature(queryHash)
+        val targetFeature = feature(targetHash)
+        val sharedBlocks = similarityHashBuckets(queryHash).indices.filter {
+            similarityHashBuckets(queryHash)[it] == similarityHashBuckets(targetHash)[it]
+        }
+        assertEquals(listOf(10), sharedBlocks)
+
+        val store = SimilarityIndexStore(target)
+        val incarnation = store.reconcileNamespaces(listOf(similarityIndexNamespace(namespace()))).values.single()
+        val identity = requireNotNull(similarityIndexIdentity(item(), incarnation))
+        store.upsertPage(listOf(SimilarityIndexEntry(identity, targetFeature)))
+        assertTrue(store.candidates(query, 10).sourceKeys.contains(identity.sourceKey))
+        store.close()
+
+        val database = SQLiteDatabase.openDatabase(target.getDatabasePath(databaseName).path, null, SQLiteDatabase.OPEN_READWRITE)
+        try { database.delete("similarity_hash_buckets", "source_key = ? AND block_number = ?", arrayOf(identity.sourceKey, "10")) }
+        finally { database.close() }
+
+        val damaged = SimilarityIndexStore(target)
+        assertTrue("A missing required bucket must disable the index", runCatching { damaged.candidates(query, 10) }.isFailure)
+        runCatching { damaged.close() }
+        val inspect = SQLiteDatabase.openDatabase(target.getDatabasePath(databaseName).path, null, SQLiteDatabase.OPEN_READONLY)
+        try {
+            assertEquals(1, inspect.rawQuery("SELECT count(*) FROM similarity_features WHERE source_key = ?", arrayOf(identity.sourceKey)).use { it.moveToFirst(); it.getInt(0) })
+            assertEquals(10, inspect.rawQuery("SELECT count(*) FROM similarity_hash_buckets WHERE source_key = ?", arrayOf(identity.sourceKey)).use { it.moveToFirst(); it.getInt(0) })
+        } finally { inspect.close() }
     }
 
     fun testStoredRowCapRejectsAnAdditionalSourceWithoutEvictingExistingDescriptors() = worker {
         val store = SimilarityIndexStore(target)
         val incarnation = store.reconcileNamespaces(listOf(similarityIndexNamespace(namespace()))).values.single()
         store.close()
+        val validFeature = feature(0)
+        val descriptor = SimilarityFeatureCodec.encode(validFeature)
+        val buckets = similarityHashBuckets(validFeature.perceptualHash)
         val database = SQLiteDatabase.openDatabase(target.getDatabasePath(databaseName).path, null, SQLiteDatabase.OPEN_READWRITE)
         database.beginTransaction()
         try {
-            val statement = database.compileStatement(
+            val featureInsert = database.compileStatement(
                 "INSERT INTO similarity_features(namespace_key, namespace_incarnation, source_key, source_revision, pipeline_version, perceptual_hash, descriptor) VALUES(?, ?, ?, ?, ?, ?, ?)",
             )
-            statement.use { insert ->
+            val bucketInsert = database.compileStatement(
+                "INSERT INTO similarity_hash_buckets(source_key, pipeline_version, block_number, block_value) VALUES(?, ?, ?, ?)",
+            )
+            featureInsert.use { insert -> bucketInsert.use { bucket ->
                 repeat(SIMILARITY_INDEX_MAX_ROWS) { index ->
+                    val key = index.toString(16).padStart(64, '0')
                     insert.bindString(1, similarityIndexNamespaceKey("media", "external"))
                     insert.bindString(2, incarnation)
-                    insert.bindString(3, index.toString(16).padStart(64, '0'))
+                    insert.bindString(3, key)
                     insert.bindString(4, "b".repeat(64))
                     insert.bindString(5, SimilarityBounds.PIPELINE_VERSION)
-                    insert.bindLong(6, index.toLong())
-                    insert.bindBlob(7, ByteArray(SimilarityFeatureCodec.ENCODED_BYTES))
+                    insert.bindLong(6, validFeature.perceptualHash)
+                    insert.bindBlob(7, descriptor)
                     insert.executeInsert(); insert.clearBindings()
+                    buckets.forEachIndexed { blockNumber, blockValue ->
+                        bucket.bindString(1, key)
+                        bucket.bindString(2, SimilarityBounds.PIPELINE_VERSION)
+                        bucket.bindLong(3, blockNumber.toLong())
+                        bucket.bindLong(4, blockValue.toLong())
+                        bucket.executeInsert(); bucket.clearBindings()
+                    }
                 }
-            }
+            } }
             database.setTransactionSuccessful()
         } finally { database.endTransaction(); database.close() }
 

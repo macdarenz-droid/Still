@@ -15,6 +15,7 @@ class SimilarityScanner(
     private val decoder: SimilarityFeatureDecoder = AndroidSimilarityFeatures(),
     private val ownership: SimilarityReadOwnership = similarityProcessReads,
     private val admission: CleanupReadAdmission = cleanupProcessReads,
+    private val reuseEncodedBufferAcrossScans: Boolean = false,
 ) {
     private val session = SimilaritySession()
     private var encoded: ByteArray? = null
@@ -22,11 +23,17 @@ class SimilarityScanner(
     fun beginIndexPage(selected: List<MediaItem>, checkCurrent: () -> Unit): SimilarityTicket =
         session.begin(selected, allowSingle = true, checkCurrent = checkCurrent)
     fun invalidate(ticket: SimilarityTicket) { session.invalidate(ticket) }
+    internal fun releaseEncodedBuffer() {
+        encoded?.fill(0)
+        encoded = null
+    }
     fun isCurrent(ticket: SimilarityTicket): Boolean = session.isCurrent(ticket)
     fun resolve(result: SimilarityResult, pair: SimilarityPair): List<MediaItem>? = session.resolve(result, pair)
     fun finishWithIndex(result: SimilarityResult, query: SimilarityIndexQueryResult, currentItems: List<MediaItem>): SimilarityResult =
         session.finishWithIndex(result, query, currentItems)
-    suspend fun settle(): SimilaritySettleResult = ownership.settle()
+    suspend fun settle(): SimilaritySettleResult = ownership.settle().also {
+        if (it != SimilaritySettleResult.BUSY) releaseEncodedBuffer()
+    }
 
     suspend fun scan(
         ticket: SimilarityTicket,
@@ -70,38 +77,41 @@ class SimilarityScanner(
                         coverage = coverage.copy(budgetOmitted = coverage.budgetOmitted + 1)
                     } else {
                         coverage = coverage.copy(attempted = coverage.attempted + 1)
-                        val captured = try {
-                            val input = reader.open(source)
-                            val resource = ownership.track(work, input)
-                            // Physical close uncertainty dominates a primary read error. use() would
-                            // suppress this signal under IOException and admit another provider handle.
-                            try { capture(input, readBuffer, budget, check) } finally { resource.close() }
-                        } catch (cancelled: CancellationException) { throw cancelled }
-                        catch (failure: SimilarityException) { throw failure }
-                        catch (_: java.io.IOException) { Capture.Unreadable }
-                        catch (_: RuntimeException) { Capture.Unreadable }
-                        check()
-                        when (captured) {
-                            Capture.Empty -> coverage = coverage.copy(empty = coverage.empty + 1)
-                            Capture.Oversized -> coverage = coverage.copy(oversized = coverage.oversized + 1)
-                            Capture.BudgetOmitted -> coverage = coverage.copy(budgetOmitted = coverage.budgetOmitted + 1)
-                            Capture.Unreadable -> coverage = coverage.copy(unreadable = coverage.unreadable + 1)
-                            is Capture.Complete -> {
-                                val pixels = try { decoder.decode(readBuffer, captured.count, check) }
-                                    catch (cancelled: CancellationException) { throw cancelled }
-                                    catch (failure: SimilarityException) { throw failure }
-                                    catch (_: Exception) { SimilarityPixelResult.Rejected(SimilarityPixelSkip.INVALID) }
-                                check()
-                                when (pixels) {
-                                    is SimilarityPixelResult.Accepted -> {
-                                        sources += SimilarityAnalyzedSource(source, pixels.feature, captured.sha256, captured.count.toLong())
-                                        coverage = coverage.copy(featured = coverage.featured + 1)
+                        var capturedBytes = 0
+                        try {
+                            val captured = try {
+                                val input = reader.open(source)
+                                val resource = ownership.track(work, input)
+                                // Physical close uncertainty dominates a primary read error. use() would
+                                // suppress this signal under IOException and admit another provider handle.
+                                try { capture(input, readBuffer, budget, check) { capturedBytes = it } } finally { resource.close() }
+                            } catch (cancelled: CancellationException) { throw cancelled }
+                            catch (failure: SimilarityException) { throw failure }
+                            catch (_: java.io.IOException) { Capture.Unreadable }
+                            catch (_: RuntimeException) { Capture.Unreadable }
+                            check()
+                            when (captured) {
+                                Capture.Empty -> coverage = coverage.copy(empty = coverage.empty + 1)
+                                Capture.Oversized -> coverage = coverage.copy(oversized = coverage.oversized + 1)
+                                Capture.BudgetOmitted -> coverage = coverage.copy(budgetOmitted = coverage.budgetOmitted + 1)
+                                Capture.Unreadable -> coverage = coverage.copy(unreadable = coverage.unreadable + 1)
+                                is Capture.Complete -> {
+                                    val pixels = try { decoder.decode(readBuffer, captured.count, check) }
+                                        catch (cancelled: CancellationException) { throw cancelled }
+                                        catch (failure: SimilarityException) { throw failure }
+                                        catch (_: Exception) { SimilarityPixelResult.Rejected(SimilarityPixelSkip.INVALID) }
+                                    check()
+                                    when (pixels) {
+                                        is SimilarityPixelResult.Accepted -> {
+                                            sources += SimilarityAnalyzedSource(source, pixels.feature, captured.sha256, captured.count.toLong())
+                                            coverage = coverage.copy(featured = coverage.featured + 1)
+                                        }
+                                        is SimilarityPixelResult.Rejected -> coverage = if (pixels.reason == SimilarityPixelSkip.LOW_INFORMATION)
+                                            coverage.copy(lowInformation = coverage.lowInformation + 1) else coverage.copy(unsupported = coverage.unsupported + 1)
                                     }
-                                    is SimilarityPixelResult.Rejected -> coverage = if (pixels.reason == SimilarityPixelSkip.LOW_INFORMATION)
-                                        coverage.copy(lowInformation = coverage.lowInformation + 1) else coverage.copy(unsupported = coverage.unsupported + 1)
                                 }
                             }
-                        }
+                        } finally { if (capturedBytes > 0) readBuffer.fill(0, 0, capturedBytes) }
                     }
                     if (!cleanupSameSource(source, reader.probe(source), snapshot.access.sdk >= 30)) throw CleanupSourceChangedException()
                     check()
@@ -125,6 +135,7 @@ class SimilarityScanner(
         catch (failure: SimilarityException) { session.invalidate(ticket); throw failure }
         catch (_: Exception) { session.invalidate(ticket); throw SimilarityException(SimilarityFailure.IO) }
         finally {
+            if (!reuseEncodedBufferAcrossScans) releaseEncodedBuffer()
             if (!ownership.finish(work)) {
                 session.invalidate(ticket)
                 throw SimilarityException(SimilarityFailure.CLOSE_FAILED)
@@ -140,7 +151,8 @@ class SimilarityScanner(
         data object BudgetOmitted : Capture()
         data object Unreadable : Capture()
     }
-    private fun capture(input: InputStream, encoded: ByteArray, budget: Budget, check: () -> Unit): Capture {
+    private fun capture(input: InputStream, encoded: ByteArray, budget: Budget, check: () -> Unit,
+        onBytesCaptured: (Int) -> Unit): Capture {
         val hash = MessageDigest.getInstance("SHA-256")
         var count = 0
         var stalls = 0
@@ -158,14 +170,18 @@ class SimilarityScanner(
                 return Capture.Oversized
             }
             val requested = minOf(SimilarityBounds.BUFFER_BYTES.toLong(), (encoded.size - count).toLong(), remaining).toInt()
-            val length = input.read(encoded, count, requested)
+            val offset = count
+            val length = input.read(encoded, offset, requested)
+            if (length in 1..requested) {
+                count += length
+                onBytesCaptured(count)
+            }
             check()
             if (length == -1) break
             if (length !in 0..requested) throw java.io.IOException("Invalid readable length")
             if (length == 0) { if (++stalls >= 8) throw java.io.IOException("Readable stream made no progress"); continue }
             stalls = 0
-            hash.update(encoded, count, length)
-            count += length
+            hash.update(encoded, offset, length)
             budget.admitted += length
         }
         if (count == 0) return Capture.Empty

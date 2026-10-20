@@ -91,6 +91,18 @@ class SimilarityIndexSearchTest {
         assertEquals(1, query.coverage.pairChecks)
     }
 
+    @Test fun indexedPhotoCoverageStopsAtThePairCheckBudgetInsideLoadedFeatureChunk() {
+        val first = item(24); val second = item(25)
+        val indexed = (26L..28L).map(::item)
+        val selected = listOf(analyzed(first, 0), analyzed(second, 1))
+        val query = searchSimilarityIndex(selected, listOf(first, second), listOf(first, second) + indexed,
+            FakeIndex(indexed.map { it to feature(0) }), namespaces, maximumPairChecks = 1)
+
+        assertEquals(1, query.coverage.pairChecks)
+        assertEquals(1, query.coverage.indexedPhotosSearched)
+        assertTrue(query.coverage.omittedWork)
+    }
+
     @Test fun excludesSelectedPhotosFromTheIndexEvenWhenTheirOwnReadWasSkipped() {
         val readable = item(30); val skippedSelection = item(31); val other = item(32)
         val onlyReadable = listOf(analyzed(readable, 7))

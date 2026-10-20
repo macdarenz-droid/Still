@@ -105,6 +105,21 @@ class SimilarityLibraryIndexWorkTest {
         assertEquals(listOf(1, 1), repository.committedPages)
     }
 
+    @Test fun missingStableSourceIdentityIsReportedAndPreventsAFullCompletionClaim() = runBlocking {
+        val unidentified = item(2).copy(generationAdded = null, dateAddedSeconds = 0)
+        val repository = FakeRepository()
+        val result = SimilarityLibraryIndexWork(FakeReader(listOf(item(1), unidentified)), repository,
+            emptySet(), {}, decoder).run(onSnapshot = {}, onProgress = {})
+
+        assertEquals(2, result.currentPhotos)
+        assertEquals(1, result.indexablePhotos)
+        assertEquals(1, result.identityUnavailable)
+        assertEquals(1, result.indexed)
+        assertEquals(1, result.processed)
+        assertEquals(0, result.unattempted)
+        assertFalse(result.complete)
+    }
+
     @Test fun providerScopeChangeBeforePageCommitLeavesThatPageUnindexed() = runBlocking {
         val repository = FakeRepository()
         val reader = FakeReader(listOf(item(1)), failValidation = 5)

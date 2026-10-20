@@ -83,7 +83,7 @@ fun SimilarityScreen(state: SimilarityUiState<SimilarityResult>, pairs: List<Sim
                         else if (pairs.isEmpty()) Text(stringResource(if (state.coverage.featured < 2) R.string.similarity_not_enough else R.string.similarity_no_pairs))
                         else Text(pluralStringResource(R.plurals.similarity_pairs, pairs.size, pairs.size), Modifier.semantics { heading() })
                         result.indexCoverage?.let {
-                            SimilarityIndexCoverage(it.currentAuthorizedPhotos, it.indexedCurrentPhotos, it.pairChecks, it.omittedWork)
+                            SimilarityIndexCoverage(it.toDisplayCoverage())
                         }
                         Text(stringResource(R.string.similarity_exact_scope), style = MaterialTheme.typography.bodySmall)
                         if (!canCompare) Text(stringResource(R.string.similarity_compare_wait), style = MaterialTheme.typography.bodySmall)
@@ -100,18 +100,18 @@ fun SimilarityScreen(state: SimilarityUiState<SimilarityResult>, pairs: List<Sim
 }
 
 @Composable
-private fun SimilarityIndexCoverage(currentAuthorizedPhotos: Int, indexedCurrentPhotos: Int, indexedPhotosSearched: Int, omittedWork: Boolean) {
+private fun SimilarityIndexCoverage(coverage: SimilarityIndexCoverageDisplay) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (currentAuthorizedPhotos == 0) Text(stringResource(R.string.similarity_index_coverage_no_photos), style = MaterialTheme.typography.bodySmall)
-        else if (indexedCurrentPhotos == 0) Text(stringResource(R.string.similarity_index_coverage_empty), style = MaterialTheme.typography.bodySmall)
-        else Text(pluralStringResource(R.plurals.similarity_index_current, currentAuthorizedPhotos, indexedCurrentPhotos, currentAuthorizedPhotos),
+        if (coverage.currentAuthorizedPhotos == 0) Text(stringResource(R.string.similarity_index_coverage_no_photos), style = MaterialTheme.typography.bodySmall)
+        else if (coverage.indexedCurrentPhotos == 0) Text(stringResource(R.string.similarity_index_coverage_empty), style = MaterialTheme.typography.bodySmall)
+        else Text(pluralStringResource(R.plurals.similarity_index_current, coverage.currentAuthorizedPhotos, coverage.indexedCurrentPhotos, coverage.currentAuthorizedPhotos),
             style = MaterialTheme.typography.bodySmall)
-        if (indexedCurrentPhotos < currentAuthorizedPhotos && indexedCurrentPhotos > 0) {
+        if (coverage.indexedCurrentPhotos < coverage.currentAuthorizedPhotos && coverage.indexedCurrentPhotos > 0) {
             Text(stringResource(R.string.similarity_index_coverage_incomplete), style = MaterialTheme.typography.bodySmall)
         }
-        Text(pluralStringResource(R.plurals.similarity_index_checked, indexedPhotosSearched, indexedPhotosSearched),
+        Text(pluralStringResource(R.plurals.similarity_index_checked, coverage.indexedPhotosSearched, coverage.indexedPhotosSearched),
             Modifier.semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.bodySmall)
-        if (omittedWork) Text(stringResource(R.string.similarity_index_coverage_omitted), style = MaterialTheme.typography.bodySmall)
+        if (coverage.omittedWork) Text(stringResource(R.string.similarity_index_coverage_omitted), style = MaterialTheme.typography.bodySmall)
     }
 }
 

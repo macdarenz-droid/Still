@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 data class SimilarityIndexProgress(
     val currentPhotos: Int = 0,
     val indexablePhotos: Int = 0,
+    val identityUnavailable: Int = 0,
     val alreadyIndexed: Int = 0,
     val indexed: Int = 0,
     val processed: Int = 0,
@@ -36,19 +37,19 @@ class SimilarityLibraryIndexWork(
     private val favorites: Set<String>,
     private val checkCurrent: () -> Unit,
     decoder: SimilarityFeatureDecoder = AndroidSimilarityFeatures(),
-) {
-    private val scanner = SimilarityScanner(reader, decoder)
+) : SimilarityIndexRunControl {
+    private val scanner = SimilarityScanner(reader, decoder, reuseEncodedBufferAcrossScans = true)
     private var activeTicket: SimilarityTicket? = null
     private var activeJob: Job? = null
 
-    fun invalidate() { activeTicket?.let(scanner::invalidate) }
+    override fun invalidate() { activeTicket?.let(scanner::invalidate) }
 
     private fun checkActionCurrent() {
         activeJob?.ensureActive()
         checkCurrent()
     }
 
-    suspend fun run(
+    override suspend fun run(
         onSnapshot: suspend (CleanupSourceSnapshot) -> Unit,
         onProgress: suspend (SimilarityIndexProgress) -> Unit,
     ): SimilarityIndexProgress = withContext(Dispatchers.IO) {
@@ -83,6 +84,7 @@ class SimilarityLibraryIndexWork(
         var progress = SimilarityIndexProgress(
             currentPhotos = photos.size,
             indexablePhotos = identities.size,
+            identityUnavailable = (photos.size - identities.size).coerceAtLeast(0),
             alreadyIndexed = already,
             indexed = already,
             unattempted = pending.size,
@@ -145,7 +147,8 @@ class SimilarityLibraryIndexWork(
             if (latest.budgetOmitted > 0 || progress.bytesRead >= SimilarityBounds.MAX_RUN_BYTES) break
         }
         checkActionCurrent(); reader.validateScope(snapshot)
-        progress.copy(unattempted = (pending.size - cursor).coerceAtLeast(0), complete = cursor >= pending.size)
+        progress.copy(unattempted = (pending.size - cursor).coerceAtLeast(0),
+            complete = cursor >= pending.size && progress.identityUnavailable == 0)
             .also { checkActionCurrent(); onProgress(it) }
         } catch (_: CleanupScopeLimitException) {
             throw SimilarityException(SimilarityFailure.SCOPE_LIMIT)
@@ -153,10 +156,11 @@ class SimilarityLibraryIndexWork(
             throw SimilarityException(SimilarityFailure.SOURCE_CHANGED)
         } finally {
             activeJob = null
+            scanner.releaseEncodedBuffer()
         }
     }
 
-    suspend fun settle(): SimilaritySettleResult = scanner.settle()
+    override suspend fun settle(): SimilaritySettleResult = scanner.settle()
 }
 
 object SimilarityIndexBounds {

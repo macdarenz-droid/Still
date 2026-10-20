@@ -100,9 +100,10 @@ fun SimilarityIndexSettings(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                val skipped = progress.empty + progress.unreadable + progress.oversized + progress.unsupported + progress.lowInformation
+                val skipped = progress.identityUnavailable + progress.empty + progress.unreadable + progress.oversized + progress.unsupported + progress.lowInformation
                 if (skipped > 0) {
                     val skippedDetails = listOfNotNull(
+                        progress.identityUnavailable.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.similarity_index_skipped_identity, it, it) },
                         progress.unsupported.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.similarity_index_skipped_unsupported, it, it) },
                         progress.unreadable.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.similarity_index_skipped_unreadable, it, it) },
                         progress.oversized.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.similarity_index_skipped_oversized, it, it) },

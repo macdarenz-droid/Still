@@ -18,7 +18,7 @@ data class SimilarityIndexEntry(val identity: SimilarityIndexIdentity, val featu
 data class SimilarityIndexCandidates(val sourceKeys: List<String>, val omitted: Boolean)
 
 /** Local, rebuildable descriptors only. Every operation runs off the UI thread. */
-class SimilarityIndexStore(context: Context) : SimilarityIndexRepository, AutoCloseable {
+class SimilarityIndexStore(context: Context) : SimilarityIndexStoreSession {
     private val helper = SimilarityIndexOpenHelper(context.applicationContext)
     private val lock = similarityIndexProcessLock
     private var closed = false
@@ -221,7 +221,7 @@ class SimilarityIndexStore(context: Context) : SimilarityIndexRepository, AutoCl
         output
     }
 
-    fun clear() = synchronized(lock) {
+    override fun clear() = synchronized(lock) {
         checkOpen(); workerThread()
         helper.writableDatabase.beginTransaction()
         try {
@@ -230,7 +230,7 @@ class SimilarityIndexStore(context: Context) : SimilarityIndexRepository, AutoCl
         } finally { helper.writableDatabase.endTransaction() }
     }
 
-    fun count(): Int = synchronized(lock) {
+    override fun count(): Int = synchronized(lock) {
         checkOpen(); workerThread()
         helper.readableDatabase.rawQuery("SELECT count(*) FROM similarity_features WHERE pipeline_version = ?", arrayOf(SimilarityBounds.PIPELINE_VERSION))
             .use { cursor -> check(cursor.moveToFirst()); cursor.getInt(0).also { check(it in 0..SIMILARITY_INDEX_MAX_ROWS) } }
@@ -300,6 +300,63 @@ private class SimilarityIndexOpenHelper(private val application: Context) : SQLi
         check(metadata == mapOf("application" to "still-local-similarity-index-v1", "schema-version" to "1")) {
             "The similarity index belongs to another application or schema"
         }
+        validateFeatureIntegrity(database)
+    }
+
+    /** A missing or altered retrieval bucket can hide a source while falsely claiming full coverage. */
+    private fun validateFeatureIntegrity(database: SQLiteDatabase) {
+        val count = database.rawQuery("SELECT count(*) FROM similarity_features", null).use {
+            check(it.moveToFirst()); it.getInt(0)
+        }
+        check(count in 0..SIMILARITY_INDEX_MAX_ROWS) { "The local similarity index exceeds its row bound" }
+        val foreignKeyViolation = database.rawQuery("PRAGMA foreign_key_check", null).use { it.moveToFirst() }
+        check(!foreignKeyViolation) { "The local similarity index contains broken references" }
+
+        var currentKey: String? = null
+        var expectedBuckets: List<Int> = emptyList()
+        var nextBucket = 0
+        fun finishSource() {
+            if (currentKey != null) check(nextBucket == expectedBuckets.size) {
+                "The local similarity index has incomplete retrieval buckets"
+            }
+        }
+        database.rawQuery(
+            "SELECT f.source_key, f.namespace_key, f.namespace_incarnation, f.source_revision, f.perceptual_hash, f.descriptor, n.incarnation, b.block_number, b.block_value " +
+                "FROM similarity_features f " +
+                "LEFT JOIN similarity_index_namespaces n ON n.namespace_key = f.namespace_key " +
+                "LEFT JOIN similarity_hash_buckets b ON b.source_key = f.source_key AND b.pipeline_version = f.pipeline_version " +
+                "WHERE f.pipeline_version = ? ORDER BY f.source_key, b.block_number",
+            arrayOf(SimilarityBounds.PIPELINE_VERSION),
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val key = cursor.getString(0)
+                if (key != currentKey) {
+                    finishSource()
+                    validateDigest(key)
+                    validateDigest(cursor.getString(1)); validateDigest(cursor.getString(2)); validateDigest(cursor.getString(3))
+                    check(!cursor.isNull(6) && cursor.getString(6) == cursor.getString(2)) {
+                        "The local similarity index has a stale provider namespace"
+                    }
+                    val feature = requireNotNull(SimilarityFeatureCodec.decode(cursor.getBlob(5))) {
+                        "The local similarity index contains an invalid descriptor"
+                    }
+                    check(feature.perceptualHash == cursor.getLong(4)) {
+                        "The local similarity index descriptor and hash disagree"
+                    }
+                    currentKey = key
+                    expectedBuckets = similarityHashBuckets(feature.perceptualHash)
+                    nextBucket = 0
+                }
+                if (!cursor.isNull(7)) {
+                    check(nextBucket < expectedBuckets.size && cursor.getInt(7) == nextBucket &&
+                        cursor.getInt(8) == expectedBuckets[nextBucket]) {
+                        "The local similarity index has inconsistent retrieval buckets"
+                    }
+                    nextBucket++
+                }
+            }
+            finishSource()
+        }
     }
 
     override fun onUpgrade(database: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -322,6 +379,8 @@ private class SimilarityIndexOpenHelper(private val application: Context) : SQLi
 
     private fun databasePragma(database: SQLiteDatabase, pragma: String): Int =
         database.rawQuery("PRAGMA $pragma", null).use { cursor -> check(cursor.moveToFirst()); cursor.getInt(0) }
+
+    private fun validateDigest(value: String) = check(value.length == 64 && value.all { it in '0'..'9' || it in 'a'..'f' })
 
     private fun normalizeSql(value: String): String = value.lowercase(Locale.ROOT)
         .replace(Regex("\\s+"), " ").replace(Regex("\\s*([(),])\\s*"), "$1").trim().removeSuffix(";")
