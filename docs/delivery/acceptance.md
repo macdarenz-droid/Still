@@ -1905,8 +1905,32 @@ mutations; the integrated checkout independently reran the full Android suite.
 
 The frontend and SEO audits passed the exact source commit and confirm that no
 user-facing control or backup claim was added. Independent reviewer and red-team
-gates are pending. No account, OAuth token, live Drive request, network transfer,
-user media, physical-device test, actual backup, or restore was used. CP20 does
-not prove original media fidelity, complete motion/sidecar capture, durable or
-cross-process recovery, or live Drive behavior. These remain prerequisites for
-a selected-photo backup flow. The draft PR remains unmerged.
+gates passed exact acceptance candidate
+`0bc412bd86770b4fe122d027dacdb61d491b3347`. Hosted Foundation push run
+`39494998455` and pull-request run `39495004494` both passed Android and
+contracts/discovery on that exact head. No account, OAuth token, live Drive
+request, network transfer, user media, physical-device test, actual backup, or
+restore was used. CP20 does not prove original media fidelity, complete
+motion/sidecar capture, durable or cross-process recovery, or live Drive behavior.
+These remain prerequisites for a selected-photo backup flow. The draft PR remains
+unmerged.
+
+## CP21 — Android selected-photo source eligibility and acquisition design
+
+CP21 is a design-only checkpoint. ADR0018 and the CP21 task-board section define
+the next boundary: an Android-readable media URI does not establish byte-faithful
+originals or a complete motion/sidecar inventory. Unknown or unsupported fidelity
+or components must block acquisition. The generic MediaStore reader remains
+readable-only; `setRequireOriginal`, MIME, generations and a staged hash do not
+prove complete original eligibility by themselves.
+
+The exact design candidate `5eea11435b1a13432b822db561a8d88a7ae66fa8` changed
+only ADR0018 and the task board. Frontend, SEO, independent reviewer and red-team
+audits passed that exact commit. The design proposes bounded one-photo staging,
+complete component inventory, actual EOF/close/readback verification, source
+fences and retained cleanup ownership; those are constraints for a later
+implementation, not evidence that Android source fidelity has been established.
+No implementation, permission request, media read, network request, device test,
+backup action or success claim was added. Encrypted durable recovery,
+cross-process duplicate prevention, a real Drive adapter, restore and
+configured-account/device verification remain later gates.
