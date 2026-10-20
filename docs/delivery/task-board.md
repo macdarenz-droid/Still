@@ -902,3 +902,56 @@ recovery, cross-process duplicate prevention, real Drive reconciliation and
 readback, a configured OAuth project/account, and physical-device acceptance.
 Automatic backup, restore, album backup and phone-copy removal remain out of
 scope.
+
+## CP21 — Android selected-photo source eligibility and acquisition design (Stage 2 / architecture §§7.2 and 10)
+
+CP20 is an isolated generated-byte protocol proof. Before any selected-photo
+upload, Still needs a supported Android original-fidelity and complete-component
+boundary. Current MediaStore observations and CP10 readable representations cannot
+supply it. ADR0018 proposes that boundary; this checkpoint is design-only.
+
+| Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S76 Source-eligibility design | backend; new `docs/decisions/0018-android-backup-source-eligibility.md` and this CP21 section only, isolated branch from `0bc412bd86770b4fe122d027dacdb61d491b3347` | Freeze exactly one selected photo, default-deny original/component authority, opaque handles, complete primary/companions, actual-byte acquisition/readback/fences, bounds, ownership, privacy and later gates. Distinguish proposed implementation from authorization and test proof from device evidence | Architecture §§7.2/10, CP10/CP16/CP18/CP20 boundaries; no source, media, network, device, credentials, shared-root or runtime change |
+| S77 Design boundary audit | frontend and seo; read only, no file edits | Check the proposed eligibility/unknown states and readable-vs-original distinction; no backup control, upload/restore/Backed up claim, promise of universal format support, account continuity or AI wording; no production API is introduced | Frozen S76 commit; no implementation authorization |
+| S78 CP21 independent design gates | reviewer and red_team; read only | Both inspect the exact design SHA. Challenge caller-minted fidelity/completeness, setRequireOriginal assumptions, unknown companions, same-metadata changes, partial publication, actual-close/timeout/quota and recreated-owner cleanup; confirm device-only claims stay blocked | S76 and audit; documentation checks on exact candidate. No APK/device/media/network acceptance is claimed |
+
+Only S76 documentation is assigned for edits. Root owns integration, acceptance
+records, shared files and future implementation assignments. No build task is
+authorized by these cards. Candidate future implementation paths are new
+`apps/android/app/src/main/java/app/still/gallery/backup/source/BackupSourcePolicy.kt`,
+`BackupSourceAcquisition.kt`, `BackupSourceStore.kt`, `AndroidBackupSources.kt` and
+matching new `backup/source/*Test.kt`. Names and exact ownership must be assigned
+in a separate card before edits; current media, inputs, security, manifests,
+permissions, catalogue, Drive connection and protocol files remain unchanged.
+
+The proposed later first-slice bounds are exactly one photo, one to eight required
+components with one primary, 32 MiB actual/component, 64 MiB all retained files,
+one 64 KiB streaming buffer and one shared heavy-read lane, with a 30-second caller
+deadline that never releases uncertain physical I/O. Unknown original fidelity,
+complete inventory or trustworthy source-byte revision evidence denies acquisition.
+A later supported path requires official API guarantees plus recorded device
+coverage; generic MediaStore reads remain readable-only. `setRequireOriginal`,
+MIME, generations and staged hashes alone never establish complete original
+eligibility. The full design includes motion/sidecar preservation, actual EOF and
+successful close/sync/readback, per-component and final whole-inventory fences,
+private descriptor-anchored staging, process-retained ownership and honest cleanup
+failure. No source bytes are read or staged in this design checkpoint.
+
+Design acceptance: review documentation links/scope/diff, run `git diff --check`
+and the repository's documentation/discovery guards when available, then record
+both independent exact-SHA verdicts. Production tests/builds are not new evidence
+for a docs-only proposal. Future implementation must preserve all existing tests,
+add meaningful generated-stream/real-temp-filesystem faults and retained effective
+counterfactuals, run focused JVM + all JVM + debug assembly + strict lint, and
+separately record Android API/OEM/provider/format device checks as passed, failed,
+blocked or not run. No generated-only test can satisfy original/component fidelity.
+
+Data/migration/rollback: this draft changes no runtime or data. A later real-media
+staging card must explicitly approve the temporary selected-byte category and
+retention; no data approval is inferred from design acceptance. Revert planning
+documents to roll back. Encrypted durable recovery, cross-process duplicate
+prevention, real Drive reconciliation/readback, complete portable manifests,
+configured OAuth/device consent and tested restore after source absence remain
+later gates. No backup action, automatic work, provider call, deletion, local
+removal, free-space eligibility or production capability is introduced.
