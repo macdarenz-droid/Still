@@ -1613,7 +1613,8 @@ exact command log at `/tmp/still-cp14-evidence/v6/full.log`, XML, and a real com
 Google SDK request-builder probe: only `drive.file`, previous grants excluded;
 its opt-out=false counterfactual fails. The broad-Drive policy counterfactual also
 fails. Local integrated artifact/manifest/DEX audit is recorded in
-`/tmp/still-cp14-red-team-local.json` and `/tmp/still-cp14-reviewer-v6-source.json`.
+`/tmp/still-cp14-red-team-local.json`, `/tmp/still-cp14-reviewer-v6-source.json`
+and `/tmp/still-cp14-reviewer-565a68d-local.json`.
 
 The source review first found a non-cancellable remote-revocation race: a pending
 revoke could complete after reconnect and invalidate the new grant. The fix is to
@@ -1622,14 +1623,16 @@ found the old README's no-internet claim contradicted CP14's manifest; it now
 describes the sign-in network use. Red team found that Google authorization
 included prior grants by default; the request now opts out and returned resource
 scopes are allowlisted, with a broad-scope regression and SDK builder probe. Strict
-lint also caught a missing Credential Manager exception, a ViewModel context
-field, and a preference KTX false-success risk; the fixes preserve global strict
-lint and checked preference-commit failure. A final regression keeps an
-unconfigured app unavailable when clearing old settings fails.
+lint caught a missing Credential Manager exception, a ViewModel context field,
+and a direct-editor `UseKtx` warning. The review established that KTX's edit helper
+does not expose `Editor.commit()`'s Boolean; a narrow function-local lint exception
+retains checked commit failure without weakening global strict lint. A final
+regression keeps an unconfigured app unavailable when clearing old settings fails.
 
 Independent reviewer: PASS on frozen source v6 and exact integrated commit
 `565a68dc17759ee66c274001c81bea03bcfc7402`; evidence
-`/tmp/still-cp14-reviewer-v6-source.json`. Independent red team: PASS on frozen
+`/tmp/still-cp14-reviewer-v6-source.json` and
+`/tmp/still-cp14-reviewer-565a68d-local.json`. Independent red team: PASS on frozen
 source and the same integrated commit/local APK; evidence
 `/tmp/still-cp14-red-team-v6-source.json` and
 `/tmp/still-cp14-red-team-local.json`. Both confirmed prior tests are intact,
