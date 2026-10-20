@@ -955,3 +955,67 @@ prevention, real Drive reconciliation/readback, complete portable manifests,
 configured OAuth/device consent and tested restore after source absence remain
 later gates. No backup action, automatic work, provider call, deletion, local
 removal, free-space eligibility or production capability is introduced.
+
+
+## CP22 — Debug-only generated MediaStore original-byte probe
+
+S79 is an implementation probe following CP21, not production source acquisition.
+The official `MediaStore.setRequireOriginal(Uri)` API (29+) requests original file
+contents when opened through `ContentResolver.openFileDescriptor`. Access to
+unredacted location metadata also requires `ACCESS_MEDIA_LOCATION`; this does not
+prove local availability, immutable source stability or complete companion inventory.
+See [MediaStore API](https://developer.android.com/reference/android/provider/MediaStore#setRequireOriginal(android.net.Uri))
+and [shared-media location](https://developer.android.com/training/data-storage/shared/media#media-location-permission).
+No official/provider/device behavior is measured by host JVM tests.
+
+| Card | Owner and exact allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S79 Generated original-byte probe | backend; this CP22 task-board section; new `apps/android/app/src/debug/AndroidManifest.xml`; new `apps/android/app/src/debug/java/app/still/gallery/backup/source/OriginalProbePolicy.kt`; new `apps/android/app/src/debug/java/app/still/gallery/backup/source/AndroidOriginalProbe.kt`; new `apps/android/app/src/testDebug/java/app/still/gallery/backup/source/OriginalProbePolicyTest.kt`; new `apps/android/app/src/androidTest/java/app/still/gallery/backup/source/OriginalProbeInstrumentedTest.kt` only | Debug-only generated JPEG fixture insertion/read/delete, private fixture URI, original-request PFD plus CancellationSignal and owned close, measured EOF byte count/SHA, default missing-permission denial, bounded read and caller deadline, retained uncertain ownership, no fallback or backup handle. JVM fault tests and buildable instrumentation; device runs explicitly not run without device | Exact base `37c246d4eb09fef79cf9cb5107be4b1a96ea20f1`; named isolated branch/worktree. Freeze this card before source edits. No new dependency, main/release source or manifest, runtime permission prompt, existing reader/Drive/OAuth/permissions change |
+| S80 Boundary audit | frontend and seo; read only | No app-visible control/status, production caller, user URI input, media byte logging, backup eligibility, fidelity/completeness or stability claim | Frozen S79 source; no edits |
+| S81 CP22 independent gates | reviewer and red_team; read only | Both inspect exact candidate and exercise ownership, bounds, fixture-only admission, lost authority, failed/suppressed close, timeout, cleanup and manifest/source-set isolation. Compileable device tests are not device results | Focused/new plus all existing JVM tests, debug app + instrumentation assembly, strict lint, effective counterfactuals; root integration/acceptance and exact hosted checks |
+
+This card authorizes code and generated host fixtures only; no physical/emulated
+device, MediaStore row operation, user photo, account, provider request or network
+is used in this implementation session. The only Android call surface generates
+its own small JPEG/GPS fixture internally, retains its exact inserted row privately,
+and always attempts that row's cleanup on every terminal path. It accepts no URI,
+file path, caller media bytes or arbitrary source inventory. Fixtures stay pending
+and never become gallery-visible. No broad scan/delete or orphan library sweep.
+A blocked/uncertain worker retains its fixture/descriptor and process-wide heavy
+reader lane until actual close/cleanup settles; a new controller cannot erase it.
+Cleanup failure is explicit and blocks a new run. A hard process/device failure
+can interrupt cleanup; no crash-cleanup guarantee is claimed by an unrun probe.
+
+Probe bounds: one generated primary only (no completeness claim), 32 MiB actual
+accepted read bytes, one 64 KiB buffer, at most one separately counted over-limit
+EOF-probe byte, eight consecutive zero reads before failure, and a 30-second caller
+deadline. Cancellation/timeout ends the caller outcome promptly without declaring
+physical I/O settled. No bytes are staged, decoded from library media or uploaded.
+Only sanitized fixture result facts (permission/read outcome, measured count/hash)
+may be returned; no URI, path, location values, pixel/media bytes or account data
+are rendered/logged. `productionCapability` and `backupEligible` are always false;
+source stability and component completeness are never established.
+
+Validation: focused JVM stream/close/cancel/timeout/cleanup/recreation and false
+success tests with effective removed-guard failures; all retained JVM cases; debug
+assembly and strict lint; `:app:assembleDebugAndroidTest` proves compilation only.
+On a later authorized device, install the debug and test APKs, then run the same
+instrumentation class separately with `adb shell pm grant app.still.gallery.dev
+android.permission.ACCESS_MEDIA_LOCATION` and `adb shell pm revoke
+app.still.gallery.dev android.permission.ACCESS_MEDIA_LOCATION` before launching
+`adb shell am instrument -w -e class
+app.still.gallery.backup.source.OriginalProbeInstrumentedTest
+app.still.gallery.dev.test/android.test.InstrumentationTestRunner`. Do not change
+the grant while instrumentation is running. Missing permission proves the policy
+gate only, not platform redaction. With permission, exact fixture EOF/length/SHA
+proves only that generated row on the tested API/OEM/provider. Record API29 and
+API30+ runs, grant/denial, original-open and actual-close behavior separately;
+untested combinations, third-party media, stable revisions, motion/sidecar inventory
+and original backup eligibility remain unknown. The instrumentation test must
+verify deletion before success and emit no source URI or fixture bytes.
+
+Data/migration/rollback: no production data/schema change; ACCESS_MEDIA_LOCATION
+is declared only in debug, with no application prompt or release declaration.
+Revert these debug/test files to remove the probe. Encrypted durable recovery,
+real-source completeness, Drive transport/verification, manifest/restore, automatic
+work, deletion and free-space behavior remain later separately scoped gates.
