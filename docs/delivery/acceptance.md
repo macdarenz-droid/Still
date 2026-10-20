@@ -1874,4 +1874,7 @@ device was attached; real sign-in, live endpoint behavior, TalkBack and lock-ret
 behavior remain device checks. CP19 confirms only current read access to Drive
 account metadata; it does not prove future file capacity, upload, readback,
 source fidelity or restore. The draft PR remains unmerged. Hosted Foundation
-checks on the final acceptance-document head are pending.
+push run `39489109505` and draft PR run `39489116931` both passed Android and
+contracts/discovery on the exact acceptance-document head
+`449217a97ddf7d82320e4081df8b83d1d2f57f9e`. The implementation and APK remain
+those recorded above; no source changed for this hosted-check evidence update.
