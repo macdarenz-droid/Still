@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/test-backend.mjs",
     "test:backup": "node scripts/test-backup-recovery.mjs",
+    "test:backup-transfer": "node scripts/test-backup-transfer-recovery.mjs",
     "dev:api": "node --watch services/api/src/server.ts",
     "start:api": "node services/api/src/server.ts",
     "check:site": "python3 scripts/check-site.py",

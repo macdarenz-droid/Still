@@ -1644,6 +1644,11 @@ push run [`39453758006`](https://github.com/macdarenz-droid/Still/actions/runs/3
 and draft PR run [`39453764889`](https://github.com/macdarenz-droid/Still/actions/runs/39453764889),
 with Android and contracts/discovery passing in both. PR1 remains open and draft,
 unmerged.
+The documentation-only follow-up `e6f45905ce3a6a00a59b6dc1decac62217c126d7`
+also passed both hosted workflows: push run `39455180225` and draft PR run
+`39455191341`, each with Android and contracts/discovery passing. Independent
+reviewer and red team passed that documentation head. No code or APK changed in
+that follow-up.
 No Google OAuth client is configured, account was connected, or physical Android
 device exercised. Thus the native chooser, actual consent, account switching,
 lock/rotation return and live disconnect behavior remain unverified. To enable the
@@ -1653,3 +1658,49 @@ Drive API/consent and a Web OAuth client ID using the instructions in
 `apps/android/README.md`. Real backup/restore, automatic backup and remote
 permission revocation remain outside CP14; no release, main merge or publication
 is authorized by this acceptance record.
+
+## CP15 — Account-bound asynchronous transfer recovery proof
+
+CP15 follows architecture §10 and CP13/CP14. It adds only an isolated synthetic
+transfer ledger/protocol so a future provider adapter can reason about late
+responses, account changes, restart, cancellation and uncertain results. It does
+not upload bytes or expose a production capability. There is no Android, API,
+provider, network, account, media, WorkManager or production-bootstrap wiring.
+
+The source component was authored as `8abcd3e5d281ca3df35eb9a4c7f057e66fae9bfa`
+and corrected through `7b3963299b9fdf4c271b9c1288f444fb58ff0671` and
+`60952bfc78e5b7e8d61780bd6163583b136f9d31`. Its seven new files are the transfer
+contract, SQLite proof schema, synthetic world/ledger, focused tests and runner.
+The accepted model allows one attempt per owner and exact six-field source and
+component identity, independent of epoch/destination. An unknown attempt cannot be
+replaced by a new key or account epoch; a confirmed no-change continues through
+the original attempt. Explicit duplicate-copy intent is out of scope.
+
+The independent reviewer and red team both passed exact source commit
+`60952bfc78e5b7e8d61780bd6163583b136f9d31`. Reviewer evidence is
+`/tmp/still-cp15-reviewer-60952bf-source.json`; the red-team exact-SHA verdict
+confirms the synthetic boundary and fault evidence. Earlier reviews found and
+fixed three P2 issues: replacement attempts could create duplicate objects; the
+persisted journal accepted impossible dispatch/fence/reconcile history; and
+mutable accessors could change an attested response between authorization and
+parsing. Regressions now cover each, including the valid pre-expiry/reopen/
+settlement path. The final source catches all 23 retained counterfactual
+mutations. Exact commands, hashes, logs, probes and unchanged-byte corruption
+evidence are retained under `/tmp/still-cp15-fix-evidence/` and
+`/tmp/still-cp15-reconcile-fix-evidence/`.
+
+On the integrated development candidate, `npm run check` passes: 173 backend
+tests, 11 discovery checks, 18 catalogue SQL probes and 7 similarity-index SQL
+probes. The focused transfer runner passes 53/53. Android `assembleDebug`, all
+341 JVM tests across 38 suites, and strict `lintDebug` pass. Logs are
+`/tmp/still-cp15-integrated-npm-check.log` and
+`/tmp/still-cp15-integrated-android.log`; APK SHA-256 remains
+`0e740c76441c0db0b854efd12778d1b83eec6eb3a2a992f0596082a45d9ba488`. The source
+checks used Node 24.19.0; Android used the configured JDK 21 / SDK 37 environment.
+
+The proof models synthetic identifiers and counters only. It does not prove a
+real process kill, power loss, Android durability, Drive request, account recovery,
+upload, byte verification, restore, original fidelity or deletion safety. Google
+OAuth setup and physical-device chooser/consent testing remain blocked. CP15 does
+not finish selected backup or Stage 2. The draft PR remains unmerged; no production
+signing, main merge, release or publication is authorized.

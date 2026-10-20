@@ -715,3 +715,69 @@ OAuth client setup and physical-device Google chooser/consent testing remain ope
 the default build reports setup required. Disconnect is local-only and states that
 the Google account-level grant remains until the owner removes it in Google Account
 settings. No media is uploaded, restored or removed.
+
+## CP15 — Account-bound asynchronous transfer recovery proof (Stage 2 / architecture §10)
+
+CP14 establishes the Google account-selection and narrow authorization flow, but
+does not transfer files. CP13's synchronous synthetic journal does not model
+provider work that remains in flight after cancellation, account switch, or
+process death. ADR0013 freezes the next dependency as a provider-neutral protocol
+and durable-ledger proof using synthetic identities only. This prepares the Drive
+adapter without claiming that backup is operational.
+
+| Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S53 Async transfer identity and protocol | backend; new `packages/contracts/src/backup-transfer-recovery.ts`, `services/backup-transfer/`, `db/backup/002_transfer_attempts.sql`, and `tests/backup-transfer/` only | Persist attempt ID/revision, opaque connection epoch, immutable source/version/component-set revisions, destination and operation identity. Monotonic provider acknowledgements require matching attempt/session/offset. Late work, account switches, cancellation and process restart cannot retarget an attempt. Ambiguous create/append/finalize outcomes require reconciliation before retry; unknown status remains uncertain. Email, media bytes, paths/URIs, OAuth tokens and resumable URLs are forbidden. Synthetic-only, no production capability | CP13 and CP14; ADR0013; preserve existing backup journal/schema and production seams |
+| S54 Async fault evidence and focused runner | backend; matching new tests and one new `scripts/test-backup-transfer-recovery.mjs` only | Prove late completion after cancellation/restart, epoch switch/disconnect, idempotent replay, ambiguous create/finalize, unknown-offset reconciliation, wrong session/offset, skipped/backwards acknowledgement, lease expiry with live request, changed source/component revisions and concurrent stale writes all fail closed or reconcile without duplicate object creation | S53; temporary/generated fixtures only; no user files/media |
+| S55 Copy and boundary audit | frontend and seo; read only | Identify later truthful selected-photo/album, destination, progress, uncertainty, cancellation and recovery states. No UI/API/provider implementation or claim of backup/restore/verification/quota. No AI wording | Frozen S53 contract shape; no publication or edits |
+| S56 CP15 independent gates | reviewer and red_team; read only | Exact source/test review; adversarial account epoch, in-flight late completion, ambiguous provider response, lease/restart, idempotency, offset/revision and persistent-data probes; ensure test-only code cannot authorize production work; both roles confirm exact hosted checks | Root integration/full checks; no real account, provider, network, personal media or device transfer |
+
+Root owns this card, ADR0013, package/check wiring, integration, acceptance and
+PR. The S53 builder returns an isolated new-file diff from the accepted CP14 code
+head; root alone edits shared scripts/manifests. No runtime dependencies, existing
+database changes, Android UI, provider adapter, OAuth change, WorkManager job,
+account API call, real media read, network, upload/download, restore, automatic
+policy, deletion or free-space action. The connection epoch is a fence, not an
+account identifier; reauthorization gets a fresh epoch and old work stays bound
+to its original one. CP15 does not complete selected backup or Stage 2.
+
+The recovery ledger permits only one attempt per owner and exact immutable source,
+version, source revision, component-set revision, component ID and component
+revision—even across destination IDs or connection epochs—because account continuity
+is not proven after reauthorization. A confirmed `not_applied` result resumes the
+original attempt/operation. New explicit duplicate-copy intent is outside CP15.
+
+Finish requires the repository full check, Android build/tests/strict lint on the
+integrated head, a local audit that no new production capability or sensitive
+fields are exposed, exact reviewer and red-team passes, and hosted checks on the
+same head. Record exact source/test identities and any remaining blocked device,
+OAuth and provider checks. No main merge, production signing or publication.
+
+S55 confirms later transfer UX must separate provider-acknowledged progress,
+uploaded-but-unverified, verification, and uncertain outcome. “Check status” must
+reconcile the original attempt; “Retry” cannot create another object while prior
+completion is ambiguous. Reauthorization creates a new epoch even for the same
+account, so old attempts cannot resume by matching email. Before an Android Drive
+adapter, separately resolve stable original/component authority, visible folder
+creation under `drive.file`, selected-album snapshot semantics, cancellation of
+in-flight requests, quota reporting and foreground/background execution. These
+are later provider-gate questions; CP15 must not turn them into current UI or
+capability claims.
+Within the synthetic model, `cancelled` and `fenced` describe local transfer
+intent; a later remote observation may still report that an already-issued
+request finalized. Keep that historical outcome separate from active authority.
+`acknowledgedOffset` advances only for the current active intent and is not a
+universal total of provider bytes after cancellation/fencing. All modelled objects,
+offsets and outcomes remain synthetic identities, not Drive evidence. Model
+`ready` means only that a next protocol step may be issued; it does not mean
+verified, restorable or protected.
+
+CP15 source was independently accepted by reviewer and red team on exact source
+`60952bfc78e5b7e8d61780bd6163583b136f9d31` after three P2 findings were fixed:
+cross-attempt duplicate admission, impossible persisted dispatch/fence/reconcile
+history, and mutable attested response objects. Root integrated the source and
+wired the focused suite into `npm test`. The integrated local repository and
+Android checks pass (173 Node tests, 53 focused transfer cases, 11 discovery
+checks, 18 catalogue SQL probes, 7 similarity SQL probes, 341 Android JVM tests,
+strict lint and debug APK build). Exact root integrated-head review and hosted CI
+confirmation remain pending; provider/OAuth/device transfers remain excluded.
