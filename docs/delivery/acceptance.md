@@ -1822,3 +1822,56 @@ consent and device transfer remain unverified. Hosted Foundation push run
 `39481721204` and draft PR run `39481729554` both passed Android and
 contracts/discovery on the exact implementation head. CP18 is accepted as a
 synthetic proof; PR1 remains draft and unmerged.
+
+## CP19 — Read-only Google Drive access readiness
+
+CP19 adds an explicit **Check Drive access** action for a connected Google
+account. It performs one bounded HTTPS Drive v3 `about.get` request for
+`storageQuota(limit,usage)`. Only a current in-memory authorization lease and the
+exact Settings origin may publish the result. Switching or disconnecting the
+account invalidates the lease; leaving Settings, locking, or losing foreground
+visibility clears the transient result. Explicit cancellation aborts the request
+and is announced to accessibility services. Missing quota values stay unknown. No file/folder,
+MediaStore, upload, download, backup or restore operation was added.
+
+Exact implementation commit: `95aea1ee439390a60213358105ed28b1d4a4bf02`.
+All 12 Android implementation/test file hashes match the builder evidence at
+`/tmp/still-cp19-builder-evidence/summary.json`. The focused readiness and
+connection tests pass **54/54** across six suites. The full Android unit suite
+passes **381/381** across 42 suites, `assembleDebug` succeeds, and strict lint
+reports zero errors and warnings with one preexisting informational hint. The
+debug APK built from the integrated checkout has SHA-256
+`0553fece9ea365ba10c6d81f2143234c638174706ca9d0e620682f85520de8d2`. The
+retained mutation campaign detects all **8/8** core bypasses and the explicit
+cancellation mutation. The original failed linkage-only probe is retained in
+the evidence bundle rather than counted as a detected mutation.
+
+On the same exact implementation commit, `npm run check` passes typecheck, **235
+Node tests**, 11 discovery checks, 18 catalogue SQL probes and 7 similarity
+index SQL probes. On Linux with JDK 21 and Android SDK 37, these commands passed:
+
+```sh
+npm run check
+env JAVA_HOME=/workspace/still-jdk ANDROID_HOME=/workspace/android-sdk GRADLE_OPTS='-Dhttp.proxyHost=proxy -Dhttp.proxyPort=8080 -Dhttps.proxyHost=proxy -Dhttps.proxyPort=8080 -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts' apps/android/gradlew -p apps/android --offline --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --max-workers=4
+git diff --check
+```
+
+The focused gate used the same environment and
+`:app:testDebugUnitTest --tests 'app.still.gallery.backup.Drive*' --tests
+'app.still.gallery.backup.AndroidDriveReadinessTest' --max-workers=4`.
+Evidence: `/tmp/still-cp19-builder-evidence/summary.json`, Android XML test
+results and lint report under `apps/android/app/build/`, and the APK at
+`apps/android/app/build/outputs/apk/debug/app-debug.apk`.
+
+The independent reviewer and the
+separate red team both pass this exact SHA. Frontend and SEO audits are clear:
+connected-only display, cancellation announcement, unknown quota handling and
+the distinction between Drive access and backup are accurately represented.
+
+No Google account, live Drive request, OAuth chooser/consent, or physical-device
+test was run. The public OAuth Web client ID is still unconfigured and no Android
+device was attached; real sign-in, live endpoint behavior, TalkBack and lock-return
+behavior remain device checks. CP19 confirms only current read access to Drive
+account metadata; it does not prove future file capacity, upload, readback,
+source fidelity or restore. The draft PR remains unmerged. Hosted Foundation
+checks on the final acceptance-document head are pending.
