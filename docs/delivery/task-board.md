@@ -804,3 +804,22 @@ of a user photo, Android UI, source permission, Drive adapter, OAuth change, SQL
 durable snapshot, WorkManager job, network/upload/download, restore, automatic policy,
 verification, deletion or free-space action is in scope. Harness bounds are not
 product limits. CP16 does not establish original fidelity or finish selected backup.
+
+## CP17 — Google Drive setup help flow (Stage 2 / architecture §10)
+
+The owner wants to choose and sign in to a Drive account. The connection flow is
+implemented, but the default build has no public Web OAuth client ID and cannot
+open Google's chooser. Add clear setup guidance without simulating sign-in or
+adding backup behavior. ADR0012 remains the source for the OAuth boundary.
+
+| Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S61 Build setup help | supervisor; `apps/android/app/src/main/java/app/still/gallery/backup/DriveConnectionSettings.kt`, Drive strings, this task-board/acceptance record | In the `UNAVAILABLE` state, an accessible help action explains Google Cloud/Drive API and consent setup, Android package plus installed APK signing SHA-1, same-project Web client, `STILL_GOOGLE_WEB_CLIENT_ID`, and rebuild/install. Connect stays disabled. No client-ID text field, simulated account, network, new permission, token, or backup action | CP14 connection flow and its current build-time configuration; no owner credential or device activity |
+| S62 Copy audit | seo; read only | Plain, accurate setup directions; account connection remains distinct from backup/restore and Drive from Google Photos; no AI wording or claim that identifier syntax proves configuration | Frozen S61 copy; no edits/publication |
+| S63 Independent gates | reviewer and red_team; read only | Exact source review plus adversarial check that absent/malformed configuration cannot reach chooser, help cannot mutate connection state, and no secret, account, network, media, or backup capability was added | Root Android build/tests/strict lint and exact hosted checks; device consent remains unverified until configured |
+
+Root owns Android settings wiring, copy, task-board/acceptance and integration.
+The help is informational only; it cannot configure the installed APK. Use the
+existing Android README as the complete setup guide. Run Android build, JVM tests
+and strict lint; device-only layout, TalkBack and Google consent checks remain
+explicitly blocked when no configured device is available. No release or merge.

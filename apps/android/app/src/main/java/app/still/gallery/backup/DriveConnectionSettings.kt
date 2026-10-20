@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -11,6 +14,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -25,6 +30,7 @@ fun DriveConnectionSettings(holder: DriveConnectionHolder?, canAct: () -> Boolea
     val controller = holder?.controller
     val state = controller?.state
     val phase = state?.phase ?: DriveConnectionPhase.UNAVAILABLE
+    val showSetupHelp = remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(stringResource(R.string.drive_connection_title), Modifier.semantics { heading() }, style = MaterialTheme.typography.titleLarge)
         Text(stringResource(R.string.drive_connection_scope), style = MaterialTheme.typography.bodyMedium)
@@ -50,6 +56,12 @@ fun DriveConnectionSettings(holder: DriveConnectionHolder?, canAct: () -> Boolea
                 DriveConnectionError.STORAGE_FAILED -> R.string.drive_connection_storage_failed
             }), Modifier.semantics { liveRegion = LiveRegionMode.Polite })
         }
+        if (phase == DriveConnectionPhase.UNAVAILABLE) {
+            TextButton(onClick = { if (canAct()) showSetupHelp.value = true }, enabled = canAct(),
+                modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.drive_connection_setup_help))
+            }
+        }
         if (state?.busy == true) {
             LinearProgressIndicator(Modifier.fillMaxWidth())
             if (phase == DriveConnectionPhase.CONNECTING) TextButton(onClick = {
@@ -68,5 +80,25 @@ fun DriveConnectionSettings(holder: DriveConnectionHolder?, canAct: () -> Boolea
                 }
             }
         }
+    }
+    if (showSetupHelp.value && phase == DriveConnectionPhase.UNAVAILABLE) {
+        AlertDialog(
+            onDismissRequest = { showSetupHelp.value = false },
+            title = { Text(stringResource(R.string.drive_connection_setup_title)) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(stringResource(R.string.drive_connection_setup_intro))
+                    Text(stringResource(R.string.drive_connection_setup_project))
+                    Text(stringResource(R.string.drive_connection_setup_android_client))
+                    Text(stringResource(R.string.drive_connection_setup_web_client))
+                    Text(stringResource(R.string.drive_connection_setup_limits))
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSetupHelp.value = false }, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.close))
+                }
+            },
+        )
     }
 }
