@@ -1406,7 +1406,7 @@ session-only; durable full-library incremental indexing remains unfinished.
 
 ## CP12 local development gate
 
-The exact local source candidate is `28c1dc6d38ee7215ddd3e5164a73d3ef60a8f85`
+The exact local source candidate is `28c1dc6d38ee7215ddd3e5164a73d3ef60a8f85b`
 on `build/still-foundation`, based on accepted CP11 `20dd35358302363ad2efccad5c3f636e73acf845`.
 Fetched `origin/main` (`b31a7abd54c382bdc3dbf4a4efa00d14f30cdfca`) is an ancestor.
 This candidate adds the explicitly started local similarity index and the

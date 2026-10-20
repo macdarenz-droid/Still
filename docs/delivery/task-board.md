@@ -615,7 +615,7 @@ digit/page and screen state), and missed crop and unsupported-alpha cases. It ma
 no broad accuracy claim. Corpus, labels, old-policy proof and fixed run are retained
 under `/tmp/still-cp12-s42-evidence/`.
 
-The exact local candidate `28c1dc6d38ee7215ddd3e5164a73d3ef60a8f85` passes the full
+The exact local candidate `28c1dc6d38ee7215ddd3e5164a73d3ef60a8f85b` passes the full
 Android build,327 JVM cases, strict lint and instrumentation-source compilation;
 `npm run check` passes TypeScript,74 backend tests,11 discovery checks,18 catalogue
 probes and7 similarity-index SQL probes. Reviewer and red team passed the exact
