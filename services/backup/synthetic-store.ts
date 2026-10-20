@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { backupAssert, backupDigest, backupId, backupInteger, backupObject, parseBackupManifest, parsePortableBackupArchive, parseSyntheticEvidence, BackupRecoveryError } from "../../packages/contracts/src/backup-recovery.ts";
 import type { BackupComponent, BackupManifest, BackupObject, BackupSourceRef, ComponentProgress, ComponentRole, PortableBackupArchive, SyntheticInputEvidence } from "../../packages/contracts/src/backup-recovery.ts";
+import { consumeSyntheticTransferredSet } from "../backup-transfer/synthetic-world.ts";
+import type { SyntheticTransferredSet } from "../backup-transfer/synthetic-world.ts";
 
 export function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
@@ -96,7 +98,7 @@ export class SyntheticSources implements TrustedSyntheticSourceVerifier {
 
 type StoreFault = "disk_full" | "write_close" | "read_close" | "before_metadata_replace" | "after_object_commit" | "after_restore_commit";
 type ObjectInfo = BackupObject & { ownerId: string; destinationId: string; manifestFingerprint: string };
-interface Root { path: string; unsettled: Set<number>; fault: StoreFault | null }
+interface Root { path: string; unsettled: Set<number>; fault: StoreFault | null; readbackGuard?: () => void }
 const ownedRoots = new WeakSet<object>();
 
 /** Private temporary generated-byte store. Receipts remain fixture-only, including after reopen. */
@@ -116,7 +118,28 @@ export class SyntheticObjectStore {
   settleForTest(): void {
     for (const fd of [...this.root.unsettled]) { closeSync(fd); this.root.unsettled.delete(fd); }
   }
-  private check(): void { backupAssert(this.root.unsettled.size === 0, "backup_close_unsettled"); }
+  private check(checkReadback = true): void { backupAssert(this.root.unsettled.size === 0, "backup_close_unsettled"); if (checkReadback) this.root.readbackGuard?.(); }
+  /** CP18 imports an attested actual object readback, never another upload. */
+  importTransferredForSyntheticPipeline(ownerId: string, receipt: SyntheticTransferredSet): PortableBackupArchive {
+    this.check(); backupAssert(this.root.readbackGuard === undefined && readdirSync(join(this.root.path, "objects")).length === 0, "backup_readback_store_not_empty");
+    return consumeSyntheticTransferredSet(ownerId, receipt, (description, objects, checkCurrent, destinationId) => {
+      const manifest = parseBackupManifest({ schemaVersion: 1, scope: "synthetic_backup_recovery_v1", testOnly: true, manifestId: randomUUID(), source: description.source, representation: description.representation, fidelity: description.fidelity, components: description.components });
+      backupAssert(objects.length === manifest.components.length && new Set(objects.map(item => item.objectId)).size === objects.length, "backup_component_missing");
+      this.root.readbackGuard = checkCurrent;
+      const imported = manifest.components.map(component => {
+        const object = objects.find(item => item.componentId === component.componentId);
+        backupAssert(object && object.bytes.length === component.byteLength && digest(object.bytes) === component.sha256, "backup_readback_bytes_mismatch");
+        const result: BackupObject = { componentId: component.componentId, objectId: object.objectId, objectRevision: object.objectRevision, byteLength: object.bytes.length, sha256: digest(object.bytes) };
+        const base = this.base(ownerId, destinationId, result.objectId);
+        this.writeNew(`${base}-${result.objectRevision}.bin`, object.bytes);
+        this.writeMeta(`${base}.json`, { ...result, ownerId, destinationId, manifestFingerprint: digest(canonical(manifest)) });
+        return result;
+      });
+      checkCurrent();
+      const archive = parsePortableBackupArchive({ schemaVersion: 1, scope: "synthetic_backup_recovery_v1", testOnly: true, productionCapability: false, destinationId, manifest, objects: imported });
+      this.verify(ownerId, archive); return archive;
+    });
+  }
   private fault(point: StoreFault): void {
     if (this.root.fault === point) { this.root.fault = null; throw new BackupRecoveryError(point === "disk_full" ? "backup_disk_full" : point === "after_object_commit" || point === "after_restore_commit" || point === "before_metadata_replace" ? "backup_outcome_unknown" : "backup_close_failed"); }
   }
@@ -205,13 +228,14 @@ export class SyntheticObjectStore {
   verify(ownerId: string, archiveValue: PortableBackupArchive): BackupObject[] {
     this.check(); const archive = parsePortableBackupArchive(archiveValue);
     backupAssert(archive.objects.length === archive.manifest.components.length && new Set(archive.objects.map(item => item.objectId)).size === archive.objects.length);
-    return archive.manifest.components.map(component => {
+    const verified = archive.manifest.components.map(component => {
       const expected = archive.objects.find(item => item.componentId === component.componentId);
       backupAssert(expected, "backup_component_missing");
       const actual = this.inspectBound(ownerId, archive.destinationId, expected.objectId, digest(canonical(archive.manifest)));
       backupAssert(actual && canonical(actual) === canonical(expected) && actual.byteLength === component.byteLength && actual.sha256 === component.sha256, "backup_object_revision_conflict");
       return actual;
     });
+    this.check(); return verified;
   }
   private restoreBase(ownerId: string, restoreId: string): string {
     backupId(ownerId); backupId(restoreId);
@@ -227,6 +251,7 @@ export class SyntheticObjectStore {
     }
     this.writeMeta(`${base}.json`, { manifest: archive.manifest });
     this.fault("after_restore_commit");
+    this.check();
   }
   verifyRestore(ownerId: string, restoreId: string, manifestValue: BackupManifest): "absent" | "complete" {
     this.check(); const manifest = parseBackupManifest(manifestValue), base = this.restoreBase(ownerId, restoreId);
@@ -240,7 +265,7 @@ export class SyntheticObjectStore {
       const data = this.read(`${base}-${component.componentId}.bin`);
       backupAssert(data.length === component.byteLength && digest(data) === component.sha256, "backup_restore_corrupt");
     }
-    return "complete";
+    this.check(); return "complete";
   }
   readRestoredForTest(ownerId: string, restoreId: string, componentId: string): Uint8Array { backupId(componentId); return this.read(`${this.restoreBase(ownerId, restoreId)}-${componentId}.bin`); }
   damageForTest(ownerId: string, destinationId: string, objectId: string, mode: "corrupt" | "truncate" | "missing" | "revision" | "identity"): void {
@@ -258,7 +283,7 @@ export class SyntheticObjectStore {
     try { const payload = mode === "truncate" ? bytes.subarray(0, bytes.length - 1) : bytes; writeSync(fd, payload); fsyncSync(fd); } finally { closeSync(fd); }
   }
   disposeForTest(): void {
-    this.check(); const stat = lstatSync(this.root.path); backupAssert(stat.isDirectory() && !stat.isSymbolicLink());
+    this.check(false); const stat = lstatSync(this.root.path); backupAssert(stat.isDirectory() && !stat.isSymbolicLink());
     rmSync(this.root.path, { recursive: true });
   }
 }

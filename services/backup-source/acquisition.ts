@@ -12,13 +12,32 @@ interface Holder {
   controller: SourceSnapshotAcquisition; ownerId: string; source: MutableSyntheticSource;
   request: SourceSnapshotRequest; session: SourceSnapshotSession; checkCurrent: () => boolean;
   deadline: number; active: boolean; working: boolean; started: boolean; settling: boolean;
-  inventory: CompleteGeneratedInventory | null; streams: Set<GeneratedOwnedStream>;
+  inventory: CompleteGeneratedInventory | null; streams: Set<GeneratedOwnedStream>; borrows: Set<object>;
   buffers: Map<string, Uint8Array>; retainedBytes: number;
   handle: SourceSnapshotHandle | null; description: SourceSnapshotDescription | null;
 }
 // Intentionally process-wide: recreating a controller cannot discard an old
 // blocked read/close or acquire a second retained snapshot allocation.
 let retained: Holder | null = null;
+export interface SyntheticSnapshotBorrow { readonly scope: "synthetic_pipeline_snapshot_borrow"; readonly testOnly: true }
+interface Borrow { ownerId: string; holder: Holder; describe: () => SourceSnapshotDescription; fork: () => SyntheticSnapshotBorrow; retire: () => void }
+const pipelineBorrows = new WeakMap<object, Borrow>();
+function borrowed(ownerId: string, value: SyntheticSnapshotBorrow): Borrow {
+  const proof = pipelineBorrows.get(value);
+  snapshotAssert(proof && proof.ownerId === ownerId && proof.holder.borrows.has(value), "snapshot_borrow_denied"); return proof;
+}
+/** Fixture-only authority; copied handles/descriptors never provide access. */
+export function describeSyntheticSnapshotBorrow(ownerId: string, value: SyntheticSnapshotBorrow): SourceSnapshotDescription { return borrowed(ownerId, value).describe(); }
+export function forkSyntheticSnapshotBorrow(ownerId: string, value: SyntheticSnapshotBorrow): SyntheticSnapshotBorrow { return borrowed(ownerId, value).fork(); }
+export function readSyntheticSnapshotBorrow(ownerId: string, value: SyntheticSnapshotBorrow, componentId: string, offset: number, maxBytes: number): Uint8Array {
+  const proof = borrowed(ownerId, value); proof.describe();
+  const bytes = proof.holder.buffers.get(backupId(componentId));
+  snapshotAssert(bytes, "snapshot_component_missing"); backupInteger(offset, 0, bytes.length - 1); backupInteger(maxBytes, 1, LIMITS.readBytes);
+  return bytes.slice(offset, offset + maxBytes);
+}
+export function releaseSyntheticSnapshotBorrow(ownerId: string, value: SyntheticSnapshotBorrow): void {
+  const proof = borrowed(ownerId, value); proof.holder.borrows.delete(value); pipelineBorrows.delete(value); proof.retire();
+}
 export interface SourceSnapshotOptions { source?: MutableSyntheticSource; now?: () => number }
 
 export class SourceSnapshotAcquisition {
@@ -32,7 +51,7 @@ export class SourceSnapshotAcquisition {
     snapshotAssert(typeof checkCurrent === "function", "snapshot_authority_check_required");
     snapshotAssert(retained === null, "snapshot_busy");
     const session = Object.freeze({ scope: SCOPE, testOnly: true as const });
-    const holder: Holder = { controller: this, ownerId, source: this.source, request, session, checkCurrent, deadline: backupInteger(this.time() + request.timeoutMs), active: true, working: false, started: false, settling: false, inventory: null, streams: new Set(), buffers: new Map(), retainedBytes: 0, handle: null, description: null };
+    const holder: Holder = { controller: this, ownerId, source: this.source, request, session, checkCurrent, deadline: backupInteger(this.time() + request.timeoutMs), active: true, working: false, started: false, settling: false, inventory: null, streams: new Set(), borrows: new Set(), buffers: new Map(), retainedBytes: 0, handle: null, description: null };
     retained = holder;
     try { this.check(holder); } catch (error) { this.retire(holder); throw error; }
     return session;
@@ -115,13 +134,20 @@ export class SourceSnapshotAcquisition {
     }
     return description;
   }
+  borrowForSyntheticPipeline(ownerId: string, handle: SourceSnapshotHandle): SyntheticSnapshotBorrow {
+    this.describe(ownerId, handle); const holder = this.handle(ownerId, handle);
+    const value = Object.freeze({ scope: "synthetic_pipeline_snapshot_borrow" as const, testOnly: true as const });
+    holder.borrows.add(value);
+    pipelineBorrows.set(value, { ownerId, holder, describe: () => this.describe(ownerId, handle), fork: () => this.borrowForSyntheticPipeline(ownerId, handle), retire: () => { if (!holder.active) this.retire(holder); } });
+    return value;
+  }
   cancel(session: SourceSnapshotSession): void { const holder = this.session(session); holder.active = false; this.retire(holder); }
   release(ownerId: string, handle: SourceSnapshotHandle): void { const holder = this.handle(ownerId, handle); holder.active = false; this.retire(holder); }
   dispose(): void { this.disposed = true; if (retained?.controller === this) { retained.active = false; this.retire(retained); } }
   /** Can clean the retained original owner after controller recreation, never live work. */
   async settle(ownerId: string): Promise<SnapshotSettlement> {
     backupId(ownerId); const holder = retained; if (!holder) return "idle";
-    snapshotAssert(holder.ownerId === ownerId && !holder.active && !holder.working && !holder.settling, "snapshot_busy");
+    snapshotAssert(holder.ownerId === ownerId && !holder.active && !holder.working && !holder.settling && holder.borrows.size === 0, "snapshot_busy");
     holder.settling = true;
     try {
       for (const stream of [...holder.streams]) {
@@ -148,7 +174,7 @@ export class SourceSnapshotAcquisition {
   private session(value: SourceSnapshotSession): Holder { snapshotAssert(retained?.controller === this && retained.session === value, "snapshot_session_denied"); return retained; }
   private handle(ownerId: string, value: SourceSnapshotHandle): Holder { backupId(ownerId); snapshotAssert(retained?.controller === this && retained.ownerId === ownerId && retained.handle === value && retained.description !== null, "snapshot_handle_denied"); return retained; }
   private retire(holder: Holder): void {
-    if (holder.working || holder.settling || holder.streams.size) return;
+    if (holder.working || holder.settling || holder.streams.size || holder.borrows.size) return;
     for (const bytes of holder.buffers.values()) bytes.fill(0);
     holder.buffers.clear(); holder.retainedBytes = 0;
     if (retained === holder) retained = null;

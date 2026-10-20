@@ -92,6 +92,9 @@ export class MutableSyntheticSource {
     }
   }
   countsForTest(): { opens: number; closes: number; unsettled: number } { const value = state(this); return { opens: value.opens, closes: value.closes, unsettled: value.open.size }; }
+  removeForTest(ownerId: string, ref: BackupSourceRef): void {
+    const value = state(this).fixtures.get(ref.sourceId); snapshotAssert(value?.ownerId === ownerId, "snapshot_source_changed"); state(this).fixtures.delete(ref.sourceId);
+  }
 }
 
 /** Authority is bound to the registered generator and one frozen, owned inventory. */
