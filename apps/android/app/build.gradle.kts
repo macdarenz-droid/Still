@@ -15,6 +15,7 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "0.1.0-dev"
+        testInstrumentationRunner = "android.test.InstrumentationTestRunner"
     }
     buildFeatures { compose = true }
     compileOptions {
@@ -25,6 +26,8 @@ android {
         abortOnError = true
         warningsAsErrors = true
     }
+    useLibrary("android.test.base")
+    useLibrary("android.test.runner")
 }
 
 kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }

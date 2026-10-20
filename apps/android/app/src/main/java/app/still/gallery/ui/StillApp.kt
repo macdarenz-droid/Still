@@ -127,6 +127,7 @@ import app.still.gallery.cleanup.AndroidContentProtections
 import app.still.gallery.security.AppLockUiState
 import app.still.gallery.security.LockAction
 import app.still.gallery.similarity.SimilarityResult
+import app.still.gallery.similarity.SimilarityIndexStore
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -193,6 +194,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
             { request -> if (similarityCompare.invalidate(request)) comparison.invalidate() })
     }
     LaunchedEffect(similarity) { similarity.initialize() }
+    val similarityIndex = remember(device, actionLifetime) { SimilarityIndexCoordinator(scope, context.applicationContext, { actionLifetime.isActive }) }
     val shareLabel = stringResource(R.string.share_media)
     val shareFailure = stringResource(R.string.share_failed)
     val favoriteConfirmation = stringResource(R.string.favorites_saved)
@@ -206,6 +208,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     fun invalidateSnapshot() {
         similarity.invalidate()
+        similarityIndex.stop()
         comparison.invalidate()
         cleanup.invalidate()
         options.invalidate(); menu.invalidate()
@@ -317,6 +320,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     DisposableEffect(actionLifetime, device) {
         onDispose {
             similarity.dispose()
+            similarityIndex.dispose()
             comparison.dispose()
             drift.invalidate()
             driftInteraction.invalidate()
@@ -331,7 +335,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
 
     DisposableEffect(lifecycle, device, access) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) { similarity.invalidate(); comparison.invalidate() }
+            if (event == Lifecycle.Event.ON_STOP) { similarity.invalidate(); similarityIndex.stop(); comparison.invalidate() }
             if (event == Lifecycle.Event.ON_START || event == Lifecycle.Event.ON_RESUME) invalidateSnapshot()
         }
         lifecycle.addObserver(observer)
@@ -369,6 +373,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
             media = emptyList()
             legacyFavoriteMatches = emptyMap()
             selected = emptyList()
+            device.clearSimilarityIndex()
             return@LaunchedEffect
         }
         try {
@@ -402,6 +407,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
     }
 
     LaunchedEffect(destination) {
+        if (destination == Destination.SETTINGS) similarityIndex.initialize() else similarityIndex.stop()
         if (destination == Destination.CLEANUP && actionLifetime.isActive) cleanup.loadProtections()
     }
 
@@ -536,7 +542,7 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                                             invalidateSnapshot()
                                             throw CancellationException("The gallery changed")
                                         }
-                                    })
+                                    }, indexStore = SimilarityIndexStore(context.applicationContext))
                             }
                         }
                     }, enabled = similarity.canStart && !loading && !loadFailed && capturedSimilarityScope.size in 2..200 && capturedSimilarityScope.none { it.isVideo },
@@ -591,9 +597,32 @@ fun StillApp(lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, 
                     onRetryProtection = { cleanup.loadProtections() },
                 )
             } else if (destination == Destination.SETTINGS) {
+                val indexState = similarityIndex.state
                 SettingsContent(access, ::changeAccess, ::settings, ::reload, lockState,
                     { if (actionLifetime.isActive) authenticateLock(it) },
-                    { if (actionLifetime.isActive) securitySettings() })
+                    { if (actionLifetime.isActive) securitySettings() }, indexState,
+                    canStartIndex = similarityIndex.canStart && access.level != AccessLevel.NONE,
+                    canClearIndex = similarityIndex.canClear,
+                    onIndexStart = { expectedIndexAction ->
+                        val startRefresh = refresh
+                        val granted = access
+                        val galleryAtStart = media.toList()
+                        fun currentIndexScope() = actionLifetime.isActive && refresh == startRefresh &&
+                            destinationName == Destination.SETTINGS.name && !loading && !loadFailed && context.mediaAccess() == granted
+                        if (granted.level != AccessLevel.NONE && currentIndexScope()) {
+                            similarityIndex.start(expectedIndexAction,
+                                AndroidCleanupSourceReader(context.applicationContext, device, granted), favorites.toSet(), ::currentIndexScope) { fresh ->
+                                    if (!currentIndexScope()) throw CancellationException("Similarity index scope changed")
+                                    if (!cleanupSnapshotMatchesGallery(fresh.items, galleryAtStart)) {
+                                        invalidateSnapshot()
+                                        throw CancellationException("The gallery changed")
+                                    }
+                                }
+                        }
+                    },
+                    onIndexStop = { similarityIndex.stop() },
+                    onIndexRetry = { expected -> similarityIndex.retryClose(expected) },
+                    onIndexClear = { expected -> similarityIndex.clear(expected) })
             } else if (access.level == AccessLevel.NONE) {
                 MessagePanel(R.string.access_title, R.string.access_body) {
                     Button(onClick = ::changeAccess) { Text(stringResource(R.string.choose_access)) }
@@ -869,7 +898,13 @@ fun LibraryImage(item: MediaItem, device: DeviceMedia, generation: Int, modifier
 private data class ThumbnailPreview(val bitmap: android.graphics.Bitmap? = null, val loading: Boolean = true)
 
 @Composable
-private fun SettingsContent(access: MediaAccess, changeAccess: () -> Unit, settings: () -> Unit, refresh: () -> Unit, lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, securitySettings: () -> Unit) {
+private fun SettingsContent(
+    access: MediaAccess, changeAccess: () -> Unit, settings: () -> Unit, refresh: () -> Unit,
+    lockState: AppLockUiState, authenticateLock: (LockAction) -> Unit, securitySettings: () -> Unit,
+    indexState: SimilarityIndexUiState, canStartIndex: Boolean, canClearIndex: Boolean,
+    onIndexStart: (SimilarityIndexAction) -> Unit, onIndexStop: () -> Unit,
+    onIndexRetry: (SimilarityIndexAction) -> Unit, onIndexClear: (SimilarityIndexAction) -> Unit,
+) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.development_title), style = MaterialTheme.typography.titleLarge)
         Text(stringResource(R.string.development_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -879,6 +914,9 @@ private fun SettingsContent(access: MediaAccess, changeAccess: () -> Unit, setti
         TextButton(onClick = changeAccess) { Text(stringResource(R.string.change_access)) }
         TextButton(onClick = settings) { Text(stringResource(R.string.open_settings)) }
         TextButton(onClick = refresh) { Text(stringResource(R.string.refresh)) }
+        HorizontalDivider(Modifier.padding(vertical = 12.dp))
+        SimilarityIndexSettings(indexState, canStartIndex, canClearIndex,
+            onStart = onIndexStart, onStop = onIndexStop, onRetryClose = onIndexRetry, onClear = onIndexClear)
         HorizontalDivider(Modifier.padding(vertical = 12.dp))
         AppLockSettings(lockState, authenticateLock, securitySettings)
         HorizontalDivider(Modifier.padding(vertical = 12.dp))

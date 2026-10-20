@@ -17,10 +17,15 @@ class SimilarityScanner(
     private val admission: CleanupReadAdmission = cleanupProcessReads,
 ) {
     private val session = SimilaritySession()
+    private var encoded: ByteArray? = null
     fun begin(selected: List<MediaItem>, checkCurrent: () -> Unit): SimilarityTicket = session.begin(selected, checkCurrent)
+    fun beginIndexPage(selected: List<MediaItem>, checkCurrent: () -> Unit): SimilarityTicket =
+        session.begin(selected, allowSingle = true, checkCurrent = checkCurrent)
     fun invalidate(ticket: SimilarityTicket) { session.invalidate(ticket) }
     fun isCurrent(ticket: SimilarityTicket): Boolean = session.isCurrent(ticket)
     fun resolve(result: SimilarityResult, pair: SimilarityPair): List<MediaItem>? = session.resolve(result, pair)
+    fun finishWithIndex(result: SimilarityResult, query: SimilarityIndexQueryResult, currentItems: List<MediaItem>): SimilarityResult =
+        session.finishWithIndex(result, query, currentItems)
     suspend fun settle(): SimilaritySettleResult = ownership.settle()
 
     suspend fun scan(
@@ -28,7 +33,10 @@ class SimilarityScanner(
         favorites: Set<String>,
         onSnapshot: suspend (CleanupSourceSnapshot) -> Unit = {},
         onProgress: suspend (SimilarityCoverage) -> Unit = {},
+        maxRunBytes: Long = SimilarityBounds.MAX_RUN_BYTES,
+        providedSnapshot: CleanupSourceSnapshot? = null,
     ): SimilarityResult {
+        require(maxRunBytes in 1..SimilarityBounds.MAX_RUN_BYTES)
         if (!session.isCurrent(ticket)) throw SimilarityException(SimilarityFailure.STALE)
         val work = ownership.enter(ticket, admission)
         try {
@@ -36,7 +44,7 @@ class SimilarityScanner(
                 val job = currentCoroutineContext()
                 val check = { job.ensureActive(); ticket.requireCurrent(); reader.checkAccess() }
                 check()
-                val snapshot = reader.snapshot(favorites.toSet())
+                val snapshot = providedSnapshot ?: reader.snapshot(favorites.toSet())
                 check()
                 if (snapshot.items.size > CleanupBounds.MAX_SOURCES) throw SimilarityException(SimilarityFailure.SCOPE_LIMIT)
                 val (unique, _) = cleanupUniqueSources(snapshot.items)
@@ -48,9 +56,9 @@ class SimilarityScanner(
                 reader.validateScope(snapshot)
                 var coverage = SimilarityCoverage(selected.size)
                 val sources = mutableListOf<SimilarityAnalyzedSource>()
-                val budget = Budget()
-                // Single fixed buffer, no accumulator growth, clone or 64KiB scratch allocation.
-                val encoded = ByteArray(SimilarityBounds.MAX_INPUT_BYTES)
+                val budget = Budget(maxRunBytes)
+                // One fixed buffer per owned scanner, no accumulator growth, clone or 64KiB scratch allocation.
+                val readBuffer = encoded ?: ByteArray(SimilarityBounds.MAX_INPUT_BYTES).also { encoded = it }
                 onProgress(coverage)
                 for (source in selected) {
                     check()
@@ -58,7 +66,7 @@ class SimilarityScanner(
                     check()
                     if (source.mimeType.lowercase(java.util.Locale.ROOT) !in setOf("image/jpeg", "image/png")) {
                         coverage = coverage.copy(unsupported = coverage.unsupported + 1)
-                    } else if (budget.total == SimilarityBounds.MAX_RUN_BYTES) {
+                    } else if (budget.total >= budget.limit) {
                         coverage = coverage.copy(budgetOmitted = coverage.budgetOmitted + 1)
                     } else {
                         coverage = coverage.copy(attempted = coverage.attempted + 1)
@@ -67,7 +75,7 @@ class SimilarityScanner(
                             val resource = ownership.track(work, input)
                             // Physical close uncertainty dominates a primary read error. use() would
                             // suppress this signal under IOException and admit another provider handle.
-                            try { capture(input, encoded, budget, check) } finally { resource.close() }
+                            try { capture(input, readBuffer, budget, check) } finally { resource.close() }
                         } catch (cancelled: CancellationException) { throw cancelled }
                         catch (failure: SimilarityException) { throw failure }
                         catch (_: java.io.IOException) { Capture.Unreadable }
@@ -79,7 +87,7 @@ class SimilarityScanner(
                             Capture.BudgetOmitted -> coverage = coverage.copy(budgetOmitted = coverage.budgetOmitted + 1)
                             Capture.Unreadable -> coverage = coverage.copy(unreadable = coverage.unreadable + 1)
                             is Capture.Complete -> {
-                                val pixels = try { decoder.decode(encoded, captured.count, check) }
+                                val pixels = try { decoder.decode(readBuffer, captured.count, check) }
                                     catch (cancelled: CancellationException) { throw cancelled }
                                     catch (failure: SimilarityException) { throw failure }
                                     catch (_: Exception) { SimilarityPixelResult.Rejected(SimilarityPixelSkip.INVALID) }
@@ -124,7 +132,7 @@ class SimilarityScanner(
         }
     }
 
-    private class Budget(var admitted: Long = 0, var probes: Int = 0) { val total: Long get() = admitted + probes }
+    private class Budget(val limit: Long, var admitted: Long = 0, var probes: Int = 0) { val total: Long get() = admitted + probes }
     private sealed class Capture {
         class Complete(val count: Int, val sha256: String) : Capture()
         data object Empty : Capture()
@@ -138,7 +146,7 @@ class SimilarityScanner(
         var stalls = 0
         while (true) {
             check()
-            val remaining = SimilarityBounds.MAX_RUN_BYTES - budget.total
+            val remaining = budget.limit - budget.total
             // No byte remains to prove EOF: omit this partial capture, never read past the run bound.
             if (remaining == 0L) return Capture.BudgetOmitted
             if (count == encoded.size) {

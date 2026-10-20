@@ -558,3 +558,68 @@ and updated draft PR1 finish development acceptance. Hardware provider/codec/EXI
 gesture/font/TalkBack/memory/thermal/large-library/process/power-loss checks remain
 Blocked until observed. Keep genuine failures and effective old-policy regression
 proofs. No main merge, release signing, paid provider or publication.
+
+CP11 final development outcome: PASS at exact source
+`20dd35358302363ad2efccad5c3f636e73acf845` and local APK SHA-256
+`2b8b5decd6fe94482c3ad98dc56046f24bd718f76d79a0f546e67b4998eadf69`. Both
+independent local reviewer/red-team gates, both hosted role confirmations, and all
+four hosted checks passed. See the final outcome and retained ignored record in
+`docs/delivery/acceptance.md` and `.artifacts/cp11-validation.json`.
+
+## CP12 persistent incremental similarity index (Stage2 / R02 / architecture 8.2)
+
+Continue from the accepted CP11 selected-photo review toward F11's accessible-
+library scope. Add an explicitly user-started local index of versioned visual
+descriptors for current authorized static photos. Preserve the CP11 selected
+workflow and candidate-only language. The index is rebuildable app-local analysis
+data, never a source/version hash, original, keeper, or deletion decision. It is
+excluded from Android backup, never uploaded, and has clear stop, access-change
+purge and user clear controls. Opening the app, granting media access, or running
+selected-photo Find similar does not start a whole-library analysis.
+
+| Card | Owner and allowed files | Deliverable and acceptance | Dependencies |
+| --- | --- | --- | --- |
+| S39 Index contract and local store | backend; new files under Android `similarity/` and new fixed SQL asset `similarity/001_schema.sql`; matching new `similarity/*Test.kt` | Strict, versioned compact descriptor representation and separate app-local SQLite store; source key is opaque and no URI/name/path/bytes/content digest are persisted. Rows include namespace incarnation, MediaStore generation-added birth (or API26–28 date-added fallback), generation-modified revision (or best-effort legacy metadata revision), and algorithm version. Provider-version change or detected generation rollback rotates the namespace incarnation; older APIs retain best-effort continuity. Stale generations/pipeline versions never reuse features. Reopen, malformed schema/row, update/prune, bounded size and clear behavior. Unknown application IDs/objects and exact-DDL mismatch fail closed. No dependency or shared catalogue/cleanup/schema edits | New named task branch; ADR0010 freeze first; supervisor integrates |
+| S40 Full-scope indexing work | backend; new `similarity/SimilarityLibraryIndexWork.kt`, matching focused tests; existing `SimilarityScanner.kt` only a new bounded analyzed-source hook after complete read/close | Explicit start on current full authorized photo snapshot; bounded 200-photo pages, ≤16MiB/input and ≤256MiB per tap; static JPEG/PNG only; commit a page only after complete source/scope fences. Resume only on a later user action after process interruption. No WorkManager/service/background scan, automatic resume or image/file cache. User cancel stops admission; failed-close lane retained. Only successful descriptor rows are retained; unsupported, unreadable, low-information and budget-omitted outcomes are retried on a later explicit run, not persisted. Counts separate indexed/current/skipped/unattempted | S39 interface first; use same `cleanupProcessReads`; scope≤50,000 current rows; no old test edits |
+| S41 Query and UI | frontend; new `ui/SimilarityIndex*.kt` and matching tests; `StillApp.kt` and `SimilarityScreen.kt` only explicitly assigned controls/state/wiring; `strings.xml` new plain strings | Settings explains local derived descriptors and supported formats; explicit “Index photos”, Stop, Continue and Clear actions. Search selected photos against indexed current library via bounded direct candidates; exact source/choice fences and fresh CP10 Compare. Partial coverage is visible. Never index on selection or app open. No AI wording, progress certainty or deletion/protection action | S39/S40 APIs; preserve existing accessibility, lock, lifecycle, selected comparison, all source fences |
+| S42 Independent evaluation and copy | input_policy_tests owns new independent feature-index retrieval/evaluation test only; seo read-only | Freeze new unseen v3 corpus before evaluation; measure candidate retrieval recall, false positives, collision cases, persistence/source invalidation and omitted-work bounds. Plain copy accurately states on-device storage, user start/stop/clear, coverage and limits. No broad accuracy claim | Exact S39/S40 API and frozen UI copy; no implementation or threshold edits by evaluators |
+| S43 CP12 independent gates | reviewer and red_team; read only | Separate design, source, persistent-data/privacy, migration/fault, retrieval/test-effectiveness and exact integrated source/local-APK reviews; hosted confirmation by each role. Recheck every material fix | Root full checks, actual APK/backup/database audit, both roles and all required hosted checks; no production publication |
+
+Root owns ADR/task board/acceptance/CI/PR/build/manifest and integration. Preserve
+all295 Android and74 backend cases, the complete existing catalogue, protection,
+Cleanup journal, Compare, player, lock, ribbon and capture behavior. The new index
+is a new local derived-data category authorized by architecture 7/8; no media bytes,
+source path/name, content SHA, cloud transfer, backup inclusion, inference model,
+new dependency or destructive capability is part of CP12. Index results are
+appearance candidates only and can include meaningful differences. Persisted
+coverage never implies analysis of inaccessible or omitted photos. Rollback keeps
+library media untouched and removes only rebuildable feature records through the
+Clear action or a versioned local-store reset; do not alter catalogue or CP9 journal.
+
+Finish requires exact-source reviewer and separate red-team passes, root TypeScript/
+backend/SQL/Android full checks, strict lint, local APK signature/manifest/backup/
+DB/DEX audit, exact hosted checks and updated draft PR1. Physical-device codec,
+provider generations, large-library runtime, process death, battery/thermal, storage,
+access revocation and accessibility behavior remain unverified unless actually
+observed. No main merge, production signing, provider account or publication.
+
+S42 froze `tabletop-retrieval-v3` before output: seed `0xC012730B5`, generator
+SHA-256 `abed66abe7e03d80b64e7894fbe5a5c49fc932e35606f12834a71427f334fef9`,
+22 labelled pairs (14 same-appearance, 8 meaningfully different). The independent
+test-only commit is `2db2f2ae6850a253330d59b16ff183f140f2ced6`; its nine tests pass
+against the fixed retrieval source. The retained pre-fix run records both actual
+regressions: searched-photo count equalled pair checks, and access loss during an
+empty candidate lookup was not fenced. The fixed v3 evaluation retrieved all15
+matcher-eligible pairs, reported three different-content candidates (receipt
+digit/page and screen state), and missed crop and unsupported-alpha cases. It makes
+no broad accuracy claim. Corpus, labels, old-policy proof and fixed run are retained
+under `/tmp/still-cp12-s42-evidence/`.
+
+The integrated root JVM suite now passes321 cases with no failures, including the
+nine independent retrieval tests and two root regressions; root `npm run check`
+passes74 backend tests, TypeScript,11 discovery checks,18 catalogue probes and7
+similarity-index SQL probes. The Android instrumentation suite for the actual
+`SimilarityIndexStore` compiles, but is not executed: no device or emulator is
+attached/installed. The host SQL probes and compiled instrumentation cases do not
+substitute for that runtime check. S43 exact-source/APK review, the real-store run,
+hosted confirmation and final acceptance remain pending.

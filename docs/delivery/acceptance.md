@@ -1375,3 +1375,31 @@ inspection. Final immutable source/APK/verdict/CI evidence belongs in ignored
 `.artifacts/cp11-validation.json` and updated draft PR1, with the accepted result
 promoted here by the next checkpoint. No component readiness, synthetic fixture
 result or platform-source proof establishes native/hardware/production acceptance.
+
+## CP11 final development outcome
+
+The exact development candidate `20dd35358302363ad2efccad5c3f636e73acf845`
+passed local assembly, all295 Android JVM cases across30 suites, strict lint,
+74 backend tests, TypeScript,11 discovery checks and18 host-SQL probes. The actual
+local debug APK is15,601,568 bytes with SHA-256
+`2b8b5decd6fe94482c3ad98dc56046f24bd718f76d79a0f546e67b4998eadf69`, delivered at
+`.artifacts/deliveries/still-cp11-20dd353.apk`. The existing225 Android and74
+backend baselines remain unchanged. Manifest/permissions/backup exclusions, SQL
+assets, signature and compiled feature classes were audited against the exact
+local artifact.
+
+The independent reviewer and separate red team each passed the exact local source
+and APK. Each independently confirmed hosted PR run `39238180769`, push run
+`39238175326`, and all four successful exact-head checks. Ordinary completed logs
+show Android assembly, full unit tests and strict lint executed, plus TypeScript,
+74 backend tests,11 discovery checks and18 SQLite probes. No hosted binary was
+downloaded or treated as the local artifact. Exact records and log hashes are
+retained in ignored `.artifacts/cp11-validation.json` and `/tmp/still-cp11-*`.
+
+The branch is clean at the accepted candidate, pushed to `build/still-foundation`
+and includes latest `origin/main` as an ancestor. Draft PR1 remains open. No main
+merge, production signing, provider authorization or publication occurred. No
+identified Android phone or accelerated emulator was available; native provider,
+codec/EXIF, memory, large-library, thermal, accessibility, input and power-loss
+acceptance remain unverified. The selected-photo appearance index remains
+session-only; durable full-library incremental indexing remains unfinished.

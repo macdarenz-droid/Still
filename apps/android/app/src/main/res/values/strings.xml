@@ -83,6 +83,40 @@
     <string name="development_body">This development build opens your phone library. Matching-copy review is available in Cleanup. Deletion, backup and creative tools are still being built.</string>
     <string name="privacy_title">On this phone</string>
     <string name="privacy_body">This build has no internet permission. It reads permitted media in place and does not upload your photos or library metadata.</string>
+    <string name="similarity_index_title">Find similar photos</string>
+    <string name="similarity_index_body">When you start, Still reads static JPEG and PNG photos Android currently allows. Android may fetch cloud-backed media, convert photos or remove metadata before Still reads them. Each photo read is limited to 16 MiB, and each run to 256 MiB, across up to 50,000 library items. Larger photos are skipped; a run may leave other photos for later. Still saves compact appearance descriptors in a private index on this phone, not photo files. Videos, motion photos, animated images and other formats are skipped.</string>
+    <string name="similarity_index_start">Index photos</string>
+    <string name="similarity_index_continue">Continue indexing</string>
+    <string name="similarity_index_update">Update index</string>
+    <string name="similarity_index_stop">Stop indexing</string>
+    <string name="similarity_index_retry_close">Retry closing media</string>
+    <string name="similarity_index_clear">Clear index</string>
+    <string name="similarity_index_clear_note">Clearing removes Still’s saved appearance descriptors. It does not change photos or videos.</string>
+    <string name="similarity_index_clear_title">Clear saved descriptors?</string>
+    <string name="similarity_index_clear_body">This removes the local similarity index from Still. Your original photos and videos are not changed. You can build the index again later.</string>
+    <string name="similarity_index_clear_confirm">Clear index</string>
+    <string name="similarity_index_working">Working…</string>
+    <string name="similarity_index_status_loading">Reading the local index…</string>
+    <string name="similarity_index_status_idle">Indexing is optional. Start when you want to search selected photos across your current library.</string>
+    <string name="similarity_index_status_running">Indexing photos on this phone…</string>
+    <string name="similarity_index_status_stopping">Stopping. A photo read may need to finish first.</string>
+    <string name="similarity_index_status_stopped">Indexing stopped. You can continue later.</string>
+    <string name="similarity_index_status_complete">Index update complete.</string>
+    <string name="similarity_index_status_partial">This update did not finish. You can continue later.</string>
+    <string name="similarity_index_status_clearing">Clearing the local index…</string>
+    <string name="similarity_index_status_failed">The local index could not be opened.</string>
+    <string name="similarity_index_status_busy">Waiting for an earlier media read to finish.</string>
+    <string name="similarity_index_status_close">A media read could not be closed.</string>
+    <string name="similarity_index_saved_only">Saved descriptors: %1$d</string>
+    <string name="similarity_index_counts">Saved descriptors: %1$d · Photos in current library: %2$d</string>
+    <string name="similarity_index_run_counts">This run: %1$s · %2$s</string>
+    <string name="similarity_index_skipped">Skipped: %1$s</string>
+    <string name="similarity_index_bytes">Read this run: %1$s</string>
+    <string name="similarity_index_failure_unavailable">Still could not open the local index. Existing saved data is retained.</string>
+    <string name="similarity_index_failure_changed">The library changed during indexing. Refresh the library before trying again.</string>
+    <string name="similarity_index_failure_scope">This index supports up to 50,000 accessible media items.</string>
+    <string name="similarity_index_failure_busy">A previous media read is still finishing. Still has not queued another scan.</string>
+    <string name="similarity_index_failure_close">The media read lane stays reserved until Still can confirm the previous read has closed.</string>
     <string name="favorites_title">Favorites in Still</string>
     <string name="version">Development build · 0.1.0</string>
     <string name="app_lock_title">App lock</string>
@@ -269,7 +303,7 @@
     <string name="similarity_retry">Retry</string>
     <string name="similarity_compare">Compare</string>
     <string name="similarity_selection_limit">Select 2–200 photos. Supports static JPEG and PNG; up to 16 MiB per photo and 256 MiB per search.</string>
-    <string name="similarity_scope">Checks only the selected photos, across dates. Supports static JPEG and PNG photos. Limit: 16 MiB per photo and 256 MiB per search. Android may convert photos, remove metadata or fetch cloud-backed media.</string>
+    <string name="similarity_scope">Checks selected photos against the current on-device index when available, across dates. New indexing is optional and starts in Settings. This search reads selected static JPEG and PNG photos only. Limit: 16 MiB per photo and 256 MiB per search. Android may convert photos, remove metadata or fetch cloud-backed media.</string>
     <string name="similarity_detail_warning">Similar-looking photos can contain different text, expressions or changes. Compare to check the details.</string>
     <string name="similarity_scanning">Checking selected photos</string>
     <string name="similarity_ready">Search finished</string>
@@ -284,7 +318,47 @@
     <string name="similarity_failed">Still couldn’t check these photos. Close and try again.</string>
     <string name="similarity_no_pairs">No pairs to review among the photos analyzed.</string>
     <string name="similarity_not_enough">Fewer than two photos could be compared. See the skipped and unchecked counts.</string>
-    <string name="similarity_exact_scope">Pairs with matching readable data are left out. Use Cleanup to review matching copies.</string>
+    <string name="similarity_exact_scope">Appearance matches may include exact copies or meaningful differences. Compare them; Cleanup can check for matching readable data.</string>
+    <string name="similarity_index_coverage_empty">No photos from this library are indexed yet. Open Settings to build an index.</string>
+    <string name="similarity_index_coverage_no_photos">No current photos are available in the authorized library.</string>
+    <string name="similarity_index_coverage_incomplete">Only indexed photos are searched; unindexed photos may have matches.</string>
+    <string name="similarity_index_coverage_omitted">Some indexed photos were not checked because the search reached its limit.</string>
+    <plurals name="similarity_index_current">
+        <item quantity="one">%1$d of %2$d current photo is indexed</item>
+        <item quantity="other">%1$d of %2$d current photos are indexed</item>
+    </plurals>
+    <plurals name="similarity_index_checked">
+        <item quantity="one">%1$d selected-to-library comparison checked</item>
+        <item quantity="other">%1$d selected-to-library comparisons checked</item>
+    </plurals>
+    <plurals name="similarity_index_processed">
+        <item quantity="one">%d photo processed</item>
+        <item quantity="other">%d photos processed</item>
+    </plurals>
+    <plurals name="similarity_index_unattempted">
+        <item quantity="one">%d photo left to check</item>
+        <item quantity="other">%d photos left to check</item>
+    </plurals>
+    <plurals name="similarity_index_skipped_unsupported">
+        <item quantity="one">%d photo used an unsupported format</item>
+        <item quantity="other">%d photos used an unsupported format</item>
+    </plurals>
+    <plurals name="similarity_index_skipped_unreadable">
+        <item quantity="one">%d photo could not be read</item>
+        <item quantity="other">%d photos could not be read</item>
+    </plurals>
+    <plurals name="similarity_index_skipped_oversized">
+        <item quantity="one">%d photo exceeded the read limit</item>
+        <item quantity="other">%d photos exceeded the read limit</item>
+    </plurals>
+    <plurals name="similarity_index_skipped_low_information">
+        <item quantity="one">%d photo had too little detail</item>
+        <item quantity="other">%d photos had too little detail</item>
+    </plurals>
+    <plurals name="similarity_index_skipped_empty">
+        <item quantity="one">%d photo was empty</item>
+        <item quantity="other">%d photos were empty</item>
+    </plurals>
     <string name="similarity_compare_wait">Compare is unavailable while earlier photo preparation or cleanup is unfinished.</string>
     <string name="similarity_pair_number">Pair %1$d</string>
     <string name="similarity_photo_name">Photo %1$d: %2$s</string>

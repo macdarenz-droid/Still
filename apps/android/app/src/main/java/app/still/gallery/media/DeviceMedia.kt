@@ -19,7 +19,12 @@ import androidx.core.net.toUri
 import app.still.gallery.catalogue.CatalogueNamespace
 import app.still.gallery.catalogue.CatalogueObservation
 import app.still.gallery.catalogue.LocalCatalogue
+import app.still.gallery.similarity.SimilarityIndexStore
+import app.still.gallery.similarity.similarityIndexIdentity
+import app.still.gallery.similarity.similarityIndexNamespace
+import app.still.gallery.similarity.similarityIndexNamespaceKey
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
@@ -51,6 +56,7 @@ class DeviceMedia(private val context: Context) {
     private val resolver = context.contentResolver
     private val epoch = AccessEpoch()
     private val scanEpoch = AccessEpoch()
+    private val similarityIndexMaintenanceAvailable = AtomicBoolean(true)
     private var activeCatalogue: LocalCatalogue? = null
     // Thumbnails are transient. Revoking access clears this cache before the next query.
     private val cache = object : LruCache<String, Bitmap>(24 * 1024 * 1024) {
@@ -84,6 +90,7 @@ class DeviceMedia(private val context: Context) {
                     scan = database?.beginScan()
                 }) throw CancellationException("Library refresh was invalidated")
                 val snapshot = read(access, favoriteReferences)
+                maintainSimilarityIndex(snapshot.items, snapshot.namespaces)
                 currentCoroutineContext().ensureActive()
                 withContext(Dispatchers.Main) {
                     if (!scanEpoch.commitIfCurrent(expected) { onLoaded(snapshot.items, snapshot.legacyFavoriteMatches) }) {
@@ -110,6 +117,31 @@ class DeviceMedia(private val context: Context) {
             indexed
         }
     }
+
+    /** Purge rebuildable visual descriptors outside the fresh authorized source/revision scope. */
+    private fun maintainSimilarityIndex(items: List<MediaItem>, namespaces: List<CatalogueNamespace>) {
+        val available = try {
+            val unique = cleanupUniqueSources(items).first.filterNot { it.isVideo }
+            SimilarityIndexStore(context).use { store ->
+                val incarnations = store.reconcileNamespaces(namespaces.map(::similarityIndexNamespace))
+                val rows = unique.mapNotNull { item ->
+                    val incarnation = incarnations[similarityIndexNamespaceKey(item.providerAuthority, item.volumeName)] ?: return@mapNotNull null
+                    similarityIndexIdentity(item, incarnation)?.let { it.sourceKey to it.sourceRevision }
+                }
+                check(rows.map { it.first }.toSet().size == rows.size && rows.size <= CleanupBounds.MAX_SOURCES)
+                store.retainCurrent(rows.toMap())
+            }
+            true
+        } catch (_: Exception) { false }
+        similarityIndexMaintenanceAvailable.set(available)
+    }
+
+    suspend fun clearSimilarityIndex() = withContext(Dispatchers.IO) {
+        val available = try { SimilarityIndexStore(context).use { it.clear() }; true } catch (_: Exception) { false }
+        similarityIndexMaintenanceAvailable.set(available)
+    }
+
+    fun isSimilarityIndexMaintenanceAvailable(): Boolean = similarityIndexMaintenanceAvailable.get()
 
     /** Fresh cleanup-only scope; no catalogue fallback and no gallery-default change. */
     suspend fun cleanupSnapshot(access: MediaAccess, favoriteReferences: Set<String>): CleanupSourceSnapshot = withContext(Dispatchers.IO) {

@@ -14,6 +14,7 @@ import kotlin.math.sqrt
 
 object SimilarityBounds {
     const val MAX_SELECTED = 200
+    const val MAX_INDEX_SOURCES = 50_000
     const val MAX_INPUT_BYTES = 16 * 1024 * 1024
     const val MAX_RUN_BYTES = 256L * 1024 * 1024
     const val BUFFER_BYTES = 64 * 1024
@@ -61,6 +62,8 @@ class SimilarityFeature internal constructor(
         spatial.indices.sumOf { abs(spatial[it] - other.spatial[it]) } / spatial.size,
         abs(ln(aspectRatio / other.aspectRatio)),
     )
+    internal fun spatialValues(): DoubleArray = spatial.copyOf()
+    internal fun histogramValues(): DoubleArray = histogram.copyOf()
 }
 
 data class SimilarityDistance(val pHashDistance: Int, val colorDistance: Double, val spatialDistance: Double, val aspectDistance: Double) {
@@ -261,8 +264,10 @@ class SimilarityTicket internal constructor(internal val owner: Any, selected: L
 }
 class SimilarityAnalyzedSource(val item: MediaItem, val feature: SimilarityFeature, val sha256: String, val byteCount: Long)
 class SimilarityPair internal constructor(val first: MediaItem, val second: MediaItem, val evidence: SimilarityDistance) { val reviewOnly = true }
-class SimilarityResult internal constructor(internal val ticket: SimilarityTicket, pairs: List<SimilarityPair>, val coverage: SimilarityCoverage) {
+class SimilarityResult internal constructor(internal val ticket: SimilarityTicket, pairs: List<SimilarityPair>, val coverage: SimilarityCoverage,
+    analyzedSources: List<SimilarityAnalyzedSource> = emptyList(), val indexCoverage: SimilarityIndexQueryCoverage? = null) {
     val pairs = Collections.unmodifiableList(pairs.toList())
+    internal val analyzedSources = Collections.unmodifiableList(analyzedSources.toList())
     val reviewOnly = true
 }
 
@@ -272,9 +277,12 @@ class SimilaritySession {
     private class State(val ticket: SimilarityTicket? = null, val result: SimilarityResult? = null)
     private data class Ranked(val pair: SimilarityPair, val first: String, val second: String)
     private val state = AtomicReference(State())
-    fun begin(selected: List<MediaItem>, checkCurrent: () -> Unit): SimilarityTicket {
+    fun begin(selected: List<MediaItem>, checkCurrent: () -> Unit): SimilarityTicket =
+        begin(selected, allowSingle = false, checkCurrent = checkCurrent)
+
+    fun begin(selected: List<MediaItem>, allowSingle: Boolean, checkCurrent: () -> Unit): SimilarityTicket {
         val selection = selected.toList()
-        if (selection.size !in 2..SimilarityBounds.MAX_SELECTED || selection.any { it.isVideo } ||
+        if (selection.size !in (if (allowSingle) 1..SimilarityBounds.MAX_SELECTED else 2..SimilarityBounds.MAX_SELECTED) || selection.any { it.isVideo } ||
             selection.map { it.id }.toSet().size != selection.size || selection.map(::sourceUiToken).toSet().size != selection.size ||
             selection.map(::cleanupSourceReference).toSet().size != selection.size) throw SimilarityException(SimilarityFailure.INVALID_SELECTION)
         val empty = State()
@@ -332,7 +340,7 @@ class SimilaritySession {
         }
         expected.requireCurrent()
         val completed = SimilarityResult(expected, ordered.take(SimilarityBounds.MAX_PAIRS).map { it.pair }, coverage.copy(exactPairsOmitted = exact,
-            resultPairsOmitted = (ordered.size - SimilarityBounds.MAX_PAIRS).coerceAtLeast(0), pairChecks = checks))
+            resultPairsOmitted = (ordered.size - SimilarityBounds.MAX_PAIRS).coerceAtLeast(0), pairChecks = checks), analyzed)
         if (!state.compareAndSet(origin, State(expected, completed))) throw SimilarityException(SimilarityFailure.STALE)
         return completed
     }
@@ -340,5 +348,32 @@ class SimilaritySession {
         val current = state.get()
         if (current.result !== expected || !isCurrent(expected.ticket) || expected.pairs.none { it === pair } || state.get() !== current) return null
         return listOf(pair.first, pair.second)
+    }
+
+    fun finishWithIndex(expected: SimilarityResult, query: SimilarityIndexQueryResult, currentItems: List<MediaItem>): SimilarityResult {
+        val origin = state.get()
+        if (origin.result !== expected || !isCurrent(expected.ticket)) throw SimilarityException(SimilarityFailure.STALE)
+        val current = currentItems.associateBy(::sourceUiToken)
+        if (current.size != currentItems.size) throw SimilarityException(SimilarityFailure.SOURCE_CHANGED)
+        val selected = expected.ticket.selected.map(::sourceUiToken).toSet()
+        if (!current.keys.containsAll(selected)) throw SimilarityException(SimilarityFailure.SOURCE_CHANGED)
+        val identities = mutableSetOf<List<String>>()
+        val combined = (expected.pairs + query.additionalPairs).filter { pair ->
+            val first = sourceUiToken(pair.first); val second = sourceUiToken(pair.second)
+            if (first !in current || second !in current || first == second) throw SimilarityException(SimilarityFailure.SOURCE_CHANGED)
+            if (pair in query.additionalPairs && ((first in selected) == (second in selected))) throw SimilarityException(SimilarityFailure.SOURCE_CHANGED)
+            identities.add(listOf(first, second).sorted())
+        }
+        val order = compareBy<SimilarityPair> { it.evidence.pHashDistance }
+            .thenBy { it.evidence.spatialDistance }.thenBy { it.evidence.colorDistance }.thenBy { it.evidence.aspectDistance }
+            .thenBy { minOf(sourceUiToken(it.first), sourceUiToken(it.second)) }
+            .thenBy { maxOf(sourceUiToken(it.first), sourceUiToken(it.second)) }
+        val ordered = combined.sortedWith(order)
+        expected.ticket.requireCurrent()
+        val final = SimilarityResult(expected.ticket, ordered.take(SimilarityBounds.MAX_PAIRS),
+            expected.coverage.copy(resultPairsOmitted = expected.coverage.resultPairsOmitted + query.coverage.additionalPairsOmitted +
+                (ordered.size - SimilarityBounds.MAX_PAIRS).coerceAtLeast(0)), expected.analyzedSources, query.coverage)
+        if (!state.compareAndSet(origin, State(expected.ticket, final))) throw SimilarityException(SimilarityFailure.STALE)
+        return final
     }
 }
