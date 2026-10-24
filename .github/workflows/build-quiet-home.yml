@@ -1,0 +1,46 @@
+name: Build Quiet Home APK
+
+on:
+  push:
+    branches:
+      - quiet-home-apk
+    paths:
+      - android/QuietHomeLauncher/**
+      - .github/workflows/build-quiet-home.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Assemble debug APK
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 35 SDK
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build APK
+        run: |
+          chmod +x android/QuietHomeLauncher/gradlew
+          android/QuietHomeLauncher/gradlew --no-daemon -p android/QuietHomeLauncher assembleDebug
+
+      - name: Save APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Quiet-Home-debug-APK
+          path: android/QuietHomeLauncher/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
