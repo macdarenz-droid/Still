@@ -242,25 +242,27 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
     val coroutineScope = rememberCoroutineScope()
     val wallpaperPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            val previousUri = wallpaperUri?.let(Uri::parse)
-            if (previousUri != uri) {
-                runCatching {
-                    context.contentResolver.takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    )
-                }
-                previousUri?.let { oldUri ->
+            val grantTaken = runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }.isSuccess
+            if (grantTaken) {
+                val previousUri = wallpaperUri?.let(Uri::parse)
+                if (previousUri != null && previousUri != uri) {
                     runCatching {
                         context.contentResolver.releasePersistableUriPermission(
-                            oldUri,
+                            previousUri,
                             Intent.FLAG_GRANT_READ_URI_PERMISSION
                         )
                     }
                 }
+                wallpaperUri = uri.toString()
+                preferences.edit().putString("wallpaper_uri", wallpaperUri).apply()
+            } else {
+                Toast.makeText(context, "Couldn't keep access to that image.", Toast.LENGTH_SHORT).show()
             }
-            wallpaperUri = uri.toString()
-            preferences.edit().putString("wallpaper_uri", wallpaperUri).apply()
         }
     }
 
@@ -330,7 +332,7 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
     }
     val compact = configuration.screenHeightDp < 700
     val stageHeight = when {
-        configuration.screenHeightDp < 470 -> 204.dp
+        configuration.screenHeightDp < 470 -> 220.dp
         compact -> 244.dp
         else -> 320.dp
     }
@@ -421,7 +423,7 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
 
     val density = LocalDensity.current
     val orbHitRadius = with(density) { 47.dp.toPx() }
-    val appHitPadding = 0f
+    val appHitPadding = with(density) { 12.dp.toPx() }
     val screenView = LocalView.current
     SideEffect {
         val window = (screenView.context as? Activity)?.window
@@ -732,19 +734,20 @@ private fun AppStage(
             .animateContentSize()
     ) {
         val maxHeight = maxHeight
-        val compactOrbit = maxHeight < 220.dp
+        val compactOrbit = maxHeight < 270.dp
         val orbitScale = if (maxWidth < 190.dp) 1.16f else 1.26f
-        val orbitItemWidth = ((maxWidth - 12.dp) / 5 / 1.14f)
+        val orbitItemWidth = ((maxWidth - 12.dp) / 5 / orbitScale)
             .coerceAtLeast(28.dp)
             .coerceAtMost(48.dp)
         val orbitIconSize = (orbitItemWidth - 4.dp)
             .coerceAtLeast(24.dp)
-            .coerceAtMost(43.dp)
+            .coerceAtMost(if (compactOrbit) 37.dp else 43.dp)
         val horizontalSpread = ((maxWidth - orbitItemWidth * orbitScale) / 2 - 2.dp)
             .coerceAtLeast(0.dp)
             .coerceAtMost(150.dp)
-        val peakLift = if (compactOrbit) 168.dp else 222.dp
-        val edgeLift = if (compactOrbit) 154.dp else 157.dp
+        val peakLift = if (compactOrbit) maxHeight - 70.dp else 222.dp
+        val compactEdgeY = if (maxHeight < 230.dp) 78.dp else 95.dp
+        val edgeLift = if (compactOrbit) maxHeight - compactEdgeY else 157.dp
         val orbitPoints = apps.mapIndexed { index, _ ->
             if (index < 5) {
                 val primaryCount = minOf(apps.size, 5)
@@ -766,7 +769,7 @@ private fun AppStage(
                 val upperIndex = index - 5
                 val normalized = if (upperCount == 1) 0f else
                     (upperIndex.toFloat() / (upperCount - 1)) * 2f - 1f
-                val lift = 7.dp + (18.dp * (1f - abs(normalized)))
+                val lift = 3.dp + (8.dp * (1f - abs(normalized)))
                 (horizontalSpread * normalized * .82f) to lift
             }
         }
@@ -972,7 +975,7 @@ private fun BrowserGridItem(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(128.dp)
+            .height(132.dp)
             .graphicsLayer(scaleX = scale, scaleY = scale)
             .hoverable(interaction)
             .clickable(interactionSource = interaction, onClick = onSelect),
@@ -997,11 +1000,11 @@ private fun BrowserGridItem(
         Text(
             app.label,
             color = if (hovered) look.accent else look.foreground,
-            fontSize = 10.sp,
+            fontSize = 12.sp,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
-            lineHeight = 13.sp,
+            lineHeight = 14.sp,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 2.dp)
         )
     }
@@ -1017,10 +1020,16 @@ private fun BrowserListItem(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
+    val scale by animateFloatAsState(
+        if (hovered) 1.025f else 1f,
+        spring(stiffness = Spring.StiffnessMediumLow),
+        label = "browser-list-scale"
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(62.dp)
+            .graphicsLayer(scaleX = scale, scaleY = scale)
             .clip(RoundedCornerShape(16.dp))
             .background(if (hovered) look.surface else look.surface.copy(alpha = .67f))
             .hoverable(interaction)
@@ -1486,12 +1495,14 @@ private fun loadWallpaper(context: Context, uriString: String): ImageBitmap? {
             sampleSize *= 2
         }
         val options = BitmapFactory.Options().apply { inSampleSize = sampleSize.coerceAtLeast(1) }
-        val orientation = context.contentResolver.openInputStream(uri)?.use { input ->
-            android.media.ExifInterface(input).getAttributeInt(
-                android.media.ExifInterface.TAG_ORIENTATION,
-                android.media.ExifInterface.ORIENTATION_NORMAL
-            )
-        } ?: android.media.ExifInterface.ORIENTATION_NORMAL
+        val orientation = runCatching {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                android.media.ExifInterface(input).getAttributeInt(
+                    android.media.ExifInterface.TAG_ORIENTATION,
+                    android.media.ExifInterface.ORIENTATION_NORMAL
+                )
+            }
+        }.getOrNull() ?: android.media.ExifInterface.ORIENTATION_NORMAL
         val decoded = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
             ?: return@runCatching null
         val transform = Matrix()
