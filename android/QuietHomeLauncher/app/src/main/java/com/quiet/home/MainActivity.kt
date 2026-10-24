@@ -5,8 +5,8 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
@@ -50,7 +50,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -63,8 +62,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -93,7 +92,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -107,13 +105,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -247,11 +242,22 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
     val coroutineScope = rememberCoroutineScope()
     val wallpaperPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+            val previousUri = wallpaperUri?.let(Uri::parse)
+            if (previousUri != uri) {
+                runCatching {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                }
+                previousUri?.let { oldUri ->
+                    runCatching {
+                        context.contentResolver.releasePersistableUriPermission(
+                            oldUri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                    }
+                }
             }
             wallpaperUri = uri.toString()
             preferences.edit().putString("wallpaper_uri", wallpaperUri).apply()
@@ -307,7 +313,6 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
     val configuration = LocalConfiguration.current
     val launcherWidthDp = configuration.screenWidthDp - 44
     val orbitVisibleLimit = when {
-        configuration.screenHeightDp < 470 -> 3
         launcherWidthDp < 190 -> 5
         else -> 9
     }
@@ -325,7 +330,7 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
     }
     val compact = configuration.screenHeightDp < 700
     val stageHeight = when {
-        configuration.screenHeightDp < 470 -> 190.dp
+        configuration.screenHeightDp < 470 -> 204.dp
         compact -> 244.dp
         else -> 320.dp
     }
@@ -514,6 +519,7 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
                 layout = layout,
                 look = look,
                 wallpaper = wallpaper,
+                wallpaperSelected = wallpaperUri != null,
                 onBack = { settingsOpen = false },
                 onLayoutSelected = {
                     setLayout(it)
@@ -525,6 +531,14 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
                 },
                 onChooseWallpaper = { wallpaperPicker.launch(arrayOf("image/*")) },
                 onClearWallpaper = {
+                    wallpaperUri?.let { oldUri ->
+                        runCatching {
+                            context.contentResolver.releasePersistableUriPermission(
+                                Uri.parse(oldUri),
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            )
+                        }
+                    }
                     wallpaperUri = null
                     wallpaper = null
                     preferences.edit().remove("wallpaper_uri").apply()
@@ -719,7 +733,7 @@ private fun AppStage(
     ) {
         val maxHeight = maxHeight
         val compactOrbit = maxHeight < 220.dp
-        val orbitScale = if (maxWidth < 190.dp) 1.26f else 1.38f
+        val orbitScale = if (maxWidth < 190.dp) 1.16f else 1.26f
         val orbitItemWidth = ((maxWidth - 12.dp) / 5 / 1.14f)
             .coerceAtLeast(28.dp)
             .coerceAtMost(48.dp)
@@ -728,9 +742,9 @@ private fun AppStage(
             .coerceAtMost(43.dp)
         val horizontalSpread = ((maxWidth - orbitItemWidth * orbitScale) / 2 - 2.dp)
             .coerceAtLeast(0.dp)
-            .coerceAtMost(110.dp)
-        val peakLift = if (compactOrbit) 165.dp else 222.dp
-        val edgeLift = if (compactOrbit) 113.dp else 157.dp
+            .coerceAtMost(150.dp)
+        val peakLift = if (compactOrbit) 168.dp else 222.dp
+        val edgeLift = if (compactOrbit) 154.dp else 157.dp
         val orbitPoints = apps.mapIndexed { index, _ ->
             if (index < 5) {
                 val primaryCount = minOf(apps.size, 5)
@@ -752,7 +766,8 @@ private fun AppStage(
                 val upperIndex = index - 5
                 val normalized = if (upperCount == 1) 0f else
                     (upperIndex.toFloat() / (upperCount - 1)) * 2f - 1f
-                (horizontalSpread * normalized * .82f) to 7.dp
+                val lift = 7.dp + (18.dp * (1f - abs(normalized)))
+                (horizontalSpread * normalized * .82f) to lift
             }
         }
 
@@ -893,7 +908,9 @@ private fun AppBrowserScreen(
                 onValueChange = { query = it },
                 singleLine = true,
                 textStyle = androidx.compose.ui.text.TextStyle(color = look.foreground, fontSize = 13.sp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().semantics {
+                    contentDescription = "Search apps"
+                }
             )
         }
 
@@ -955,29 +972,28 @@ private fun BrowserGridItem(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(106.dp)
+            .height(128.dp)
             .graphicsLayer(scaleX = scale, scaleY = scale)
             .hoverable(interaction)
             .clickable(interactionSource = interaction, onClick = onSelect),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(Modifier.size(61.dp), contentAlignment = Alignment.Center) {
-            AppIcon(app, look, size = 50.dp, corner = 15.dp)
+        Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.CenterEnd) {
             Text(
                 if (favorite) "★" else "☆",
                 color = if (favorite) look.accent else look.muted,
                 fontSize = 12.sp,
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(25.dp)
+                    .size(48.dp)
                     .semantics {
                         contentDescription = if (favorite) "Remove ${app.label} from favourites" else "Add ${app.label} to favourites"
                         role = Role.Button
                     }
-                    .clickable(role = Role.Button, onClick = onToggleFavorite)
+                    .clickable(role = Role.Button) { onToggleFavorite() }
                     .wrapContentSize(Alignment.Center)
             )
         }
+        AppIcon(app, look, size = 50.dp, corner = 15.dp)
         Text(
             app.label,
             color = if (hovered) look.accent else look.foreground,
@@ -1031,7 +1047,7 @@ private fun BrowserListItem(
                     contentDescription = if (favorite) "Remove ${app.label} from favourites" else "Add ${app.label} to favourites"
                     role = Role.Button
                 }
-                .clickable(role = Role.Button, onClick = onToggleFavorite)
+                .clickable(role = Role.Button) { onToggleFavorite() }
                 .wrapContentSize(Alignment.Center)
         )
     }
@@ -1042,6 +1058,7 @@ private fun SettingsScreen(
     layout: AppLayout,
     look: HomeLook,
     wallpaper: ImageBitmap?,
+    wallpaperSelected: Boolean,
     onBack: () -> Unit,
     onLayoutSelected: (AppLayout) -> Unit,
     onLookSelected: (HomeLook) -> Unit,
@@ -1076,29 +1093,37 @@ private fun SettingsScreen(
             letterSpacing = 1.8.sp,
             modifier = Modifier.padding(top = 24.dp, bottom = 9.dp)
         )
-        AppLayout.entries.forEach { option ->
-            val description = when (option) {
-                AppLayout.ORBIT -> "A fan of apps around the circle"
-                AppLayout.GRID -> "A full screen grid"
-                AppLayout.LIST -> "A full screen list"
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 7.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (layout == option) look.surface else look.surface.copy(alpha = .42f))
-                    .border(1.dp, look.muted.copy(alpha = if (layout == option) .30f else .12f), RoundedCornerShape(16.dp))
-                    .semantics { role = Role.RadioButton }
-                    .clickable(role = Role.RadioButton) { onLayoutSelected(option) }
-                    .padding(horizontal = 15.dp, vertical = 13.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(option.title, color = look.foreground, fontSize = 14.sp)
-                    Text(description, color = look.muted, fontSize = 10.sp, modifier = Modifier.padding(top = 3.dp))
+        Column(Modifier.selectableGroup()) {
+            AppLayout.entries.forEach { option ->
+                val description = when (option) {
+                    AppLayout.ORBIT -> "A fan of apps around the circle"
+                    AppLayout.GRID -> "A full screen grid"
+                    AppLayout.LIST -> "A full screen list"
                 }
-                if (layout == option) Text("✓", color = look.accent, fontSize = 16.sp)
+                val interaction = remember(option) { MutableInteractionSource() }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 7.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (layout == option) look.surface else look.surface.copy(alpha = .42f))
+                        .border(1.dp, look.muted.copy(alpha = if (layout == option) .30f else .12f), RoundedCornerShape(16.dp))
+                        .selectable(
+                            selected = layout == option,
+                            interactionSource = interaction,
+                            indication = null,
+                            role = Role.RadioButton,
+                            onClick = { onLayoutSelected(option) }
+                        )
+                        .padding(horizontal = 15.dp, vertical = 13.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(option.title, color = look.foreground, fontSize = 14.sp)
+                        Text(description, color = look.muted, fontSize = 10.sp, modifier = Modifier.padding(top = 3.dp))
+                    }
+                    if (layout == option) Text("✓", color = look.accent, fontSize = 16.sp)
+                }
             }
         }
 
@@ -1147,7 +1172,7 @@ private fun SettingsScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             SettingsAction("Choose wallpaper", look, onChooseWallpaper, Modifier.weight(1f))
-            if (wallpaper != null) {
+            if (wallpaperSelected) {
                 SettingsAction("Remove", look, onClearWallpaper, Modifier)
             }
         }
@@ -1179,7 +1204,7 @@ private fun SettingsAction(
 private fun SettingsButton(look: HomeLook, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(42.dp)
+            .size(48.dp)
             .semantics { contentDescription = "Settings"; role = Role.Button }
             .clip(CircleShape)
             .clickable(role = Role.Button, onClick = onClick),
@@ -1243,122 +1268,6 @@ private fun AppOrbitItem(
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 4.dp)
-        )
-    }
-}
-
-@Composable
-private fun AppGridItem(
-    app: LauncherApp,
-    look: HomeLook,
-    favorite: Boolean,
-    selected: Boolean,
-    onHover: (String, Boolean) -> Unit,
-    onSelect: (String) -> Unit,
-    onToggleFavorite: () -> Unit,
-    onPositioned: (LayoutCoordinates?) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(114.dp)
-            .padding(2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            contentAlignment = Alignment.CenterEnd
-        ) {
-            Text(
-                text = if (favorite) "★" else "☆",
-                color = if (favorite) look.accent else look.muted,
-                fontSize = 15.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .size(48.dp)
-                    .semantics {
-                        contentDescription = if (favorite) "Remove ${app.label} from favourites" else "Add ${app.label} to favourites"
-                        role = Role.Button
-                    }
-                    .clip(CircleShape)
-                    .clickable(role = Role.Button, onClick = onToggleFavorite)
-                    .padding(top = 1.dp)
-            )
-        }
-        AppOrbitItem(
-            app = app,
-            look = look,
-            selected = selected,
-            onHover = onHover,
-            onSelect = onSelect,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            onPositioned = onPositioned
-        )
-    }
-}
-
-@Composable
-private fun AppListItem(
-    app: LauncherApp,
-    look: HomeLook,
-    favorite: Boolean,
-    selected: Boolean,
-    onHover: (String, Boolean) -> Unit,
-    onSelect: (String) -> Unit,
-    onToggleFavorite: () -> Unit,
-    onPositioned: (LayoutCoordinates?) -> Unit
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val hovered by interaction.collectIsHoveredAsState()
-    val currentOnPositioned = rememberUpdatedState(onPositioned)
-    val scale by animateFloatAsState(
-        targetValue = if (selected || hovered) 1.025f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "list-row-scale"
-    )
-    LaunchedEffect(hovered) { onHover(app.packageName, hovered) }
-    DisposableEffect(app.packageName) {
-        onDispose { currentOnPositioned.value(null) }
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(52.dp)
-            .graphicsLayer(scaleX = scale, scaleY = scale)
-            .onGloballyPositioned { onPositioned(it) }
-            .clip(RoundedCornerShape(13.dp))
-            .background(if (selected) look.surface else look.surface.copy(alpha = .62f))
-            .hoverable(interaction)
-            .clickable(interactionSource = interaction, indication = null) { onSelect(app.packageName) }
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AppIcon(app, look, size = 31.dp, corner = 10.dp)
-        Text(
-            app.label,
-            color = if (selected || hovered) look.accent else look.foreground,
-            fontSize = 11.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 10.dp)
-                .semantics { contentDescription = app.label }
-        )
-        Text(
-            text = if (favorite) "★" else "☆",
-            color = if (favorite) look.accent else look.muted,
-            fontSize = 15.sp,
-            modifier = Modifier
-                .size(48.dp)
-                .semantics {
-                    contentDescription = if (favorite) "Remove ${app.label} from favourites" else "Add ${app.label} to favourites"
-                    role = Role.Button
-                }
-                .clip(CircleShape)
-                .clickable(role = Role.Button, onClick = onToggleFavorite)
-                .wrapContentSize()
         )
     }
 }
@@ -1430,7 +1339,7 @@ private fun OrbButton(
                 .background(look.orb)
                 .border(1.dp, look.foreground.copy(alpha = .23f), CircleShape)
                 .semantics {
-                    contentDescription = if (expanded) "Close app picker" else "Open favourites"
+                    contentDescription = if (expanded) "Close app picker" else "Open app picker"
                     role = Role.Button
                 }
                 .hoverable(interaction)
@@ -1469,75 +1378,6 @@ private fun OrbDot(color: Color, expanded: Boolean) {
             .graphicsLayer(scaleX = dotScale, scaleY = dotScale)
             .clip(CircleShape)
             .background(color)
-    )
-}
-
-@Composable
-private fun SelectedAppCard(
-    app: LauncherApp,
-    look: HomeLook,
-    helperMessage: String?,
-    onOpen: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp)
-            .clip(RoundedCornerShape(15.dp))
-            .background(look.surface)
-            .padding(start = 11.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        ImageBitmapIcon(app.icon, app.label, look)
-        Column(Modifier.weight(1f).padding(start = 10.dp)) {
-            Text(
-                helperMessage ?: app.label + " selected",
-                color = look.foreground,
-                fontSize = 10.sp,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-            )
-            Text("Tap Open when you're ready.", color = look.muted, fontSize = 10.sp)
-        }
-        Text(
-            "Open",
-            color = look.orbInk,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier
-                .clip(RoundedCornerShape(10.dp))
-                .background(look.orb)
-                .clickable(role = Role.Button, onClick = onOpen)
-                .defaultMinSize(minWidth = 64.dp, minHeight = 48.dp)
-                .padding(horizontal = 14.dp, vertical = 9.dp)
-        )
-        Spacer(Modifier.width(5.dp))
-        Text(
-            "×",
-            color = look.muted,
-            fontSize = 18.sp,
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .semantics { contentDescription = "Dismiss selected app"; role = Role.Button }
-                .clickable(role = Role.Button, onClick = onDismiss)
-                .wrapContentSize()
-        )
-    }
-}
-
-@Composable
-private fun ImageBitmapIcon(icon: ImageBitmap, label: String, look: HomeLook) {
-    androidx.compose.foundation.Image(
-        bitmap = icon,
-        contentDescription = label,
-        modifier = Modifier
-            .size(35.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(look.background)
-            .padding(4.dp)
     )
 }
 
@@ -1641,12 +1481,47 @@ private fun loadWallpaper(context: Context, uriString: String): ImageBitmap? {
     return runCatching {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-        val sampleSize = generateSequence(1) { it * 2 }
-            .takeWhile { bounds.outWidth / it > 2048 || bounds.outHeight / it > 2048 }
-            .lastOrNull() ?: 1
+        var sampleSize = 1
+        while ((bounds.outWidth / sampleSize > 2048 || bounds.outHeight / sampleSize > 2048) && sampleSize < 1024) {
+            sampleSize *= 2
+        }
         val options = BitmapFactory.Options().apply { inSampleSize = sampleSize.coerceAtLeast(1) }
-        context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
-            ?.asImageBitmap()
+        val orientation = context.contentResolver.openInputStream(uri)?.use { input ->
+            android.media.ExifInterface(input).getAttributeInt(
+                android.media.ExifInterface.TAG_ORIENTATION,
+                android.media.ExifInterface.ORIENTATION_NORMAL
+            )
+        } ?: android.media.ExifInterface.ORIENTATION_NORMAL
+        val decoded = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+            ?: return@runCatching null
+        val transform = Matrix()
+        when (orientation) {
+            android.media.ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> transform.setScale(-1f, 1f)
+            android.media.ExifInterface.ORIENTATION_ROTATE_180 -> transform.setRotate(180f)
+            android.media.ExifInterface.ORIENTATION_FLIP_VERTICAL -> transform.setScale(1f, -1f)
+            android.media.ExifInterface.ORIENTATION_TRANSPOSE -> {
+                transform.setRotate(90f)
+                transform.postScale(-1f, 1f)
+            }
+            android.media.ExifInterface.ORIENTATION_ROTATE_90 -> transform.setRotate(90f)
+            android.media.ExifInterface.ORIENTATION_TRANSVERSE -> {
+                transform.setRotate(270f)
+                transform.postScale(-1f, 1f)
+            }
+            android.media.ExifInterface.ORIENTATION_ROTATE_270 -> transform.setRotate(270f)
+        }
+        val oriented = if (transform.isIdentity) decoded else {
+            android.graphics.Bitmap.createBitmap(
+                decoded,
+                0,
+                0,
+                decoded.width,
+                decoded.height,
+                transform,
+                true
+            )
+        }
+        oriented.asImageBitmap()
     }.getOrNull()
 }
 
