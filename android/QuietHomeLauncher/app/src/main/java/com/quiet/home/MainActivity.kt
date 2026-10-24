@@ -998,7 +998,7 @@ private fun BrowserGridItem(
             .height(132.dp)
             .graphicsLayer(scaleX = scale, scaleY = scale)
             .hoverable(interaction)
-            .clickable(interactionSource = interaction, onClick = onSelect),
+            .clickable(interactionSource = interaction, indication = null, onClick = onSelect),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.CenterEnd) {
@@ -1054,7 +1054,7 @@ private fun BrowserListItem(
             .clip(RoundedCornerShape(16.dp))
             .background(if (hovered) look.surface else look.surface.copy(alpha = .67f))
             .hoverable(interaction)
-            .clickable(interactionSource = interaction, onClick = onSelect)
+            .clickable(interactionSource = interaction, indication = null, onClick = onSelect)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
