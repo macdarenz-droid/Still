@@ -75,7 +75,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.getDistance
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -367,8 +366,11 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
                         pass = PointerEventPass.Initial
                     )
                     val currentCenter = currentOrbCenter.value
-                    val startedOnOrb = currentCenter != null &&
-                        (down.position - currentCenter).getDistance() <= orbHitRadius
+                    val startedOnOrb = currentCenter?.let { center ->
+                        val dx = down.position.x - center.x
+                        val dy = down.position.y - center.y
+                        dx * dx + dy * dy <= orbHitRadius * orbHitRadius
+                    } == true
                     if (!startedOnOrb) return@awaitEachGesture
 
                     val wasAlreadyOpen = currentDrawerOpen.value
@@ -1087,7 +1089,7 @@ private fun OrbButton(
                 role = Role.Button
             }
             .hoverable(interaction)
-            .clickable(interactionSource = interaction, role = Role.Button, onClick = onClick),
+        .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1253,7 +1255,11 @@ private fun nearestApp(
             point.x >= rect.left - padding && point.x <= rect.right + padding &&
                 point.y >= rect.top - padding && point.y <= rect.bottom + padding
         }
-        .minByOrNull { (it.value.center - point).getDistance() }
+        .minByOrNull { entry ->
+            val dx = entry.value.center.x - point.x
+            val dy = entry.value.center.y - point.y
+            dx * dx + dy * dy
+        }
         ?.key
 }
 
