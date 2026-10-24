@@ -17,6 +17,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -83,6 +84,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -123,6 +125,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -234,6 +237,7 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
     var highlightedPackage by remember { mutableStateOf<String?>(null) }
     var settingsOpen by remember { mutableStateOf(false) }
     var launchInProgress by remember { mutableStateOf(false) }
+    val drawerVisibilityState = remember { MutableTransitionState(false) }
     var wallpaperUri by remember(preferences) {
         mutableStateOf(preferences.getString("wallpaper_uri", null))
     }
@@ -242,13 +246,22 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
     val coroutineScope = rememberCoroutineScope()
     val wallpaperPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            val grantTaken = runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            }.isSuccess
-            if (grantTaken) {
+            coroutineScope.launch {
+                val image = withContext(Dispatchers.IO) { loadWallpaper(context, uri.toString()) }
+                if (image == null) {
+                    Toast.makeText(context, "Couldn't load that image.", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                val grantTaken = runCatching {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                }.isSuccess
+                if (!grantTaken) {
+                    Toast.makeText(context, "Couldn't keep access to that image.", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
                 val previousUri = wallpaperUri?.let(Uri::parse)
                 if (previousUri != null && previousUri != uri) {
                     runCatching {
@@ -258,10 +271,9 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
                         )
                     }
                 }
+                wallpaper = image
                 wallpaperUri = uri.toString()
                 preferences.edit().putString("wallpaper_uri", wallpaperUri).apply()
-            } else {
-                Toast.makeText(context, "Couldn't keep access to that image.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -315,7 +327,7 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
     val configuration = LocalConfiguration.current
     val launcherWidthDp = configuration.screenWidthDp - 44
     val orbitVisibleLimit = when {
-        launcherWidthDp < 190 -> 5
+        launcherWidthDp < 190 -> 3
         else -> 9
     }
     val visibleApps by remember(apps, favoritePackages, layout, orbitVisibleLimit) {
@@ -364,7 +376,11 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
         highlightedPackage = packageName
         hoverSuppressed = true
         coroutineScope.launch {
-            if (foldOrbit) delay(280)
+            if (foldOrbit) {
+                snapshotFlow {
+                    drawerVisibilityState.isIdle && !drawerVisibilityState.currentState
+                }.first { it }
+            }
             if (!onOpenApp(packageName)) {
                 Toast.makeText(context, "This app can't be opened right now.", Toast.LENGTH_SHORT).show()
             }
@@ -426,6 +442,7 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
     val appHitPadding = with(density) { 12.dp.toPx() }
     val screenView = LocalView.current
     SideEffect {
+        drawerVisibilityState.targetState = drawerOpen
         val window = (screenView.context as? Activity)?.window
         if (window != null) {
             window.statusBarColor = android.graphics.Color.TRANSPARENT
@@ -662,6 +679,7 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
 
                 AppStage(
                     apps = visibleApps,
+                    drawerVisibilityState = drawerVisibilityState,
                     look = look,
                     stageHeight = stageHeight,
                     drawerOpen = drawerOpen,
@@ -702,6 +720,7 @@ private fun QuietHome(refreshSignal: Int, onOpenApp: (String) -> Boolean) {
 @Composable
 private fun AppStage(
     apps: List<LauncherApp>,
+    drawerVisibilityState: MutableTransitionState<Boolean>,
     look: HomeLook,
     stageHeight: Dp,
     drawerOpen: Boolean,
@@ -775,7 +794,7 @@ private fun AppStage(
         }
 
         AnimatedVisibility(
-            visible = drawerOpen,
+            visibleState = drawerVisibilityState,
             modifier = Modifier.fillMaxSize(),
             enter = fadeIn(tween(155)) + scaleIn(
                 initialScale = .08f,
