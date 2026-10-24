@@ -788,7 +788,7 @@ private fun AppStage(
                 val upperIndex = index - 5
                 val normalized = if (upperCount == 1) 0f else
                     (upperIndex.toFloat() / (upperCount - 1)) * 2f - 1f
-                val lift = 3.dp + (8.dp * (1f - abs(normalized)))
+                val lift = 1.dp + (5.dp * (1f - abs(normalized)))
                 (horizontalSpread * normalized * .82f) to lift
             }
         }
@@ -985,6 +985,7 @@ private fun BrowserGridItem(
     onToggleFavorite: () -> Unit
 ) {
     val interaction = remember { MutableInteractionSource() }
+    val favoriteInteraction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
     val scale by animateFloatAsState(
         if (hovered) 1.09f else 1f,
@@ -1011,7 +1012,7 @@ private fun BrowserGridItem(
                         contentDescription = if (favorite) "Remove ${app.label} from favourites" else "Add ${app.label} to favourites"
                         role = Role.Button
                     }
-                    .clickable(role = Role.Button) { onToggleFavorite() }
+                    .clickable(interactionSource = favoriteInteraction, indication = null) { onToggleFavorite() }
                     .wrapContentSize(Alignment.Center)
             )
         }
@@ -1038,6 +1039,7 @@ private fun BrowserListItem(
     onToggleFavorite: () -> Unit
 ) {
     val interaction = remember { MutableInteractionSource() }
+    val favoriteInteraction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
     val scale by animateFloatAsState(
         if (hovered) 1.025f else 1f,
@@ -1075,7 +1077,7 @@ private fun BrowserListItem(
                     contentDescription = if (favorite) "Remove ${app.label} from favourites" else "Add ${app.label} to favourites"
                     role = Role.Button
                 }
-                .clickable(role = Role.Button) { onToggleFavorite() }
+                .clickable(interactionSource = favoriteInteraction, indication = null) { onToggleFavorite() }
                 .wrapContentSize(Alignment.Center)
         )
     }
