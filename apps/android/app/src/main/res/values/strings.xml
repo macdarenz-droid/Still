@@ -1,0 +1,421 @@
+<resources>
+    <string name="app_name">Still</string>
+    <string name="photos">Photos</string>
+    <string name="albums">Albums</string>
+    <string name="favorites">Favorites</string>
+    <string name="settings">Settings</string>
+    <string name="search_media">Search filenames</string>
+    <string name="clear_search">Clear search</string>
+    <string name="select">Select</string>
+    <string name="cancel">Cancel</string>
+    <string name="done">Done</string>
+    <string name="share">Share</string>
+    <string name="share_media">Share photos and videos</string>
+    <string name="share_failed">These items could not be shared. Check photo access and try again.</string>
+    <string name="favorite">Add to Still favorites</string>
+    <string name="unfavorite">Remove from Still favorites</string>
+    <string name="favorites_saved">Added to Still favorites</string>
+    <string name="favorites_note">Favorites are saved in Still on this phone. Your original files and system favorites stay as they are.</string>
+    <string name="access_title">Open your photo library</string>
+    <string name="access_body">Choose the photos and videos Still can show. Viewing them needs no account or cloud connection.</string>
+    <string name="choose_access">Choose photo access</string>
+    <string name="open_settings">Open app settings</string>
+    <string name="limited_title">Limited library access</string>
+    <string name="limited_body">Still shows only the photos and videos Android allows. You can change access anytime.</string>
+    <string name="change_access">Change access</string>
+    <string name="access_full">Photos and videos allowed</string>
+    <string name="access_none">Photo access is off</string>
+    <string name="access_partial">Some media is allowed</string>
+    <string name="permission_settings_note">Android controls which items are available. Reduced access does not mean a photo was deleted.</string>
+    <string name="loading">Reading your library…</string>
+    <string name="empty_title">No photos or videos to show</string>
+    <string name="empty_body">No accessible photos or videos yet. Add some on your phone or change Still’s photo access.</string>
+    <string name="no_results_title">No matching filenames</string>
+    <string name="no_results_body">Try another filename or media filter. Search covers the media Android lets Still read.</string>
+    <string name="filter_label">Media type</string>
+    <string name="filter_all">All</string>
+    <string name="filter_photos">Photos</string>
+    <string name="filter_videos">Videos</string>
+    <string name="sort_label">Sort: %1$s</string>
+    <string name="sort_newest">Newest first</string>
+    <string name="sort_oldest">Oldest first</string>
+    <string name="sort_name">Filename A–Z</string>
+    <string name="no_videos_title">No videos in this view</string>
+    <string name="no_photos_title">No photos in this view</string>
+    <string name="filter_empty_body">Choose All to include both photos and videos in this view.</string>
+    <string name="show_all_media">Show all types</string>
+    <string name="catalogue_failed">Library details couldn’t be saved. You can still browse the available photos and videos.</string>
+    <string name="catalogue_updating">Updating library details on this phone…</string>
+    <string name="catalogue_body">Still stores library details on this phone. Your photos and videos stay where they are. Current Android photo access decides what Still can show.</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="play_video">Play video</string>
+    <string name="pause_video">Pause video</string>
+    <string name="video_loading">Loading video…</string>
+    <string name="video_playing">Playing</string>
+    <string name="video_paused">Paused</string>
+    <string name="video_finished">Video finished</string>
+    <string name="no_favorites_title">No favorites yet</string>
+    <string name="no_favorites_body">Open a photo or video and choose Add to Still favorites to find it here.</string>
+    <string name="favorites_unresolved">Some saved favorites aren’t available right now. They’re still saved.</string>
+    <string name="favorites_unavailable_title">Saved favorites aren’t available</string>
+    <string name="favorites_unavailable_body">Refresh your library to try again.</string>
+    <string name="load_failed">Your library could not be read. Check photo access and retry.</string>
+    <string name="retry">Retry</string>
+    <string name="refresh">Refresh library</string>
+    <string name="back">Back</string>
+    <string name="close">Close</string>
+    <string name="information">Details</string>
+    <string name="details_title">Photo details</string>
+    <string name="video_details_title">Video details</string>
+    <string name="zoom_in">Zoom in</string>
+    <string name="zoom_out">Zoom out</string>
+    <string name="media_unavailable">This item is unavailable. Photo access may have changed.</string>
+    <string name="video_error">This video could not be played. Its format or photo access may be unavailable.</string>
+    <string name="video">Video</string>
+    <string name="photo">Photo</string>
+    <string name="media_description">%1$s, %2$s</string>
+    <string name="unknown_album">Other photos</string>
+    <string name="unknown_date">Date unavailable</string>
+    <string name="unknown_dimensions">Dimensions unavailable</string>
+    <string name="dimensions">%1$d × %2$d</string>
+    <string name="development_title">Still is in development</string>
+    <string name="development_body">This development build opens your phone library. Matching-copy review is available in Cleanup. Deletion, backup and creative tools are still being built.</string>
+    <string name="privacy_title">On this phone</string>
+    <string name="privacy_body">Google account connection uses the internet. This build reads permitted media in place and does not upload your photos or library metadata.</string>
+    <string name="similarity_index_title">Find similar photos</string>
+    <string name="similarity_index_body">When you start, Still reads static JPEG and PNG photos Android currently allows. Android may fetch cloud-backed media, convert photos or remove metadata before Still reads them. Each photo read is limited to 16 MiB, and each run to 256 MiB, across up to 50,000 library items. Larger photos are skipped; a run may leave other photos for later. Still saves compact appearance descriptors in a private index on this phone, not photo files. Videos, motion photos, animated images and other formats are skipped.</string>
+    <string name="similarity_index_start">Index photos</string>
+    <string name="similarity_index_continue">Continue indexing</string>
+    <string name="similarity_index_update">Update index</string>
+    <string name="similarity_index_stop">Stop indexing</string>
+    <string name="similarity_index_retry_close">Retry closing media</string>
+    <string name="similarity_index_clear">Clear index</string>
+    <string name="similarity_index_clear_note">Clearing removes Still’s saved appearance descriptors. It does not change photos or videos.</string>
+    <string name="similarity_index_clear_title">Clear saved descriptors?</string>
+    <string name="similarity_index_clear_body">This removes the local similarity index from Still. Your original photos and videos are not changed. You can build the index again later.</string>
+    <string name="similarity_index_clear_confirm">Clear index</string>
+    <string name="similarity_index_working">Working…</string>
+    <string name="similarity_index_status_loading">Reading the local index…</string>
+    <string name="similarity_index_status_idle">Indexing is optional. Start when you want to search selected photos across your current library.</string>
+    <string name="similarity_index_status_running">Indexing photos on this phone…</string>
+    <string name="similarity_index_status_stopping">Stopping. A photo read may need to finish first.</string>
+    <string name="similarity_index_status_stopped">Indexing stopped. You can continue later.</string>
+    <string name="similarity_index_status_complete">Index update complete.</string>
+    <string name="similarity_index_status_partial">Some photos were left out. You can continue any that remain or start another update later.</string>
+    <string name="similarity_index_status_clearing">Clearing the local index…</string>
+    <string name="similarity_index_status_failed">The local index could not be opened.</string>
+    <string name="similarity_index_status_busy">Waiting for an earlier media read to finish.</string>
+    <string name="similarity_index_status_close">A media read could not be closed.</string>
+    <string name="similarity_index_saved_only">Saved descriptors: %1$d</string>
+    <string name="similarity_index_counts">Saved descriptors: %1$d · Photos in current library: %2$d</string>
+    <string name="similarity_index_run_counts">This run: %1$s · %2$s</string>
+    <string name="similarity_index_skipped">Skipped: %1$s</string>
+    <string name="similarity_index_bytes">Read this run: %1$s</string>
+    <string name="similarity_index_failure_unavailable">Still could not open the local index. Existing saved data is retained.</string>
+    <string name="similarity_index_failure_changed">The library changed during indexing. Refresh the library before trying again.</string>
+    <string name="similarity_index_failure_scope">This index supports up to 50,000 accessible media items.</string>
+    <string name="similarity_index_failure_busy">A previous media read is still finishing. Still has not queued another scan.</string>
+    <string name="similarity_index_failure_close">The media read lane stays reserved until Still can confirm the previous read has closed.</string>
+    <string name="favorites_title">Favorites in Still</string>
+    <string name="version">Development build · 0.1.0</string>
+    <string name="app_lock_title">App lock</string>
+    <string name="app_lock_on">App lock is on</string>
+    <string name="app_lock_off">App lock is off</string>
+    <string name="app_lock_locked">Still is locked</string>
+    <string name="app_lock_opening">Opening Still…</string>
+    <string name="app_lock_unlock">Unlock Still</string>
+    <string name="app_lock_enable">Turn on app lock</string>
+    <string name="app_lock_disable">Turn off app lock</string>
+    <string name="app_lock_retry_enable">Retry turning on app lock</string>
+    <string name="app_lock_authenticating">Confirm it’s you</string>
+    <string name="app_lock_unlock_body">Use your phone’s screen lock or available biometrics to open Still.</string>
+    <string name="app_lock_prompt_body">Use your phone’s screen lock or an available biometric.</string>
+    <string name="app_lock_use_credential">Use phone screen lock</string>
+    <string name="app_lock_security_settings">Open Android security settings</string>
+    <string name="app_lock_settings_body">Require device authentication when opening Still or returning to it.</string>
+    <string name="app_lock_leaving">When app lock is on, leaving Still, including sharing or changing phone settings, locks it again.</string>
+    <string name="app_lock_screenshots">Still allows screenshots and screen recordings.</string>
+    <string name="app_lock_boundary">App lock protects access through Still. Other apps can still open photos in your phone library.</string>
+    <string name="app_lock_setup_credential">Set a device screen lock in Android Settings before turning on app lock.</string>
+    <string name="app_lock_no_credential">Your phone’s screen lock is unavailable. Set one up in Android security settings.</string>
+    <string name="app_lock_cancelled">Authentication was canceled. App lock settings did not change.</string>
+    <string name="app_lock_not_recognized">Not recognized. Try again.</string>
+    <string name="app_lock_unavailable">Device authentication is unavailable. Try your phone’s screen lock or open Android security settings.</string>
+    <string name="app_lock_auth_failed">Authentication did not finish. Try again.</string>
+    <string name="app_lock_enable_failed">App lock could not be turned on because its setting was not saved. This session stays locked. Retry to save it.</string>
+    <string name="app_lock_save_failed">The lock setting could not be saved. Still remains locked. Authenticate, then retry the change.</string>
+    <string name="app_lock_recovery">The lock setting needs recovery. Protection stays on until you authenticate and save a new setting.</string>
+    <plurals name="media_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+    <plurals name="selected_count">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+
+    <!-- CP5: observed readable-byte review only; no native mutation. -->
+    <string name="cleanup_title">Cleanup</string>
+    <string name="cleanup_scope">Compare the photo and video data Android lets Still read. Android may fetch cloud-backed media, remove metadata or convert media before it is read. A match does not prove the underlying originals are identical. Nothing is deleted.</string>
+    <string name="cleanup_limited_access">This scan covers only the media currently available through your limited Android access.</string>
+    <string name="cleanup_gallery_unready">The gallery is still loading or could not be read. Wait for it to finish, or refresh before starting a scan.</string>
+    <string name="cleanup_no_access">Allow photo and video access before starting a scan.</string>
+    <string name="cleanup_start">Start scan</string>
+    <string name="cleanup_scan_again">Start a new scan</string>
+    <string name="cleanup_cancel_scan">Stop scan</string>
+    <string name="cleanup_scanning">Scanning readable media…</string>
+    <string name="cleanup_stopping">Stopping… A provider read may need to finish before the scan stops.</string>
+    <string name="cleanup_complete">Scan finished</string>
+    <string name="cleanup_cancelled">Scan stopped. Start a new scan when you are ready.</string>
+    <string name="cleanup_invalidated">This scan is no longer current. Refresh, access changes or leaving Still can end a scan. Start a new scan to compare again.</string>
+    <string name="cleanup_busy">A previous provider read is still finishing. Try starting again after it stops. No scan has been queued.</string>
+    <string name="cleanup_failed">The scan could not finish. No matching-copy results were kept.</string>
+    <string name="cleanup_source_limit">This scan supports up to 50,000 accessible items. The scan stopped without matching-copy results.</string>
+    <string name="cleanup_coverage_unknown">Finding the currently accessible photos and videos…</string>
+    <string name="cleanup_no_compared">No items could be compared. See the coverage counts and start a new scan after access or media changes.</string>
+    <string name="cleanup_no_matches">No matching copies found among the items compared. Items omitted by the prefilter, changed or unreadable items were not compared.</string>
+    <string name="cleanup_member_details">%1$s · Readable data: %2$s</string>
+    <string name="cleanup_unnamed">Unnamed media</string>
+    <string name="cleanup_open_member">Open %1$s</string>
+    <string name="cleanup_keep_member">Keep for this scan: %1$s</string>
+    <string name="cleanup_favorite">Kept by Still favorites</string>
+    <string name="cleanup_favorite_unknown">Favorite status unavailable. Extra-copy choices for this group are paused.</string>
+    <string name="cleanup_protected">Matching readable content is protected in Still</string>
+    <string name="cleanup_protection_loading">Reading protection choices…</string>
+    <string name="cleanup_protection_ready">Protection choices are current. They are Still cleanup preferences; they do not lock files or stop other apps changing or deleting them.</string>
+    <string name="cleanup_protection_unknown">Protection status unavailable. Extra-copy choices are paused. Existing saved records are retained.</string>
+    <string name="cleanup_protection_saving">Saving the protection choice…</string>
+    <string name="cleanup_protection_write_failed">The protection change could not be confirmed. Extra-copy choices are paused.</string>
+    <string name="cleanup_retry_protection">Retry reading protection</string>
+    <string name="cleanup_protect_group">Protect matching copies</string>
+    <string name="cleanup_unprotect_group">Unprotect matching copies</string>
+    <string name="cleanup_confirm_protect_title">Protect all matching content?</string>
+    <string name="cleanup_confirm_unprotect_title">Unprotect all matching content?</string>
+    <string name="cleanup_confirm_protect_body">Save protection for this readable content in Still. This applies to ALL copies with matching readable data, including later copies only after they are freshly scanned. Changed or converted data may no longer match. It does not lock files or change other apps.</string>
+    <string name="cleanup_confirm_unprotect_body">Remove the Still protection choice for ALL copies with this matching readable data, including later freshly scanned matches. Manual keepers and Still favorites remain separate. Nothing is deleted.</string>
+    <string name="cleanup_confirm_protect">Protect matching content</string>
+    <string name="cleanup_confirm_unprotect">Unprotect matching content</string>
+    <string name="cleanup_review_needs_keeper">Choose at least one keeper before marking other copies for review. You can keep multiple copies. Keeper choices last only for this scan.</string>
+
+    <plurals name="cleanup_considered">
+        <item quantity="one">%1$d accessible item considered.</item>
+        <item quantity="other">%1$d accessible items considered.</item>
+    </plurals>
+    <plurals name="cleanup_candidates">
+        <item quantity="one">%1$d candidate has a matching media type and reported size.</item>
+        <item quantity="other">%1$d candidates share a media type and reported size.</item>
+    </plurals>
+    <plurals name="cleanup_checked">
+        <item quantity="one">Checked %1$d candidate.</item>
+        <item quantity="other">Checked %1$d candidates.</item>
+    </plurals>
+    <plurals name="cleanup_compared">
+        <item quantity="one">Compared %1$d complete, nonempty readable stream.</item>
+        <item quantity="other">Compared %1$d complete, nonempty readable streams.</item>
+    </plurals>
+    <plurals name="cleanup_empty">
+        <item quantity="one">%1$d empty stream was not compared.</item>
+        <item quantity="other">%1$d empty streams were not compared.</item>
+    </plurals>
+    <plurals name="cleanup_unavailable">
+        <item quantity="one">%1$d stream was unavailable or over the read limit.</item>
+        <item quantity="other">%1$d streams were unavailable or over the read limit.</item>
+    </plurals>
+    <plurals name="cleanup_changed">
+        <item quantity="one">%1$d changed source was not compared.</item>
+        <item quantity="other">%1$d changed sources were not compared.</item>
+    </plurals>
+    <plurals name="cleanup_omitted">
+        <item quantity="one">%1$d item was omitted by the type/size prefilter.</item>
+        <item quantity="other">%1$d items were omitted by the type/size prefilter.</item>
+    </plurals>
+    <plurals name="cleanup_aliases">
+        <item quantity="one">%1$d repeated source reference was excluded.</item>
+        <item quantity="other">%1$d repeated source references were excluded.</item>
+    </plurals>
+    <plurals name="cleanup_group_title">
+        <item quantity="one">Matching group %1$d · %2$d copy</item>
+        <item quantity="other">Matching group %1$d · %2$d copies</item>
+    </plurals>
+    <plurals name="cleanup_review_extras">
+        <item quantity="one">%1$d copy marked as extra for review. This is reversible and does not authorize removal.</item>
+        <item quantity="other">%1$d copies marked as extra for review. This is reversible and does not authorize removal.</item>
+    </plurals>
+    <string name="drift_search">Search</string>
+    <string name="drift_options">View options</string>
+    <string name="drift_open_photo">Open photo</string>
+    <string name="drift_open_video">Open video</string>
+    <string name="drift_previous">Previous</string>
+    <string name="drift_next">Next</string>
+    <string name="drift_grid">Grid view</string>
+    <string name="drift_ribbon">Ribbon view</string>
+    <string name="drift_position">%1$d of %2$d in this view</string>
+    <string name="drift_dates">Browse dates</string>
+    <string name="drift_jump">Jump to date</string>
+    <string name="drift_previous_dates">Previous dates</string>
+    <string name="drift_next_dates">Next dates</string>
+    <string name="drift_date_scope">Jump to a date in this view. The sort order stays the same.</string>
+    <string name="drift_date_format">Use YYYY-MM-DD.</string>
+    <string name="drift_date_label">Date</string>
+    <string name="drift_date_absent">No photos or videos in this view have that date.</string>
+    <string name="drift_scope_summary">%1$s · %2$s · %3$s</string>
+    <string name="drift_navigate">Menu</string>
+    <string name="drift_search_active">Filename search active</string>
+    <string name="drift_date_invalid">Enter a valid date as YYYY-MM-DD.</string>
+    <string name="compare_title">Compare</string>
+    <string name="compare_scope">Uses temporary copies of these two photos, up to 32 MiB each (64 MiB total). Android may remove metadata, convert photos or fetch cloud-backed media.</string>
+    <string name="compare_close">Close</string>
+    <string name="compare_preparing">Preparing photos</string>
+    <string name="compare_copy_progress">Prepared %1$d of 2 temporary copies</string>
+    <string name="compare_preview_progress">Prepared %1$d of 2 previews</string>
+    <string name="compare_stop">Stop</string>
+    <string name="compare_stopping">Stopping…</string>
+    <string name="compare_stopping_detail">A photo read may need to finish before temporary copies can be removed.</string>
+    <string name="compare_stopped">Comparison stopped.</string>
+    <string name="compare_cleaning">Finishing temporary storage cleanup…</string>
+    <string name="compare_cleanup_failed">Still couldn’t clear temporary comparison storage. New comparisons are unavailable until cleanup succeeds.</string>
+    <string name="compare_retry_cleanup">Retry cleanup</string>
+    <string name="compare_busy">Another media read or comparison is still active. Try again after it finishes.</string>
+    <string name="compare_size_limit">A photo’s temporary copy exceeds the 32 MiB limit for comparison. Neither photo is shown.</string>
+    <string name="compare_scope_limit">Comparison is unavailable when more than 50,000 library items are accessible. No temporary photo copies were prepared.</string>
+    <string name="compare_source_changed">The library or photo access changed. Refresh and select the photos again.</string>
+    <string name="compare_invalid_selection">Select two available photos in this view to compare.</string>
+    <string name="compare_failed">Still couldn’t prepare these photos. Close and try again.</string>
+    <string name="compare_preview_failed">Still can’t preview these photos for comparison.</string>
+    <string name="compare_photo_label">Photo %1$d of 2: %2$s</string>
+    <string name="compare_linked_state">Zoom: %1$d%%. Both photos move together.</string>
+    <string name="compare_zoom_in">Zoom in</string>
+    <string name="compare_zoom_out">Zoom out</string>
+    <string name="compare_reset">Reset view</string>
+    <string name="compare_left">Left</string>
+    <string name="compare_right">Right</string>
+    <string name="compare_up">Up</string>
+    <string name="compare_down">Down</string>
+    <string name="compare_pan_left">Pan both photos left</string>
+    <string name="compare_pan_right">Pan both photos right</string>
+    <string name="compare_pan_up">Pan both photos up</string>
+    <string name="compare_pan_down">Pan both photos down</string>
+    <string name="similarity_find">Find similar</string>
+    <string name="similarity_title">Similar photos</string>
+    <string name="similarity_close">Close</string>
+    <string name="similarity_stop">Stop</string>
+    <string name="similarity_retry">Retry</string>
+    <string name="similarity_compare">Compare</string>
+    <string name="similarity_selection_limit">Select 2–200 photos. Supports static JPEG and PNG; up to 16 MiB per photo and 256 MiB per search.</string>
+    <string name="similarity_scope">Checks selected photos against the current on-device index when available, across dates. New indexing is optional and starts in Settings. This search reads selected static JPEG and PNG photos only. Limit: 16 MiB per photo and 256 MiB per search. Android may convert photos, remove metadata or fetch cloud-backed media.</string>
+    <string name="similarity_detail_warning">Similar-looking photos can contain different text, expressions or changes. Compare to check the details.</string>
+    <string name="similarity_scanning">Checking selected photos</string>
+    <string name="similarity_ready">Search finished</string>
+    <string name="similarity_stopping">Stopping…</string>
+    <string name="similarity_stopping_detail">A media read may need to finish before the search can stop.</string>
+    <string name="similarity_stopped">Search stopped. Close to select photos and start again.</string>
+    <string name="similarity_settling">Finishing photo reads…</string>
+    <string name="similarity_busy">Another media read is active. Try again after it finishes.</string>
+    <string name="similarity_close_failed">Still couldn’t close a photo read. New searches are unavailable until it closes. Retry to try closing the read again.</string>
+    <string name="similarity_source_changed">The library or photo access changed. Refresh the library and select the photos again.</string>
+    <string name="similarity_scope_limit">This search is unavailable when more than 50,000 library items are accessible.</string>
+    <string name="similarity_failed">Still couldn’t check these photos. Close and try again.</string>
+    <string name="similarity_no_pairs">No pairs to review among the photos analyzed.</string>
+    <string name="similarity_not_enough">Fewer than two photos could be compared. See the skipped and unchecked counts.</string>
+    <string name="similarity_exact_scope">Appearance matches may include exact copies or meaningful differences. Compare them; Cleanup can check for matching readable data.</string>
+    <string name="similarity_index_coverage_empty">No photos from this library are indexed yet. Open Settings to build an index.</string>
+    <string name="similarity_index_coverage_no_photos">No current photos are available in the authorized library.</string>
+    <string name="similarity_index_coverage_incomplete">Only indexed photos are searched; unindexed photos may have matches.</string>
+    <string name="similarity_index_coverage_omitted">Some indexed photos were not checked because the search reached its limit.</string>
+    <plurals name="similarity_index_current">
+        <item quantity="one">%1$d of %2$d current photo is indexed</item>
+        <item quantity="other">%1$d of %2$d current photos are indexed</item>
+    </plurals>
+    <plurals name="similarity_index_checked">
+        <item quantity="one">%1$d selected-to-library comparison checked</item>
+        <item quantity="other">%1$d selected-to-library comparisons checked</item>
+    </plurals>
+    <plurals name="similarity_index_processed">
+        <item quantity="one">%d photo processed</item>
+        <item quantity="other">%d photos processed</item>
+    </plurals>
+    <plurals name="similarity_index_unattempted">
+        <item quantity="one">%d photo left to check</item>
+        <item quantity="other">%d photos left to check</item>
+    </plurals>
+    <plurals name="similarity_index_skipped_unsupported">
+        <item quantity="one">%d photo used an unsupported format</item>
+        <item quantity="other">%d photos used an unsupported format</item>
+    </plurals>
+    <plurals name="similarity_index_skipped_identity">
+        <item quantity="one">%d photo could not be safely identified for indexing</item>
+        <item quantity="other">%d photos could not be safely identified for indexing</item>
+    </plurals>
+    <plurals name="similarity_index_skipped_unreadable">
+        <item quantity="one">%d photo could not be read</item>
+        <item quantity="other">%d photos could not be read</item>
+    </plurals>
+    <plurals name="similarity_index_skipped_oversized">
+        <item quantity="one">%d photo exceeded the read limit</item>
+        <item quantity="other">%d photos exceeded the read limit</item>
+    </plurals>
+    <plurals name="similarity_index_skipped_low_information">
+        <item quantity="one">%d photo had too little detail</item>
+        <item quantity="other">%d photos had too little detail</item>
+    </plurals>
+    <plurals name="similarity_index_skipped_empty">
+        <item quantity="one">%d photo was empty</item>
+        <item quantity="other">%d photos were empty</item>
+    </plurals>
+    <string name="similarity_compare_wait">Compare is unavailable while earlier photo preparation or cleanup is unfinished.</string>
+    <string name="similarity_pair_number">Pair %1$d</string>
+    <string name="similarity_photo_name">Photo %1$d: %2$s</string>
+    <string name="similarity_date_unavailable">Date unavailable</string>
+    <plurals name="similarity_checked"><item quantity="one">Tried to read %1$d of %2$d selected photo</item><item quantity="other">Tried to read %1$d of %2$d selected photos</item></plurals>
+    <string name="similarity_bytes_read">Data read: %1$s</string>
+    <plurals name="similarity_pairs"><item quantity="one">%1$d pair to review</item><item quantity="other">%1$d pairs to review</item></plurals>
+    <plurals name="similarity_selected"><item quantity="one">%1$d selected photo</item><item quantity="other">%1$d selected photos</item></plurals>
+    <plurals name="similarity_analyzed"><item quantity="one">%1$d photo analyzed</item><item quantity="other">%1$d photos analyzed</item></plurals>
+    <plurals name="similarity_empty"><item quantity="one">%1$d empty photo could not be compared.</item><item quantity="other">%1$d empty photos could not be compared.</item></plurals>
+    <plurals name="similarity_unreadable"><item quantity="one">%1$d photo could not be read.</item><item quantity="other">%1$d photos could not be read.</item></plurals>
+    <plurals name="similarity_oversized"><item quantity="one">%1$d photo exceeded the 16 MiB limit.</item><item quantity="other">%1$d photos exceeded the 16 MiB limit.</item></plurals>
+    <plurals name="similarity_unsupported"><item quantity="one">%1$d photo used an unsupported format, size or animation.</item><item quantity="other">%1$d photos used an unsupported format, size or animation.</item></plurals>
+    <plurals name="similarity_low_information"><item quantity="one">%1$d photo had too little visual detail to compare.</item><item quantity="other">%1$d photos had too little visual detail to compare.</item></plurals>
+    <plurals name="similarity_budget_omitted"><item quantity="one">%1$d selected photo was not fully checked when the read limit was reached.</item><item quantity="other">%1$d selected photos were not fully checked when the read limit was reached.</item></plurals>
+    <plurals name="similarity_not_attempted"><item quantity="one">Still did not try to read %1$d selected photo.</item><item quantity="other">Still did not try to read %1$d selected photos.</item></plurals>
+    <plurals name="similarity_exact_omitted"><item quantity="one">%1$d pair with matching readable data was left out.</item><item quantity="other">%1$d pairs with matching readable data were left out.</item></plurals>
+    <plurals name="similarity_pairs_omitted"><item quantity="one">%1$d additional pair was not shown because this review is limited to 50 pairs.</item><item quantity="other">%1$d additional pairs were not shown because this review is limited to 50 pairs.</item></plurals>
+    <string name="drive_connection_title">Google Drive</string>
+    <string name="drive_connection_scope">Choose a Google account and allow Still to access files it creates or that you choose in Google Drive. Connecting does not start a backup. Backup and restore are not available yet.</string>
+    <string name="drive_connection_unavailable">Google Drive sign-in isn’t configured for this build.</string>
+    <string name="drive_connection_disconnected">No Google Drive account is connected.</string>
+    <string name="drive_connection_reauth">Sign in again to reconnect Google Drive. Account access is not kept after the app restarts.</string>
+    <string name="drive_connection_connecting">Connecting to Google Drive…</string>
+    <string name="drive_connection_authorized">Google Drive access was granted in this session.</string>
+    <string name="drive_connection_connect">Connect Google Drive</string>
+    <string name="drive_connection_switch">Switch Google account</string>
+    <string name="drive_connection_disconnect">Disconnect</string>
+    <string name="drive_connection_disconnect_note">Disconnect clears Still’s access on this phone and its saved account. Google permission remains until you remove it in your Google Account settings. Files in Drive are kept.</string>
+    <string name="drive_connection_cancelled">Connection cancelled.</string>
+    <string name="drive_connection_failed">Still couldn’t connect to Google Drive. Try again or choose another account.</string>
+    <string name="drive_connection_permission_denied">Google Drive access wasn’t granted. Connect again to allow access.</string>
+    <string name="drive_connection_storage_failed">Still couldn’t save the account change. Sign in again before using this connection.</string>
+    <string name="drive_connection_saved_account">Saved account — sign-in required</string>
+    <string name="drive_connection_no_account">Google sign-in did not return an account. Try again or check the Google accounts on your phone.</string>
+    <string name="drive_connection_setup_help">Setup instructions</string>
+    <string name="drive_connection_setup_title">Set up Google Drive sign-in</string>
+    <string name="drive_connection_setup_intro">The account chooser is unavailable until the build is configured with a Google OAuth Web client ID. Settings cannot configure an installed copy.</string>
+    <string name="drive_connection_setup_project">1. In a Google Cloud project you control, enable the Google Drive API. Configure consent and permitted test users, and register the drive.file scope.</string>
+    <string name="drive_connection_setup_android_client">2. Create an Android OAuth client for app.still.gallery.dev and the SHA-1 signing certificate of the APK you will install. In apps/android, run ./gradlew :app:signingReport to find the local debug certificate SHA-1.</string>
+    <string name="drive_connection_setup_web_client">3. Create a Web application OAuth client in the same project. Supply its public ID as STILL_GOOGLE_WEB_CLIENT_ID when building Still, then rebuild and install the configured APK. Never put a client secret in the app.</string>
+    <string name="drive_connection_setup_limits">Connecting authorizes Google Drive only; it does not connect Google Photos. Backup and restore are not available yet.</string>
+    <string name="drive_access_check">Check Drive access</string>
+    <string name="drive_access_checking">Checking Drive access…</string>
+    <string name="drive_access_checked">Drive access checked.</string>
+    <string name="drive_access_quota">Google-reported account storage: %1$s used of %2$s.</string>
+    <string name="drive_access_usage_only">Google-reported account storage used: %1$s. Total storage was not provided.</string>
+    <string name="drive_access_limit_only">Google-reported account storage limit: %1$s. Usage was not provided.</string>
+    <string name="drive_access_quota_unknown">Google did not provide storage quota information.</string>
+    <string name="drive_access_needs_sign_in">Sign in again to check Drive access.</string>
+    <string name="drive_access_denied">Google refused the access check. Review Drive permissions and API configuration.</string>
+    <string name="drive_access_rate_limited">Google limited requests. Try again later.</string>
+    <string name="drive_access_invalid">Google returned an unexpected response. Try again later.</string>
+    <string name="drive_access_failed">Couldn’t check Drive access. Try again.</string>
+    <string name="drive_access_cancelled">Access check cancelled.</string>
+</resources>

@@ -1,0 +1,29 @@
+{
+  "name": "still",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/test-backend.mjs",
+    "test:backup": "node scripts/test-backup-recovery.mjs",
+    "test:backup-transfer": "node scripts/test-backup-transfer-recovery.mjs",
+    "test:backup-source": "node scripts/test-backup-source-snapshot.mjs",
+    "test:backup-pipeline": "node scripts/test-backup-pipeline.mjs",
+    "dev:api": "node --watch services/api/src/server.ts",
+    "start:api": "node services/api/src/server.ts",
+    "check:site": "python3 scripts/check-site.py",
+    "check:catalogue": "python3 scripts/test-android-catalogue.py",
+    "check:similarity-index": "python3 scripts/test-android-similarity-index.py",
+    "build:android": "cd apps/android && ./gradlew --no-daemon :app:assembleDebug",
+    "test:android": "cd apps/android && ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug",
+    "check": "npm run typecheck && npm test && npm run check:site && npm run check:catalogue && npm run check:similarity-index"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.3"
+  }
+}
